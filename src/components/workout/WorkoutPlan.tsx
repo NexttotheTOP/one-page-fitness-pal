@@ -77,7 +77,7 @@ const WorkoutPlan = ({ workout }: WorkoutPlanProps) => {
         </div>
         
         <div className="mt-4">
-          <Button className="w-full bg-fitness-purple hover:bg-fitness-purple-dark">
+          <Button className="w-full bg-fitness-blue hover:bg-fitness-blue-dark">
             <Play className="mr-2 h-4 w-4" />
             Start Workout
           </Button>
@@ -88,3 +88,4 @@ const WorkoutPlan = ({ workout }: WorkoutPlanProps) => {
 };
 
 export default WorkoutPlan;
+

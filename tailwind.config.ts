@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -54,9 +53,9 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         fitness: {
-          blue: '#1E3A8A',
-          'blue-dark': '#091A40',
-          'blue-light': '#3B82F6',
+          blue: '#1E3A8A',    // Dark Blue (primary)
+          'blue-dark': '#091A40', // Darker Blue 
+          'blue-light': '#3B82F6', // Bright Blue
           charcoal: '#1F2937',
           gray: '#F3F4F6',
           green: '#10B981',

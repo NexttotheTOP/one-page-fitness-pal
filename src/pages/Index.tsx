@@ -76,9 +76,9 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="fitness-card hover:border-fitness-purple cursor-pointer" onClick={() => navigate('/calories')}>
+            <Card className="fitness-card hover:border-fitness-blue cursor-pointer" onClick={() => navigate('/calories')}>
               <CardContent className="flex items-center p-6">
-                <PieChart className="h-12 w-12 text-fitness-purple mr-4" />
+                <PieChart className="h-12 w-12 text-fitness-blue mr-4" />
                 <div>
                   <h3 className="text-lg font-semibold">Calorie Tracker</h3>
                   <p className="text-gray-500">Track your daily calorie intake and meals</p>
@@ -86,9 +86,9 @@ const Index = () => {
               </CardContent>
             </Card>
             
-            <Card className="fitness-card hover:border-fitness-purple cursor-pointer">
+            <Card className="fitness-card hover:border-fitness-blue cursor-pointer">
               <CardContent className="flex items-center p-6">
-                <Dumbbell className="h-12 w-12 text-fitness-purple mr-4" />
+                <Dumbbell className="h-12 w-12 text-fitness-blue mr-4" />
                 <div>
                   <h3 className="text-lg font-semibold">Exercise Library</h3>
                   <p className="text-gray-500">Browse our database of exercises</p>
@@ -103,3 +103,4 @@ const Index = () => {
 };
 
 export default Index;
+
