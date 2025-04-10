@@ -7,12 +7,12 @@ const Header = () => {
   const location = useLocation();
   
   return (
-    <header className="bg-white border-b border-gray-200 py-4 shadow-sm">
+    <header className="bg-secondary border-b border-border py-4 shadow-sm">
       <div className="fitness-container">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Dumbbell className="h-8 w-8 text-fitness-purple" />
-            <h1 className="text-2xl font-bold text-fitness-charcoal">FitnessPal</h1>
+            <Dumbbell className="h-8 w-8 text-fitness-blue-light" />
+            <h1 className="text-2xl font-bold text-foreground">FitnessPal</h1>
           </div>
           
           <nav className="flex items-center space-x-1">
@@ -20,8 +20,8 @@ const Header = () => {
               to="/"
               className={`flex items-center space-x-1 px-4 py-2 rounded-md text-sm font-medium ${
                 location.pathname === '/' 
-                  ? 'bg-fitness-purple-light text-fitness-purple'
-                  : 'text-gray-600 hover:text-fitness-purple hover:bg-gray-100'
+                  ? 'bg-fitness-blue/20 text-fitness-blue-light'
+                  : 'text-muted-foreground hover:text-fitness-blue-light hover:bg-secondary/50'
               }`}
             >
               <Dumbbell className="h-5 w-5" />
@@ -32,8 +32,8 @@ const Header = () => {
               to="/calories"
               className={`flex items-center space-x-1 px-4 py-2 rounded-md text-sm font-medium ${
                 location.pathname === '/calories' 
-                  ? 'bg-fitness-purple-light text-fitness-purple'
-                  : 'text-gray-600 hover:text-fitness-purple hover:bg-gray-100'
+                  ? 'bg-fitness-blue/20 text-fitness-blue-light'
+                  : 'text-muted-foreground hover:text-fitness-blue-light hover:bg-secondary/50'
               }`}
             >
               <PieChart className="h-5 w-5" />
