@@ -1,5 +1,4 @@
-
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Dumbbell, PieChart, Plus, Search } from 'lucide-react';
@@ -7,31 +6,59 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import WorkoutPlan from '@/components/workout/WorkoutPlan';
+import { useAuth } from "@/lib/auth-context";
+import { getUserDisplayName } from "@/lib/utils";
+import { getUserWorkouts, type WorkoutPlanWithExercises } from '@/lib/db';
+import { useToast } from '@/components/ui/use-toast';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const Index = () => {
   const navigate = useNavigate();
-  
-  // Sample workout data
-  const workouts = [
-    {
-      id: 1,
-      name: 'Full Body Workout',
-      exercises: [
-        { id: 1, name: 'Barbell Squat', sets: 3, reps: 10, weight: 135 },
-        { id: 2, name: 'Bench Press', sets: 3, reps: 8, weight: 145 },
-        { id: 3, name: 'Deadlift', sets: 3, reps: 8, weight: 185 },
-      ],
-    },
-    {
-      id: 2,
-      name: 'Upper Body Focus',
-      exercises: [
-        { id: 4, name: 'Pull-ups', sets: 3, reps: 8, weight: 0 },
-        { id: 5, name: 'Dumbbell Press', sets: 3, reps: 10, weight: 30 },
-        { id: 6, name: 'Bent Over Rows', sets: 3, reps: 10, weight: 65 },
-      ],
-    },
-  ];
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const displayName = getUserDisplayName(user);
+  const [workouts, setWorkouts] = useState<WorkoutPlanWithExercises[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const fetchWorkouts = async () => {
+      if (!user) return;
+      
+      try {
+        const userWorkouts = await getUserWorkouts(user.id);
+        // Sort workouts by most recent activity (newest first)
+        const sortedWorkouts = userWorkouts.sort((a, b) => {
+          const aDate = new Date(Math.max(
+            new Date(a.created_at).getTime(),
+            new Date(a.updated_at || 0).getTime()
+          ));
+          const bDate = new Date(Math.max(
+            new Date(b.created_at).getTime(),
+            new Date(b.updated_at || 0).getTime()
+          ));
+          return bDate.getTime() - aDate.getTime();
+        });
+        setWorkouts(sortedWorkouts);
+      } catch (error) {
+        console.error('Error fetching workouts:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load your workouts. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchWorkouts();
+  }, [user, toast]);
+
+  const filteredWorkouts = workouts.filter(workout =>
+    workout.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    workout.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,36 +66,57 @@ const Index = () => {
       
       <main className="fitness-container py-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-fitness-charcoal">Your Workout Plans</h2>
+          <h2 className="text-2xl font-bold text-fitness-charcoal">Your Workout Plans, {displayName}</h2>
           
           <div className="flex space-x-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input 
-                placeholder="Search workouts..." 
-                className="pl-9 w-[200px] bg-white"
-              />
-            </div>
-            
-            <Button className="fitness-btn-primary">
-              <Plus className="h-5 w-5 mr-1" />
-              New Workout
+            <Input
+              type="text"
+              placeholder="Search workouts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="max-w-[200px]"
+            />
+            <Button onClick={() => navigate('/create-workout')}>
+              Create Workout
             </Button>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {workouts.map((workout) => (
-            <WorkoutPlan key={workout.id} workout={workout} />
-          ))}
-          
-          <Card className="fitness-card border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 cursor-pointer flex flex-col items-center justify-center h-[300px]">
-            <CardContent className="flex flex-col items-center justify-center h-full text-gray-500">
-              <Plus className="h-12 w-12 mb-3" />
-              <p className="font-medium">Create New Workout Plan</p>
-            </CardContent>
-          </Card>
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : filteredWorkouts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredWorkouts.map((workout) => (
+              <WorkoutPlan
+                key={workout.id}
+                id={workout.id}
+                name={workout.name}
+                description={workout.description}
+                exercises={workout.exercises.map(ex => ({
+                  id: ex.id,
+                  name: ex.name,
+                  sets: ex.sets,
+                  reps: ex.reps,
+                  notes: ex.notes || undefined,
+                  order: ex.order,
+                  exercise_details: {
+                    description: ex.exercise_details.description,
+                    category: ex.exercise_details.category,
+                    muscle_groups: ex.exercise_details.muscle_groups,
+                    difficulty: ex.exercise_details.difficulty_level,
+                    equipment_needed: ex.exercise_details.equipment_needed
+                  }
+                }))}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No workouts found. Create your first workout plan!</p>
+          </div>
+        )}
         
         <div className="mt-10">
           <div className="flex justify-between items-center mb-6">

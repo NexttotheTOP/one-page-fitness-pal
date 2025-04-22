@@ -1,90 +1,97 @@
-
-import React, { useState } from 'react';
-import { Edit, MoreVertical, Play, Trash } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import ExerciseCard from './ExerciseCard';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import WorkoutDetailDialog from "./WorkoutDetailDialog";
+import { Separator } from "@/components/ui/separator";
 
 interface Exercise {
-  id: number;
+  id: string;
   name: string;
   sets: number;
   reps: number;
-  weight: number;
-}
-
-interface WorkoutPlanProps {
-  workout: {
-    id: number;
-    name: string;
-    exercises: Exercise[];
+  notes?: string;
+  order: number;
+  exercise_details: {
+    description: string;
+    category: string;
+    muscle_groups: string[];
+    difficulty: string;
+    equipment_needed: string;
   };
 }
 
-const WorkoutPlan = ({ workout }: WorkoutPlanProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  
-  return (
-    <Card className="fitness-card overflow-hidden">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-xl font-bold">{workout.name}</CardTitle>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white">
-              <DropdownMenuItem className="cursor-pointer flex items-center">
-                <Edit className="mr-2 h-4 w-4" />
-                <span>Edit</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer flex items-center text-red-500">
-                <Trash className="mr-2 h-4 w-4" />
-                <span>Delete</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <div className="flex justify-between items-center mt-2">
-          <div className="text-sm text-gray-500">
-            {workout.exercises.length} exercises
-          </div>
-          <Button variant="outline" size="sm" className="h-8" onClick={() => setIsExpanded(!isExpanded)}>
-            {isExpanded ? 'Hide' : 'View All'}
-          </Button>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-0">
-        <div className="space-y-3">
-          {(isExpanded ? workout.exercises : workout.exercises.slice(0, 2)).map((exercise) => (
-            <ExerciseCard key={exercise.id} exercise={exercise} />
-          ))}
-          
-          {!isExpanded && workout.exercises.length > 2 && (
-            <div className="text-sm text-gray-400 text-center pt-2">
-              {workout.exercises.length - 2} more exercises
-            </div>
-          )}
-        </div>
-        
-        <div className="mt-4">
-          <Button className="w-full bg-fitness-purple hover:bg-fitness-purple-dark">
-            <Play className="mr-2 h-4 w-4" />
-            Start Workout
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+interface WorkoutPlanProps {
+  id: string;
+  name: string;
+  description: string;
+  exercises: Exercise[];
+}
 
-export default WorkoutPlan;
+export default function WorkoutPlan({ id, name, description, exercises }: WorkoutPlanProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const displayedExercises = isExpanded ? exercises : exercises.slice(0, 3);
+  const hasMoreExercises = exercises.length > 3;
+
+  return (
+    <div className="rounded-lg border p-4 space-y-4">
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold">{name}</h3>
+        <p className="text-sm text-muted-foreground">{description}</p>
+        <Separator className="bg-purple-200 dark:bg-purple-900/50 w-4/5" />
+      </div>
+
+      <div className="space-y-3">
+        {displayedExercises.map((exercise) => (
+          <div key={`${id}-${exercise.id}`} className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{exercise.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {exercise.sets} sets × {exercise.reps} reps
+                </p>
+              </div>
+            </div>
+            {exercise.notes && (
+              <div className="pl-4 border-l-2 border-purple-200 dark:border-purple-900">
+                <p className="text-sm text-muted-foreground">{exercise.notes}</p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {hasMoreExercises && (
+        <Button
+          variant="ghost"
+          className="w-full text-muted-foreground hover:text-foreground"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          {isExpanded ? (
+            <>
+              Show Less <ChevronUp className="ml-2 h-4 w-4" />
+            </>
+          ) : (
+            <>
+              Show {exercises.length - 3} More <ChevronDown className="ml-2 h-4 w-4" />
+            </>
+          )}
+        </Button>
+      )}
+
+      <Button
+        className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+        onClick={() => setIsDetailOpen(true)}
+      >
+        View Workout
+      </Button>
+
+      <WorkoutDetailDialog
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        workout={{ id, name, description, exercises }}
+      />
+    </div>
+  );
+}
