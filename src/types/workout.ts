@@ -3,6 +3,7 @@ export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
 
 export type Exercise = {
   id: string;
+  user_id: string;
   name: string;
   description?: string;
   category: ExerciseCategory;

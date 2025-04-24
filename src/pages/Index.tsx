@@ -11,6 +11,8 @@ import { getUserDisplayName } from "@/lib/utils";
 import { getUserWorkouts, type WorkoutPlanWithExercises } from '@/lib/db';
 import { useToast } from '@/components/ui/use-toast';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import FitnessProfileForm, { type FitnessProfileData } from '@/components/profile/FitnessProfileForm';
+import { getUserFitnessProfile, createFitnessProfile, updateFitnessProfile, getOrCreateThreadId } from '@/lib/profile';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -20,14 +22,34 @@ const Index = () => {
   const [workouts, setWorkouts] = useState<WorkoutPlanWithExercises[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasProfile, setHasProfile] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [profileData, setProfileData] = useState<FitnessProfileData | null>(null);
+  const [threadId, setThreadId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchWorkouts = async () => {
+    const fetchData = async () => {
       if (!user) return;
       
+      setIsLoading(true);
+      setIsLoadingProfile(true);
+
       try {
+        // Fetch profile first
+        const profile = await getUserFitnessProfile(user.id);
+        setHasProfile(!!profile);
+        if (profile) {
+          const { id, user_id, thread_id, created_at, updated_at, ...profileData } = profile;
+          setProfileData(profileData);
+          setThreadId(thread_id);
+        } else {
+          // If no profile exists, ensure we have a thread_id
+          const newThreadId = await getOrCreateThreadId(user.id);
+          setThreadId(newThreadId);
+        }
+
+        // Fetch workouts
         const userWorkouts = await getUserWorkouts(user.id);
-        // Sort workouts by most recent activity (newest first)
         const sortedWorkouts = userWorkouts.sort((a, b) => {
           const aDate = new Date(Math.max(
             new Date(a.created_at).getTime(),
@@ -41,30 +63,81 @@ const Index = () => {
         });
         setWorkouts(sortedWorkouts);
       } catch (error) {
-        console.error('Error fetching workouts:', error);
+        console.error('Error fetching data:', error);
         toast({
           title: "Error",
-          description: "Failed to load your workouts. Please try again.",
+          description: "Failed to load your data. Please try again.",
           variant: "destructive",
         });
       } finally {
         setIsLoading(false);
+        setIsLoadingProfile(false);
       }
     };
 
-    fetchWorkouts();
+    fetchData();
   }, [user, toast]);
+
+  const handleProfileSubmit = async (data: FitnessProfileData) => {
+    if (!user) return;
+
+    try {
+      if (hasProfile) {
+        // Update existing profile
+        await updateFitnessProfile(user.id, data);
+      } else {
+        // Create new profile
+        await createFitnessProfile(user.id, data);
+      }
+      
+      setHasProfile(true);
+      setProfileData(data);
+      toast({
+        title: "Success",
+        description: "Your fitness profile has been saved.",
+      });
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save your fitness profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredWorkouts = workouts.filter(workout =>
     workout.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     workout.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  if (isLoadingProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <main className="fitness-container py-6">
+          <div className="flex justify-center items-center h-64">
+            <LoadingSpinner size="lg" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
       <main className="fitness-container py-6">
+        <div className="mb-8">
+          <FitnessProfileForm 
+            onSubmit={handleProfileSubmit} 
+            initiallyExpanded={!hasProfile}
+            initialData={profileData || undefined}
+            threadId={threadId || undefined}
+          />
+        </div>
+
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-fitness-charcoal">Your Workout Plans, {displayName}</h2>
           
