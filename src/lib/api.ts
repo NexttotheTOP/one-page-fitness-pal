@@ -53,9 +53,18 @@ export async function generateProfileOverview(
             return;
           }
 
-          // Add the content directly (no JSON parsing)
-          accumulatedMarkdown += content;
-          onMarkdownUpdate(accumulatedMarkdown);
+          try {
+            // Parse the JSON and extract just the content
+            const jsonContent = JSON.parse(content);
+            if (jsonContent.content) {
+              accumulatedMarkdown += jsonContent.content;
+              onMarkdownUpdate(accumulatedMarkdown);
+            }
+          } catch (e) {
+            // If JSON parsing fails, just add the content directly
+            accumulatedMarkdown += content;
+            onMarkdownUpdate(accumulatedMarkdown);
+          }
         }
       }
     }
@@ -121,6 +130,72 @@ export async function queryFitnessCoach(
   } catch (error) {
     console.error('Error setting up query:', error);
     onMarkdownUpdate('**Error: Failed to start query**');
+    throw error;
+  }
+}
+
+export async function queryRagSystem(
+  query: string,
+  onMarkdownUpdate: (markdown: string) => void
+): Promise<void> {
+  let accumulatedMarkdown = '';
+
+  try {
+    const response = await fetch('http://localhost:8000/fitness/rag-query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ query })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      // Decode the chunk and add to buffer
+      buffer += decoder.decode(value, { stream: true });
+
+      // Process complete SSE messages
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep the last incomplete line in the buffer
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const content = line.slice(6); // Remove 'data: ' prefix
+          
+          // Check for completion message
+          if (content === '[DONE]') {
+            return;
+          }
+
+          try {
+            // Parse the JSON and extract just the content
+            const jsonContent = JSON.parse(content);
+            if (jsonContent.content) {
+              accumulatedMarkdown += jsonContent.content;
+              onMarkdownUpdate(accumulatedMarkdown);
+            }
+          } catch (e) {
+            // If JSON parsing fails, just add the content directly
+            accumulatedMarkdown += content;
+            onMarkdownUpdate(accumulatedMarkdown);
+          }
+        }
+      }
+    }
+
+  } catch (error) {
+    console.error('Error querying RAG system:', error);
+    onMarkdownUpdate('**Error: Failed to query the knowledge base**');
     throw error;
   }
 } 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Dumbbell, PieChart } from 'lucide-react';
+import { Dumbbell, PieChart, Brain, User, LogOut } from 'lucide-react';
 import { useAuth } from "@/lib/auth-context";
 import { getUserDisplayName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, User } from "lucide-react";
 
 const Header = () => {
   const location = useLocation();
@@ -56,6 +55,18 @@ const Header = () => {
             </Link>
             
             <Link
+              to="/profile"
+              className={`flex items-center space-x-1 px-4 py-2 rounded-md text-sm font-medium ${
+                location.pathname === '/profile' 
+                  ? 'bg-fitness-purple-light text-fitness-purple'
+                  : 'text-gray-600 hover:text-fitness-purple hover:bg-gray-100'
+              }`}
+            >
+              <User className="h-5 w-5" />
+              <span>Overview</span>
+            </Link>
+            
+            <Link
               to="/calories"
               className={`flex items-center space-x-1 px-4 py-2 rounded-md text-sm font-medium ${
                 location.pathname === '/calories' 
@@ -65,6 +76,18 @@ const Header = () => {
             >
               <PieChart className="h-5 w-5" />
               <span>Calories</span>
+            </Link>
+            
+            <Link
+              to="/knowledge"
+              className={`flex items-center space-x-1 px-4 py-2 rounded-md text-sm font-medium ${
+                location.pathname === '/knowledge' 
+                  ? 'bg-fitness-purple-light text-fitness-purple'
+                  : 'text-gray-600 hover:text-fitness-purple hover:bg-gray-100'
+              }`}
+            >
+              <Brain className="h-5 w-5" />
+              <span>Knowledge</span>
             </Link>
           </nav>
 

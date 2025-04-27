@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import CalorieTracker from "./pages/CalorieTracker";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import FitnessKnowledge from "./pages/FitnessKnowledge";
+import FitnessProfile from "./pages/FitnessProfile";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +55,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CalorieTracker />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/knowledge"
+              element={
+                <ProtectedRoute>
+                  <FitnessKnowledge />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <FitnessProfile />
                 </ProtectedRoute>
               }
             />

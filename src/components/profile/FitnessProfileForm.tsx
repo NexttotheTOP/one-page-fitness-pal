@@ -16,7 +16,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { generateProfileOverview } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 
 interface FitnessProfileFormProps {
   onSubmit: (data: FitnessProfileData) => void;
@@ -72,34 +71,6 @@ const COMMON_HEALTH_RESTRICTIONS = [
   "Heart Condition",
   "None",
 ];
-
-// Custom components for markdown rendering
-const markdownComponents = {
-  h1: ({ children }: { children: React.ReactNode }) => (
-    <h1 className="text-2xl font-bold text-fitness-purple mb-4 mt-6">{children}</h1>
-  ),
-  h2: ({ children }: { children: React.ReactNode }) => (
-    <h2 className="text-xl font-semibold text-fitness-purple mb-3 mt-5">{children}</h2>
-  ),
-  h3: ({ children }: { children: React.ReactNode }) => (
-    <h3 className="text-lg font-medium text-fitness-purple mb-2 mt-4">{children}</h3>
-  ),
-  p: ({ children }: { children: React.ReactNode }) => (
-    <p className="mb-4 text-gray-700">{children}</p>
-  ),
-  ul: ({ children }: { children: React.ReactNode }) => (
-    <ul className="list-disc pl-6 mb-4 space-y-2">{children}</ul>
-  ),
-  ol: ({ children }: { children: React.ReactNode }) => (
-    <ol className="list-decimal pl-6 mb-4 space-y-2">{children}</ol>
-  ),
-  li: ({ children }: { children: React.ReactNode }) => (
-    <li className="text-gray-700">{children}</li>
-  ),
-  strong: ({ children }: { children: React.ReactNode }) => (
-    <strong className="font-semibold text-fitness-charcoal">{children}</strong>
-  ),
-};
 
 export default function FitnessProfileForm({ 
   onSubmit, 
@@ -197,7 +168,29 @@ export default function FitnessProfileForm({
           health_restrictions: healthRestrictions,
         },
         (updatedMarkdown) => {
-          setMarkdown(updatedMarkdown);
+          // Clean up the markdown while preserving list formatting
+          const cleanedMarkdown = updatedMarkdown
+            // First, normalize all newlines
+            .replace(/\r\n|\r/g, '\n')
+            // Preserve list items by adding a temporary marker
+            .replace(/^(\s*[-*])/gm, '§$1')
+            .replace(/^(\s*\d+\.)/gm, '§$1')
+            // Remove multiple consecutive newlines
+            .replace(/\n{3,}/g, '\n\n')
+            // Remove whitespace between newlines
+            .replace(/\n\s+\n/g, '\n\n')
+            // Ensure headers have space before them
+            .replace(/\n#+/g, '\n\n#')
+            // Restore list items and ensure proper spacing
+            .replace(/§(\s*[-*])/g, '$1')
+            .replace(/§(\s*\d+\.)/g, '$1')
+            // Ensure list items are properly spaced
+            .replace(/^([-*]|\d+\.)/gm, '\n$1')
+            // Clean up any resulting multiple newlines again
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+          
+          setMarkdown(cleanedMarkdown);
           if (!isGenerating) setIsGenerating(true);
         }
       );
@@ -222,7 +215,7 @@ export default function FitnessProfileForm({
             <div>
               <CardTitle>Fitness Profile</CardTitle>
               <CardDescription>
-                Tell us what our AI needs to know about you  -- we will store this in memory and use it to tailor your experience.
+                Tell us what our AI needs to know about you  -- we store this in your global memory and use it to tailor your experience within the app.
               </CardDescription>
             </div>
             <CollapsibleTrigger asChild>
@@ -538,15 +531,8 @@ export default function FitnessProfileForm({
               </div>
 
               {(markdown || isGenerating) && (
-                <div className="mt-6 p-6 bg-gray-50 rounded-lg overflow-y-auto max-h-[600px]">
-                  <div className="space-y-4">
-                    <Markdown 
-                      remarkPlugins={[remarkGfm]}
-                      components={markdownComponents}
-                    >
-                      {markdown}
-                    </Markdown>
-                  </div>
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg whitespace-pre-wrap h-[600px] overflow-y-auto">
+                  <Markdown>{markdown}</Markdown>
                 </div>
               )}
             </form>
