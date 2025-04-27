@@ -6,6 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/lib/supabase";
+import { Edit3, Save, X, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface EditWorkoutDetailsFormProps {
   workoutId: string;
@@ -62,18 +64,28 @@ export default function EditWorkoutDetailsForm({
   };
 
   return (
-    <div className="w-full space-y-4">
-      <div className="space-y-2">
-        <h2 className="text-2xl font-bold">Edit Workout Details</h2>
+    <motion.div 
+      className="w-full"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Edit3 className="h-5 w-5 text-fitness-purple" />
+          <h2 className="text-xl font-bold text-fitness-charcoal">Edit Workout Details</h2>
+        </div>
+        
         <p className="text-sm text-muted-foreground">
-          Update your workout name and description
+          Update your workout name and description to better reflect your training goals
         </p>
-        <Separator className="bg-purple-200 dark:bg-purple-900/50" />
+        
+        <Separator className="bg-gradient-to-r from-fitness-purple/30 to-transparent h-px" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+      <form onSubmit={handleSubmit} className="space-y-6 pt-5">
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-base">
+          <Label htmlFor="name" className="text-sm font-medium text-fitness-charcoal flex items-center gap-1.5">
             Workout Name
           </Label>
           <Input
@@ -82,42 +94,53 @@ export default function EditWorkoutDetailsForm({
             onChange={(e) => setName(e.target.value)}
             placeholder="Enter workout name"
             required
-            className="w-full"
+            className="w-full transition-all focus-visible:ring-fitness-purple/20 focus-visible:border-fitness-purple/80"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description" className="text-base">
+          <Label htmlFor="description" className="text-sm font-medium text-fitness-charcoal flex items-center gap-1.5">
             Description
           </Label>
           <Textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Enter workout description"
-            className="h-32 w-full resize-none"
+            placeholder="Describe your workout (goals, intensity, etc.)"
+            className="h-32 w-full resize-none transition-all focus-visible:ring-fitness-purple/20 focus-visible:border-fitness-purple/80"
           />
         </div>
 
-        <div className="flex justify-center gap-2 pt-2">
+        <div className="flex justify-end gap-3 pt-2">
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
             disabled={isLoading}
-            className="min-w-[100px]"
+            className="border-gray-200 hover:bg-gray-100 hover:text-gray-900 transition-colors"
           >
+            <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
           <Button
             type="submit"
-            className="bg-purple-600 hover:bg-purple-700 min-w-[100px]"
+            className="bg-fitness-purple hover:bg-fitness-purple/90 transition-colors"
             disabled={isLoading}
           >
-            {isLoading ? "Saving..." : "Save Changes"}
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </>
+            )}
           </Button>
         </div>
       </form>
-    </div>
+    </motion.div>
   );
 } 

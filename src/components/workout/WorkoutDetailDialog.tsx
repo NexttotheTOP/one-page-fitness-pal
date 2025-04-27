@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Edit2, Trash2, Plus, GripVertical, X, Wand2, Dumbbell, ClipboardList, Target, ArrowLeft, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Edit2, Trash2, Plus, GripVertical, X, Wand2, Dumbbell, ClipboardList, Target, ArrowLeft, Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import EditWorkoutDetailsForm from "./EditWorkoutDetailsForm";
 import { useToast } from "@/components/ui/use-toast";
@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { ExerciseCategory, DifficultyLevel } from "@/types/workout";
+import { motion } from "framer-motion";
 
 interface ExerciseDetails {
   description: string;
@@ -282,152 +283,165 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl h-[80vh] flex flex-col p-0" hideDefaultClose>
+      <DialogContent className="max-w-5xl h-[80vh] flex flex-col p-0 overflow-hidden border-0 shadow-lg" hideDefaultClose>
         <div className="absolute right-4 top-4 z-10">
           <DialogClose asChild>
             <Button 
               variant="ghost" 
               size="icon"
-              className="hover:bg-muted rounded-full h-8 w-8 transition-colors"
+              className="hover:bg-black/5 rounded-full h-8 w-8 transition-colors"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5 text-muted-foreground" />
             </Button>
           </DialogClose>
         </div>
 
         {workoutVariations ? (
           <>
-            <DialogHeader className="p-6 space-y-4">
+            <DialogHeader className="p-6 bg-gradient-to-r from-purple-50 to-blue-50 space-y-4">
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 hover:bg-black/5 rounded-full"
                   onClick={() => setWorkoutVariations(null)}
                 >
-                  <ArrowLeft className="h-5 w-5" />
+                  <ArrowLeft className="h-5 w-5 text-fitness-charcoal" />
                 </Button>
                 <div>
-                  <DialogTitle className="text-2xl font-bold tracking-tight">
+                  <DialogTitle className="text-2xl font-bold tracking-tight text-fitness-charcoal">
                     Workout Variations
                   </DialogTitle>
-                  <DialogDescription className="text-base">
-                    We have generated these variations for you based on your workout.
+                  <DialogDescription className="text-base text-muted-foreground">
+                    Choose from these AI-generated variations based on your workout
                   </DialogDescription>
                 </div>
               </div>
-              <Separator className="bg-purple-200 dark:bg-purple-900/50" />
             </DialogHeader>
 
             <ScrollArea className="flex-1 px-6">
-              <div className="space-y-6 pb-6">
+              <div className="space-y-6 py-6">
                 {workoutVariations.map((variation: WorkoutVariation, index: number) => (
-                  <Card
+                  <motion.div
                     key={`${variation.name}-${index}`}
-                    className="border-2 hover:border-purple-200 transition-colors"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
                   >
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="text-xl font-semibold">
-                            {variation.name}
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {variation.description}
-                          </p>
+                    <Card
+                      className="border border-gray-100 hover:border-purple-200 transition-colors shadow-sm"
+                    >
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-xl font-semibold text-fitness-charcoal">
+                              {variation.name}
+                            </CardTitle>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {variation.description}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                              onClick={() => handleDiscardVariation(variation.name)}
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Don't keep it
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
+                              onClick={() => handleSaveVariation(variation)}
+                              disabled={savedVariations.has(variation.name)}
+                            >
+                              {savedVariations.has(variation.name) ? (
+                                <>
+                                  <Check className="h-4 w-4 mr-2" />
+                                  Saved
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="h-4 w-4 mr-2" />
+                                  Save workout
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            onClick={() => handleDiscardVariation(variation.name)}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Don't keep it
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-green-600 hover:bg-green-100 hover:text-green-700"
-                            onClick={() => handleSaveVariation(variation)}
-                            disabled={savedVariations.has(variation.name)}
-                          >
-                            {savedVariations.has(variation.name) ? (
-                              <>
-                                <Check className="h-4 w-4 mr-2" />
-                                Saved
-                              </>
-                            ) : (
-                              <>
-                                <Check className="h-4 w-4 mr-2" />
-                                Save workout
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
+                      </CardHeader>
 
-                    <CardContent>
-                      <div className="space-y-4">
-                        {variation.exercises.slice(0, expandedVariations[variation.name] ? undefined : 3).map((exercise: any, exerciseIndex: number) => (
-                          <div
-                            key={`${variation.name}-${exercise.name}-${exerciseIndex}`}
-                            className="space-y-2"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-medium">{exercise.name}</h4>
-                                  <Badge 
-                                    variant="secondary" 
-                                    className={getDifficultyColor(exercise.details.difficulty)}
-                                  >
-                                    {exercise.details.difficulty}
-                                  </Badge>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {variation.exercises.slice(0, expandedVariations[variation.name] ? undefined : 3).map((exercise: any, exerciseIndex: number) => (
+                            <div
+                              key={`${variation.name}-${exercise.name}-${exerciseIndex}`}
+                              className="p-3 bg-gray-50 rounded-lg"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <Dumbbell className="h-4 w-4 text-fitness-purple" />
+                                    <h4 className="font-medium text-fitness-charcoal">{exercise.name}</h4>
+                                    <Badge 
+                                      variant="secondary" 
+                                      className={getDifficultyColor(exercise.details.difficulty)}
+                                    >
+                                      {exercise.details.difficulty}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Dumbbell className="h-4 w-4" />
-                                  <span>{exercise.sets} sets × {exercise.reps} reps</span>
+                                
+                                <div className="flex flex-wrap gap-1">
+                                  {exercise.details.muscle_groups.slice(0, 2).map((muscle: string, i: number) => (
+                                    <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-fitness-purple border-purple-200">
+                                      {muscle}
+                                    </Badge>
+                                  ))}
                                 </div>
                               </div>
+                              {exercise.notes && (
+                                <p className="text-sm text-muted-foreground mt-2 pl-4 border-l-2 border-purple-200">
+                                  {exercise.notes}
+                                </p>
+                              )}
                             </div>
-                            {exercise.notes && (
-                              <p className="text-sm text-muted-foreground pl-4 border-l-2 border-purple-200">
-                                {exercise.notes}
-                              </p>
-                            )}
-                          </div>
-                        ))}
+                          ))}
 
-                        {variation.exercises.length > 3 && (
-                          <Button
-                            variant="ghost"
-                            className="w-full text-muted-foreground hover:text-foreground"
-                            onClick={() => toggleVariationExpansion(variation.name)}
-                          >
-                            {expandedVariations[variation.name] ? (
-                              <>
-                                Show Less <ChevronUp className="ml-2 h-4 w-4" />
-                              </>
-                            ) : (
-                              <>
-                                Show {variation.exercises.length - 3} More <ChevronDown className="ml-2 h-4 w-4" />
-                              </>
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                          {variation.exercises.length > 3 && (
+                            <Button
+                              variant="ghost"
+                              className="w-full text-muted-foreground hover:text-foreground hover:bg-gray-100"
+                              onClick={() => toggleVariationExpansion(variation.name)}
+                            >
+                              {expandedVariations[variation.name] ? (
+                                <>
+                                  Show Less <ChevronUp className="ml-2 h-4 w-4" />
+                                </>
+                              ) : (
+                                <>
+                                  Show {variation.exercises.length - 3} More <ChevronDown className="ml-2 h-4 w-4" />
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 ))}
               </div>
             </ScrollArea>
           </>
         ) : (
           <>
-            <DialogHeader className="p-6 space-y-6">
+            <DialogHeader className="p-6 bg-gradient-to-r from-purple-50 to-blue-50 space-y-4">
               {isEditing ? (
                 <EditWorkoutDetailsForm
                   workoutId={workout.id}
@@ -437,167 +451,184 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
                   onCancel={() => setIsEditing(false)}
                 />
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
-                      <DialogTitle className="text-2xl font-bold tracking-tight">
+                      <DialogTitle className="text-2xl font-bold tracking-tight text-fitness-charcoal">
                         {workoutDetails.name}
                       </DialogTitle>
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => setIsEditing(true)}
-                        className="hover:bg-muted h-8"
+                        className="hover:bg-black/5 h-8 rounded-full"
                       >
-                        <Edit2 className="h-4 w-4" />
+                        <Edit2 className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     </div>
-                    <DialogDescription className="text-base">
+                    <DialogDescription className="text-base text-muted-foreground">
                       {workoutDetails.description}
                     </DialogDescription>
                   </div>
                   <div className="flex justify-between items-center">
-                    <Separator className="bg-purple-200 dark:bg-purple-900/50 flex-1" />
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleGenerateVariation}
                       disabled={isGeneratingVariation}
-                      className="mx-4 bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                      className="bg-white hover:bg-purple-50 text-fitness-purple border-purple-200 transition-colors"
                     >
                       <Wand2 className="h-4 w-4 mr-2" />
-                      {isGeneratingVariation ? "Generating..." : "Create Variation"}
+                      {isGeneratingVariation ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : "Create Variation"}
                     </Button>
-                    <Separator className="bg-purple-200 dark:bg-purple-900/50 flex-1" />
                   </div>
                 </div>
               )}
             </DialogHeader>
 
             <ScrollArea className="flex-1 px-6">
-              <div className="space-y-6 pb-6">
+              <div className="space-y-6 py-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Exercises</h3>
-                    <Button variant="outline" size="sm" className="shrink-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold text-fitness-charcoal">Exercises</h3>
+                      <div className="h-px bg-gray-200 w-12"></div>
+                      <Badge variant="outline" className="bg-gray-50">
+                        {workout.exercises.length} total
+                      </Badge>
+                    </div>
+                    <Button variant="outline" size="sm" className="border-fitness-purple/30 text-fitness-purple hover:bg-fitness-purple-light transition-colors">
                       <Plus className="h-4 w-4 mr-2" />
                       Add Exercise
                     </Button>
                   </div>
                   
                   <div className="space-y-4">
-                    {workout.exercises.map((exercise) => (
-                      <Card
+                    {workout.exercises.map((exercise, index) => (
+                      <motion.div
                         key={`${workout.id}-${exercise.id}`}
-                        className={`group relative transition-colors ${isEditingExercise === exercise.id ? 'border-purple-300' : 'hover:border-purple-200'}`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, delay: index * 0.05 }}
                       >
-                        {isEditingExercise === exercise.id ? (
-                          <div className="p-4 space-y-4">
-                            <div className="flex items-center justify-between">
-                              <Input value={exercise.name} className="font-medium" />
-                              <div className="flex items-center gap-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => setIsEditingExercise(null)}
-                                >
-                                  Cancel
-                                </Button>
-                                <Button 
-                                  variant="default"
-                                  size="sm"
-                                  className="bg-purple-600 hover:bg-purple-700"
-                                  onClick={() => setIsEditingExercise(null)}
-                                >
-                                  Save
-                                </Button>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-3 gap-4">
-                              <div>
-                                <Label>Sets</Label>
-                                <Input type="number" value={exercise.sets} className="mt-1" />
-                              </div>
-                              <div>
-                                <Label>Reps</Label>
-                                <Input type="number" value={exercise.reps} className="mt-1" />
-                              </div>
-                              <div>
-                                <Label>Equipment</Label>
-                                <Input value={exercise.exercise_details.equipment_needed} className="mt-1" />
-                              </div>
-                            </div>
-
-                            <div>
-                              <Label>Notes</Label>
-                              <Textarea 
-                                value={exercise.notes || ''} 
-                                placeholder="Add notes for this exercise..."
-                                className="mt-1 resize-none"
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-1.5">
+                        <Card
+                          className={`group relative transition-colors ${isEditingExercise === exercise.id ? 'border-purple-300 shadow-md' : 'hover:border-purple-200 shadow-sm'}`}
+                        >
+                          {isEditingExercise === exercise.id ? (
+                            <div className="p-4 space-y-4">
+                              <div className="flex items-center justify-between">
+                                <Input value={exercise.name} className="font-medium border-fitness-purple/30 focus-visible:ring-fitness-purple/20" />
                                 <div className="flex items-center gap-2">
-                                  <h4 className="font-medium">{exercise.name}</h4>
-                                  <Badge 
-                                    variant="secondary" 
-                                    className={getDifficultyColor(exercise.exercise_details.difficulty)}
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => setIsEditingExercise(null)}
+                                    className="text-muted-foreground hover:text-gray-900"
                                   >
-                                    {exercise.exercise_details.difficulty}
+                                    Cancel
+                                  </Button>
+                                  <Button 
+                                    variant="default"
+                                    size="sm"
+                                    className="bg-fitness-purple hover:bg-fitness-purple/90"
+                                    onClick={() => setIsEditingExercise(null)}
+                                  >
+                                    Save
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">Sets</Label>
+                                  <Input type="number" value={exercise.sets} className="mt-1 border-gray-200 focus-visible:border-fitness-purple/50" />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">Reps</Label>
+                                  <Input type="number" value={exercise.reps} className="mt-1 border-gray-200 focus-visible:border-fitness-purple/50" />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">Equipment</Label>
+                                  <Input value={exercise.exercise_details.equipment_needed} className="mt-1 border-gray-200 focus-visible:border-fitness-purple/50" />
+                                </div>
+                              </div>
+
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Notes</Label>
+                                <Textarea 
+                                  value={exercise.notes || ''} 
+                                  placeholder="Add notes for this exercise..."
+                                  className="mt-1 resize-none border-gray-200 focus-visible:border-fitness-purple/50"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-start gap-2">
+                                  <Dumbbell className="h-5 w-5 mt-0.5 text-fitness-purple" />
+                                  <div className="space-y-1.5">
+                                    <h4 className="font-medium text-fitness-charcoal">{exercise.name}</h4>
+                                    <div className="flex flex-wrap gap-1">
+                                      <Badge 
+                                        variant="secondary" 
+                                        className={getDifficultyColor(exercise.exercise_details.difficulty)}
+                                      >
+                                        {exercise.exercise_details.difficulty}
+                                      </Badge>
+                                      <div className="flex items-center text-xs text-muted-foreground px-2 py-0.5 bg-gray-100 rounded-full">
+                                        <span>{exercise.sets} sets × {exercise.reps} reps</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 rounded-full hover:bg-gray-100"
+                                    onClick={() => setIsEditingExercise(exercise.id)}
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 rounded-full hover:bg-red-50 text-muted-foreground hover:text-red-600"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {exercise.exercise_details.muscle_groups.map((muscle, i) => (
+                                  <Badge key={i} variant="outline" className="bg-purple-50 text-fitness-purple border-purple-200">
+                                    {muscle}
                                   </Badge>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Target className="h-4 w-4" />
-                                  {exercise.exercise_details.muscle_groups.join(", ")}
-                                </div>
+                                ))}
+                                {exercise.exercise_details.equipment_needed && (
+                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                                    {exercise.exercise_details.equipment_needed}
+                                  </Badge>
+                                )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="hover:bg-muted"
-                                  onClick={() => setIsEditingExercise(exercise.id)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
 
-                            <div className="mt-4 flex flex-wrap gap-4">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Dumbbell className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{exercise.sets} sets</span>
-                                <span className="text-muted-foreground">×</span>
-                                <span className="font-medium">{exercise.reps} reps</span>
-                              </div>
-                              {exercise.exercise_details.equipment_needed && (
-                                <Badge variant="outline" className="gap-1">
-                                  {exercise.exercise_details.equipment_needed}
-                                </Badge>
+                              {exercise.notes && (
+                                <div className="mt-3 flex items-start gap-2 text-sm">
+                                  <ClipboardList className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                                  <p className="text-muted-foreground text-sm">{exercise.notes}</p>
+                                </div>
                               )}
-                            </div>
-
-                            {exercise.notes && (
-                              <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground">
-                                <ClipboardList className="h-4 w-4 mt-0.5" />
-                                <p>{exercise.notes}</p>
-                              </div>
-                            )}
-                          </CardContent>
-                        )}
-                      </Card>
+                            </CardContent>
+                          )}
+                        </Card>
+                      </motion.div>
                     ))}
                   </div>
                 </div>

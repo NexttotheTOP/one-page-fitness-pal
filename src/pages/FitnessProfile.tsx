@@ -218,7 +218,13 @@ const FitnessProfile = () => {
       <Header />
       
       <main className="fitness-container py-6">
-        <h2 className="text-2xl font-bold text-fitness-charcoal mb-6">Your Fitness Profile</h2>
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-fitness-charcoal mb-3">Your Fitness Profile</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Your profile information is stored in our AI's global memory and used across the app to provide personalized 
+            recommendations. When you request workouts or nutrition advice, we'll consider these details automatically.
+          </p>
+        </div>
         
         {/* Body Image Upload Section */}
         <div className="mb-8">

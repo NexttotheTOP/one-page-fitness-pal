@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Header from '@/components/Header';
-import { Send, Trash2, Brain, Plus, MessageSquare, CornerRightDown } from 'lucide-react';
+import { Send, Trash2, Brain, Plus, MessageSquare, CornerRightDown, Search, ArrowLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,10 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 // Define types
 type Message = {
@@ -60,6 +64,7 @@ const FitnessKnowledge = () => {
   const [showConversationsList, setShowConversationsList] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Refs
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -69,6 +74,14 @@ const FitnessKnowledge = () => {
   const activeConversation = activeConversationId 
     ? conversations.find(c => c.id === activeConversationId) 
     : null;
+  
+  // Filtered conversations based on search
+  const filteredConversations = searchQuery.trim() === '' 
+    ? conversations
+    : conversations.filter(c => 
+        c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.messages.some(m => m.content.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
   
   // Effects
   // Scroll to bottom when messages change
@@ -130,6 +143,8 @@ const FitnessKnowledge = () => {
   const expertSuggestions = [
     {
       expert: "Jeff Cavaliere (AthleanX)",
+      icon: "💪",
+      color: "from-amber-100 to-amber-50",
       suggestions: [
         "What does AthleanX recommend for fixing shoulder pain?",
         "Best AthleanX exercises for sixpack abs?",
@@ -138,6 +153,8 @@ const FitnessKnowledge = () => {
     },
     {
       expert: "Jeff Nippard",
+      icon: "🏋️",
+      color: "from-blue-100 to-blue-50",
       suggestions: [
         "Jeff Nippard's advice on progressive overload?",
         "How does Jeff Nippard structure his split?",
@@ -146,6 +163,8 @@ const FitnessKnowledge = () => {
     },
     {
       expert: "Renaissance Periodization",
+      icon: "🧠",
+      color: "from-purple-100 to-purple-50",
       suggestions: [
         "Renaissance Periodization approach to fat loss?",
         "Dr. Mike Israetel's volume landmarks for hypertrophy?",
@@ -367,6 +386,25 @@ const FitnessKnowledge = () => {
     }
   };
 
+  // Format date for conversation list
+  const formatConversationDate = (date: Date) => {
+    const now = new Date();
+    const conversationDate = new Date(date);
+    
+    // If today, show time
+    if (conversationDate.toDateString() === now.toDateString()) {
+      return conversationDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+    
+    // If this year, show month and day
+    if (conversationDate.getFullYear() === now.getFullYear()) {
+      return conversationDate.toLocaleDateString([], {month: 'short', day: 'numeric'});
+    }
+    
+    // Otherwise show date with year
+    return conversationDate.toLocaleDateString([], {year: 'numeric', month: 'short', day: 'numeric'});
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
@@ -375,59 +413,95 @@ const FitnessKnowledge = () => {
         <div className="grid grid-cols-12 gap-6 h-[calc(100vh-160px)] px-2 md:px-6 xl:px-8">
           {/* Left sidebar - Conversation history */}
           <div className={cn(
-            "col-span-12 md:col-span-3 lg:col-span-2 p-4 overflow-hidden transition-all duration-300 h-full",
+            "col-span-12 md:col-span-3 lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 h-full",
             showConversationsList ? "block" : "hidden md:block"
           )}>
             <div className="flex flex-col h-full">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold text-fitness-charcoal">Conversation History</h3>
+              <div className="p-4 pb-2">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-semibold text-fitness-charcoal">Conversation History</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => setShowConversationsList(false)}
+                    className="md:hidden h-7 w-7 rounded-full hover:bg-gray-100"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="relative mb-3">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search conversations..." 
+                    className="pl-9 py-1.5 h-9 bg-gray-50 border-gray-100 focus-visible:ring-fitness-purple/25"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                
                 <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => setShowConversationsList(false)}
-                  className="md:hidden"
+                  onClick={startNewChat} 
+                  className="w-full bg-fitness-purple hover:bg-fitness-purple/90 transition-colors mb-2"
+                  size="sm"
                 >
-                  <CornerRightDown className="h-4 w-4" />
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  New Chat
                 </Button>
               </div>
               
-              <ScrollArea className="flex-1 -mx-2 px-2">
-                {conversations.length > 0 ? (
-                  <div className="space-y-2">
-                    {conversations.map((conversation) => (
-                      <div
-                        key={conversation.id}
-                        className={cn(
-                          "flex items-center justify-between p-2 rounded-lg cursor-pointer group",
-                          activeConversationId === conversation.id 
-                            ? "bg-fitness-purple-light text-fitness-purple"
-                            : "hover:bg-gray-100"
-                        )}
-                        onClick={() => handleSwitchConversation(conversation.id)}
-                      >
-                        <div className="flex items-center space-x-2 truncate">
-                          <MessageSquare className="h-4 w-4 flex-shrink-0" />
-                          <span className="truncate text-sm">{conversation.title}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteConversation(conversation.id);
-                          }}
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              <Separator className="bg-gray-100 mb-1" />
+              
+              <ScrollArea className="flex-1 px-2 py-1">
+                <AnimatePresence>
+                  {filteredConversations.length > 0 ? (
+                    <div className="space-y-0.5">
+                      {filteredConversations.map((conversation, index) => (
+                        <motion.div
+                          key={conversation.id}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2, delay: index * 0.05 }}
                         >
-                          <Trash2 className="h-3 w-3 text-red-500" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center text-sm text-gray-500 mt-4">
-                    No conversations yet
-                  </div>
-                )}
+                          <div
+                            className={cn(
+                              "flex items-center justify-between p-2 rounded-lg cursor-pointer group transition-colors",
+                              activeConversationId === conversation.id 
+                                ? "bg-fitness-purple-light text-fitness-purple"
+                                : "hover:bg-gray-50"
+                            )}
+                            onClick={() => handleSwitchConversation(conversation.id)}
+                          >
+                            <div className="flex items-center space-x-2 truncate">
+                              <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                              <div className="flex flex-col">
+                                <span className="truncate text-sm font-medium">{conversation.title}</span>
+                                <span className="text-xs text-muted-foreground truncate">
+                                  {formatConversationDate(conversation.updatedAt)}
+                                </span>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteConversation(conversation.id);
+                              }}
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity rounded-full hover:bg-red-50 hover:text-red-500"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-sm text-muted-foreground p-4">
+                      {searchQuery ? "No matching conversations found" : "No conversations yet"}
+                    </div>
+                  )}
+                </AnimatePresence>
               </ScrollArea>
             </div>
           </div>
@@ -446,172 +520,225 @@ const FitnessKnowledge = () => {
                   <MessageSquare className="h-5 w-5" />
                 </Button>
                 
-                {isProcessing && (
-                  <div className="ml-3 flex items-center">
-                    <div className="animate-pulse h-2 w-2 rounded-full bg-fitness-purple mr-1"></div>
-                    <div className="animate-pulse h-2 w-2 rounded-full bg-fitness-purple mr-1" style={{ animationDelay: '300ms' }}></div>
-                    <div className="animate-pulse h-2 w-2 rounded-full bg-fitness-purple" style={{ animationDelay: '600ms' }}></div>
+                {activeConversation && (
+                  <div className="flex items-center">
+                    <h2 className="text-lg font-medium text-fitness-charcoal">{activeConversation.title}</h2>
+                    {isProcessing && (
+                      <div className="ml-3 flex items-center">
+                        <div className="animate-pulse h-2 w-2 rounded-full bg-fitness-purple mr-1"></div>
+                        <div className="animate-pulse h-2 w-2 rounded-full bg-fitness-purple mr-1" style={{ animationDelay: '300ms' }}></div>
+                        <div className="animate-pulse h-2 w-2 rounded-full bg-fitness-purple" style={{ animationDelay: '600ms' }}></div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={createNewConversation}
-                  className="hidden md:flex items-center"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  New Chat
-                </Button>
-              </div>
+              
+              {activeConversation && (
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={createNewConversation}
+                    className="hidden md:flex items-center border-gray-200 hover:bg-gray-50 text-muted-foreground transition-colors"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    New Chat
+                  </Button>
+                </div>
+              )}
             </div>
             
             {/* Chat content */}
             <div className="flex-1 flex flex-col h-full">
               {activeConversation ? (
                 /* Active chat with messages */
-                <div className="flex-1 flex flex-col">
-                  <Card className="flex-1 flex flex-col overflow-hidden p-0 border border-gray-200 shadow-sm rounded-xl mb-4">
-                    <ScrollArea className="flex-1 px-4 pt-4 pb-2" ref={scrollAreaRef}>
-                      <div className="space-y-6">
-                        {activeConversation.messages.map((message, index) => (
-                          <div
-                            key={index}
-                            className={`flex ${
-                              message.role === 'user' ? "justify-end" : "justify-start"
-                            }`}
-                          >
-                            <div
-                              className={cn(
-                                "max-w-[85%] rounded-2xl p-4",
-                                message.role === 'user'
-                                  ? "bg-fitness-purple text-white"
-                                  : "bg-gray-100 text-gray-800"
-                              )}
+                <div className="flex-1 flex flex-col relative">
+                  <Card className="flex-1 overflow-hidden border-0 shadow-sm rounded-xl mb-4">
+                    <ScrollArea className="flex-1 h-full px-4 pt-4 pb-2" ref={scrollAreaRef}>
+                      <div className="space-y-6 pb-2">
+                        <AnimatePresence initial={false}>
+                          {activeConversation.messages.map((message, index) => (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className={`flex ${
+                                message.role === 'user' ? "justify-end" : "justify-start"
+                              }`}
                             >
-                              {message.loading ? (
-                                <div className="flex items-center space-x-2">
-                                  <LoadingSpinner size="sm" />
-                                  <span>Thinking...</span>
+                              <div className="flex items-start max-w-[85%] gap-2">
+                                {message.role === 'assistant' && (
+                                  <Avatar className="h-8 w-8 mt-1">
+                                    <AvatarFallback className="bg-fitness-purple text-white">AI</AvatarFallback>
+                                  </Avatar>
+                                )}
+                                
+                                <div
+                                  className={cn(
+                                    "rounded-2xl p-4",
+                                    message.role === 'user'
+                                      ? "bg-fitness-purple text-white"
+                                      : "bg-white border border-gray-100 shadow-sm text-gray-800"
+                                  )}
+                                >
+                                  {message.loading ? (
+                                    <div className="flex items-center space-x-2">
+                                      <LoadingSpinner size="sm" />
+                                      <span>Thinking...</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <ReactMarkdown 
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                          p: ({ children }) => <p className="prose prose-sm max-w-none mb-2">{children}</p>,
+                                          ul: ({ children }) => <ul className="list-disc pl-4 my-1.5">{children}</ul>,
+                                          ol: ({ children }) => <ol className="list-decimal pl-4 my-1.5">{children}</ol>,
+                                          li: ({ children }) => <li className="my-0.5">{children}</li>,
+                                          h3: ({ children }) => <h3 className="text-lg font-semibold my-2">{children}</h3>,
+                                          h4: ({ children }) => <h4 className="text-md font-semibold my-1.5">{children}</h4>,
+                                          a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{children}</a>,
+                                          code: ({ children }) => <code className="bg-gray-100 px-1 py-0.5 rounded text-red-500 text-sm">{children}</code>,
+                                          pre: ({ children }) => <pre className="bg-gray-100 p-2 rounded-md overflow-x-auto my-2 text-sm">{children}</pre>
+                                        }}
+                                      >
+                                        {message.content}
+                                      </ReactMarkdown>
+                                      <div className="text-xs opacity-50 mt-2 text-right">
+                                        {typeof message.timestamp === 'string' 
+                                          ? new Date(message.timestamp).toLocaleTimeString([], {
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })
+                                          : message.timestamp.toLocaleTimeString([], {
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })
+                                        }
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
-                              ) : (
-                                <>
-                                  <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                      p: ({ children }) => <p className="prose prose-sm max-w-none mb-1">{children}</p>,
-                                      ul: ({ children }) => <ul className="list-disc pl-4 my-1">{children}</ul>,
-                                      ol: ({ children }) => <ol className="list-decimal pl-4 my-1">{children}</ol>,
-                                      li: ({ children }) => <li className="my-0.5">{children}</li>,
-                                      h3: ({ children }) => <h3 className="text-lg font-semibold my-2">{children}</h3>,
-                                      h4: ({ children }) => <h4 className="text-md font-semibold my-1">{children}</h4>
-                                    }}
-                                  >
-                                    {message.content}
-                                  </ReactMarkdown>
-                                  <div className="text-xs opacity-50 mt-2 text-right">
-                                    {typeof message.timestamp === 'string' 
-                                      ? new Date(message.timestamp).toLocaleTimeString([], {
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        })
-                                      : message.timestamp.toLocaleTimeString([], {
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        })
-                                    }
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                                
+                                {message.role === 'user' && (
+                                  <Avatar className="h-8 w-8 mt-1">
+                                    <AvatarFallback className="bg-gray-200 text-fitness-charcoal">{displayName.substring(0, 2)}</AvatarFallback>
+                                  </Avatar>
+                                )}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
                       </div>
                     </ScrollArea>
                   </Card>
                   
                   {/* Input area */}
-                  <div className="flex space-x-2 mb-4 max-w-full">
-                    <Input
-                      ref={inputRef}
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Ask anything about fitness..."
-                      disabled={isProcessing}
-                      className={cn(
-                        "flex-1 bg-white border-gray-200 rounded-full h-12 pl-4 pr-4 shadow-sm transition-all duration-300",
-                        isProcessing ? "border-fitness-purple shadow-sm shadow-fitness-purple/10" : ""
-                      )}
-                    />
-                    <Button 
-                      onClick={handleSendMessage} 
-                      disabled={isProcessing || inputValue.trim() === ''}
-                      className={cn(
-                        "rounded-full h-12 w-12 p-0 transition-all duration-300",
-                        isProcessing 
-                          ? "bg-fitness-purple/70 cursor-not-allowed" 
-                          : "bg-fitness-purple hover:bg-fitness-purple/90"
-                      )}
-                    >
-                      <Send className="h-5 w-5" />
-                    </Button>
+                  <div className="flex space-x-2 mb-2">
+                    <div className="relative flex-1">
+                      <Input
+                        ref={inputRef}
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Ask anything about fitness..."
+                        disabled={isProcessing}
+                        className={cn(
+                          "flex-1 bg-white border-gray-200 rounded-full h-12 pl-4 pr-4 shadow-sm transition-all duration-300",
+                          isProcessing ? "border-fitness-purple shadow-sm" : "",
+                          "focus-visible:ring-fitness-purple/25"
+                        )}
+                      />
+                      <Button 
+                        onClick={handleSendMessage} 
+                        disabled={isProcessing || inputValue.trim() === ''}
+                        className={cn(
+                          "absolute right-1 top-1 rounded-full h-10 w-10 p-0 transition-all duration-300",
+                          isProcessing 
+                            ? "bg-fitness-purple/70 cursor-not-allowed" 
+                            : "bg-fitness-purple hover:bg-fitness-purple/90"
+                        )}
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ) : (
                 /* Welcome screen for new users */
                 <div className="flex-1 flex flex-col items-center justify-center max-w-full py-4 md:py-0">
                   <div className="text-center animate-fadeIn w-full mx-auto px-2">
-                    <div className="bg-white rounded-xl md:rounded-2xl p-5 md:p-6 shadow-sm border border-gray-200 mb-6 transition-all duration-300 hover:shadow-md hover:border-fitness-purple/20 max-w-2xl mx-auto">
-                      <Brain className="h-10 md:h-12 w-10 md:w-12 text-fitness-purple mx-auto mb-3 md:mb-4" />
-                      <h3 className="text-lg md:text-xl font-semibold text-fitness-charcoal mb-2 md:mb-3">
-                        Welcome to Fitness Knowledge
+                    <motion.div 
+                      className="bg-white rounded-xl md:rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 mb-6 transition-all duration-300 hover:shadow-md max-w-2xl mx-auto"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4 }}
+                    >
+                      <div className="h-16 w-16 rounded-full bg-fitness-purple-light mx-auto mb-4 flex items-center justify-center">
+                        <Brain className="h-8 w-8 text-fitness-purple" />
+                      </div>
+                      <h3 className="text-xl md:text-2xl font-bold text-fitness-charcoal mb-3">
+                        Fitness Knowledge AI
                       </h3>
-                      <p className="text-gray-600 mb-3 md:mb-4">
-                        Get answers from top fitness experts like AthleanX, Jeff Nippard, and Renaissance Periodization.
+                      <p className="text-gray-600 mb-4 max-w-lg mx-auto">
+                        Get evidence-based answers from top fitness experts like AthleanX, Jeff Nippard, and Renaissance Periodization.
                       </p>
-                      <p className="text-gray-600 text-xs md:text-sm mb-4 md:mb-5">
-                        Ask any question about workouts, nutrition, or training techniques to get evidence-based answers from the best fitness YouTubers.
-                      </p>
-                      <Button
-                        onClick={startNewChat}
-                        className="bg-fitness-purple hover:bg-fitness-purple/90 mx-auto px-4 md:px-6"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Start New Chat
-                      </Button>
-                    </div>
+                      <div className="mb-5">
+                        <Badge variant="outline" className="py-1.5 px-3 bg-amber-50 text-amber-700 border-amber-200">
+                          Powered by YouTube's top fitness creators
+                        </Badge>
+                      </div>
+                      <div>
+                        <Button
+                          onClick={startNewChat}
+                          className="bg-gradient-to-r from-fitness-purple to-purple-500 hover:from-fitness-purple/90 hover:to-purple-500/90 transition-colors shadow-sm"
+                          size="lg"
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Start New Chat
+                        </Button>
+                      </div>
+                    </motion.div>
                     
                     {/* Expert suggestions */}
-                    <div className="mt-2 md:mt-4 w-full">
-                      <h3 className="text-base md:text-lg font-semibold text-fitness-charcoal mb-3 md:mb-4">Ask our fitness experts</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 max-w-7xl mx-auto">
+                    <div className="mt-4 md:mt-6 w-full">
+                      <h3 className="text-base md:text-lg font-semibold text-fitness-charcoal mb-4">Popular questions to get you started</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 max-w-5xl mx-auto">
                         {expertSuggestions.map((expertGroup, groupIndex) => (
-                          <div 
-                            key={groupIndex} 
-                            className="bg-white rounded-lg md:rounded-xl p-4 md:p-5 shadow-sm border border-gray-200 hover:border-fitness-purple/30 hover:shadow-md transition-all duration-300"
+                          <motion.div 
+                            key={groupIndex}
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.1 + groupIndex * 0.1 }}
+                            className={`bg-gradient-to-r ${expertGroup.color} rounded-lg md:rounded-xl p-4 md:p-5 shadow-sm border border-gray-100`}
                           >
-                            <h4 className="font-medium text-fitness-purple mb-2 md:mb-3 text-sm md:text-base">{expertGroup.expert}</h4>
-                            <ul className="space-y-1 md:space-y-2">
+                            <div className="flex items-center mb-3">
+                              <span className="text-2xl mr-2">{expertGroup.icon}</span>
+                              <h4 className="font-medium text-fitness-charcoal text-sm md:text-base">{expertGroup.expert}</h4>
+                            </div>
+                            <ul className="space-y-1.5 md:space-y-2">
                               {expertGroup.suggestions.map((suggestion, suggIndex) => (
-                                <li key={suggIndex}>
+                                <li key={suggIndex} className="bg-white/80 rounded-lg shadow-sm">
                                   <button
                                     onClick={() => {
                                       startNewChat();
                                       // Small delay to ensure the new conversation is created before setting the input
                                       setTimeout(() => {
                                         handleSuggestionClick(suggestion);
+                                        setTimeout(() => handleSendMessage(), 100);
                                       }, 50);
                                     }}
-                                    className="text-left text-xs md:text-sm text-gray-700 hover:text-fitness-purple hover:underline w-full truncate transition-colors duration-300 py-1"
+                                    className="flex items-center w-full p-2 text-left text-xs md:text-sm text-gray-700 hover:text-fitness-purple gap-2 group transition-colors"
                                   >
-                                    {suggestion}
+                                    <span className="flex-1 truncate">{suggestion}</span>
+                                    <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-fitness-purple" />
                                   </button>
                                 </li>
                               ))}
                             </ul>
-                          </div>
+                          </motion.div>
                         ))}
                       </div>
                     </div>
