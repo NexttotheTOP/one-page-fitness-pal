@@ -330,72 +330,72 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
                   >
                     <Card
                       className="border border-gray-100 hover:border-purple-200 transition-colors shadow-sm"
-                    >
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <div>
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <div>
                             <CardTitle className="text-xl font-semibold text-fitness-charcoal">
-                              {variation.name}
-                            </CardTitle>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {variation.description}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
-                              onClick={() => handleDiscardVariation(variation.name)}
-                            >
-                              <X className="h-4 w-4 mr-2" />
-                              Don't keep it
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
-                              onClick={() => handleSaveVariation(variation)}
-                              disabled={savedVariations.has(variation.name)}
-                            >
-                              {savedVariations.has(variation.name) ? (
-                                <>
-                                  <Check className="h-4 w-4 mr-2" />
-                                  Saved
-                                </>
-                              ) : (
-                                <>
-                                  <Check className="h-4 w-4 mr-2" />
-                                  Save workout
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                            {variation.name}
+                          </CardTitle>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {variation.description}
+                          </p>
                         </div>
-                      </CardHeader>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                            onClick={() => handleDiscardVariation(variation.name)}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Don't keep it
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                              className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
+                            onClick={() => handleSaveVariation(variation)}
+                            disabled={savedVariations.has(variation.name)}
+                          >
+                            {savedVariations.has(variation.name) ? (
+                              <>
+                                <Check className="h-4 w-4 mr-2" />
+                                Saved
+                              </>
+                            ) : (
+                              <>
+                                <Check className="h-4 w-4 mr-2" />
+                                Save workout
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
 
-                      <CardContent>
-                        <div className="space-y-4">
-                          {variation.exercises.slice(0, expandedVariations[variation.name] ? undefined : 3).map((exercise: any, exerciseIndex: number) => (
-                            <div
-                              key={`${variation.name}-${exercise.name}-${exerciseIndex}`}
+                    <CardContent>
+                      <div className="space-y-4">
+                        {variation.exercises.slice(0, expandedVariations[variation.name] ? undefined : 3).map((exercise: any, exerciseIndex: number) => (
+                          <div
+                            key={`${variation.name}-${exercise.name}-${exerciseIndex}`}
                               className="p-3 bg-gray-50 rounded-lg"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
                                     <Dumbbell className="h-4 w-4 text-fitness-purple" />
                                     <h4 className="font-medium text-fitness-charcoal">{exercise.name}</h4>
-                                    <Badge 
-                                      variant="secondary" 
-                                      className={getDifficultyColor(exercise.details.difficulty)}
-                                    >
-                                      {exercise.details.difficulty}
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Badge 
+                                    variant="secondary" 
+                                    className={getDifficultyColor(exercise.details.difficulty)}
+                                  >
+                                    {exercise.details.difficulty}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
-                                  </div>
+                                </div>
                                 </div>
                                 
                                 <div className="flex flex-wrap gap-1">
@@ -404,36 +404,36 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
                                       {muscle}
                                     </Badge>
                                   ))}
-                                </div>
                               </div>
-                              {exercise.notes && (
-                                <p className="text-sm text-muted-foreground mt-2 pl-4 border-l-2 border-purple-200">
-                                  {exercise.notes}
-                                </p>
-                              )}
                             </div>
-                          ))}
+                            {exercise.notes && (
+                                <p className="text-sm text-muted-foreground mt-2 pl-4 border-l-2 border-purple-200">
+                                {exercise.notes}
+                              </p>
+                            )}
+                          </div>
+                        ))}
 
-                          {variation.exercises.length > 3 && (
-                            <Button
-                              variant="ghost"
+                        {variation.exercises.length > 3 && (
+                          <Button
+                            variant="ghost"
                               className="w-full text-muted-foreground hover:text-foreground hover:bg-gray-100"
-                              onClick={() => toggleVariationExpansion(variation.name)}
-                            >
-                              {expandedVariations[variation.name] ? (
-                                <>
-                                  Show Less <ChevronUp className="ml-2 h-4 w-4" />
-                                </>
-                              ) : (
-                                <>
-                                  Show {variation.exercises.length - 3} More <ChevronDown className="ml-2 h-4 w-4" />
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                            onClick={() => toggleVariationExpansion(variation.name)}
+                          >
+                            {expandedVariations[variation.name] ? (
+                              <>
+                                Show Less <ChevronUp className="ml-2 h-4 w-4" />
+                              </>
+                            ) : (
+                              <>
+                                Show {variation.exercises.length - 3} More <ChevronDown className="ml-2 h-4 w-4" />
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                   </motion.div>
                 ))}
               </div>
@@ -518,93 +518,93 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
                       >
                         <Card
                           className={`group relative transition-colors ${isEditingExercise === exercise.id ? 'border-purple-300 shadow-md' : 'hover:border-purple-200 shadow-sm'}`}
-                        >
-                          {isEditingExercise === exercise.id ? (
-                            <div className="p-4 space-y-4">
-                              <div className="flex items-center justify-between">
+                      >
+                        {isEditingExercise === exercise.id ? (
+                          <div className="p-4 space-y-4">
+                            <div className="flex items-center justify-between">
                                 <Input value={exercise.name} className="font-medium border-fitness-purple/30 focus-visible:ring-fitness-purple/20" />
-                                <div className="flex items-center gap-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    onClick={() => setIsEditingExercise(null)}
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => setIsEditingExercise(null)}
                                     className="text-muted-foreground hover:text-gray-900"
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button 
-                                    variant="default"
-                                    size="sm"
+                                >
+                                  Cancel
+                                </Button>
+                                <Button 
+                                  variant="default"
+                                  size="sm"
                                     className="bg-fitness-purple hover:bg-fitness-purple/90"
-                                    onClick={() => setIsEditingExercise(null)}
-                                  >
-                                    Save
-                                  </Button>
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                  <Label className="text-xs text-muted-foreground">Sets</Label>
-                                  <Input type="number" value={exercise.sets} className="mt-1 border-gray-200 focus-visible:border-fitness-purple/50" />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-muted-foreground">Reps</Label>
-                                  <Input type="number" value={exercise.reps} className="mt-1 border-gray-200 focus-visible:border-fitness-purple/50" />
-                                </div>
-                                <div>
-                                  <Label className="text-xs text-muted-foreground">Equipment</Label>
-                                  <Input value={exercise.exercise_details.equipment_needed} className="mt-1 border-gray-200 focus-visible:border-fitness-purple/50" />
-                                </div>
-                              </div>
-
-                              <div>
-                                <Label className="text-xs text-muted-foreground">Notes</Label>
-                                <Textarea 
-                                  value={exercise.notes || ''} 
-                                  placeholder="Add notes for this exercise..."
-                                  className="mt-1 resize-none border-gray-200 focus-visible:border-fitness-purple/50"
-                                />
+                                  onClick={() => setIsEditingExercise(null)}
+                                >
+                                  Save
+                                </Button>
                               </div>
                             </div>
-                          ) : (
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between">
+
+                            <div className="grid grid-cols-3 gap-4">
+                              <div>
+                                  <Label className="text-xs text-muted-foreground">Sets</Label>
+                                  <Input type="number" value={exercise.sets} className="mt-1 border-gray-200 focus-visible:border-fitness-purple/50" />
+                              </div>
+                              <div>
+                                  <Label className="text-xs text-muted-foreground">Reps</Label>
+                                  <Input type="number" value={exercise.reps} className="mt-1 border-gray-200 focus-visible:border-fitness-purple/50" />
+                              </div>
+                              <div>
+                                  <Label className="text-xs text-muted-foreground">Equipment</Label>
+                                  <Input value={exercise.exercise_details.equipment_needed} className="mt-1 border-gray-200 focus-visible:border-fitness-purple/50" />
+                              </div>
+                            </div>
+
+                            <div>
+                                <Label className="text-xs text-muted-foreground">Notes</Label>
+                              <Textarea 
+                                value={exercise.notes || ''} 
+                                placeholder="Add notes for this exercise..."
+                                  className="mt-1 resize-none border-gray-200 focus-visible:border-fitness-purple/50"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
                                 <div className="flex items-start gap-2">
                                   <Dumbbell className="h-5 w-5 mt-0.5 text-fitness-purple" />
-                                  <div className="space-y-1.5">
+                              <div className="space-y-1.5">
                                     <h4 className="font-medium text-fitness-charcoal">{exercise.name}</h4>
                                     <div className="flex flex-wrap gap-1">
-                                      <Badge 
-                                        variant="secondary" 
-                                        className={getDifficultyColor(exercise.exercise_details.difficulty)}
-                                      >
-                                        {exercise.exercise_details.difficulty}
-                                      </Badge>
+                                  <Badge 
+                                    variant="secondary" 
+                                    className={getDifficultyColor(exercise.exercise_details.difficulty)}
+                                  >
+                                    {exercise.exercise_details.difficulty}
+                                  </Badge>
                                       <div className="flex items-center text-xs text-muted-foreground px-2 py-0.5 bg-gray-100 rounded-full">
                                         <span>{exercise.sets} sets × {exercise.reps} reps</span>
                                       </div>
                                     </div>
-                                  </div>
+                                </div>
                                 </div>
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
                                     className="h-8 w-8 rounded-full hover:bg-gray-100"
-                                    onClick={() => setIsEditingExercise(exercise.id)}
-                                  >
+                                  onClick={() => setIsEditingExercise(exercise.id)}
+                                >
                                     <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
                                     className="h-8 w-8 rounded-full hover:bg-red-50 text-muted-foreground hover:text-red-600"
-                                  >
+                                >
                                     <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
+                                </Button>
                               </div>
+                            </div>
 
                               <div className="mt-3 flex flex-wrap gap-2">
                                 {exercise.exercise_details.muscle_groups.map((muscle, i) => (
@@ -612,22 +612,22 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
                                     {muscle}
                                   </Badge>
                                 ))}
-                                {exercise.exercise_details.equipment_needed && (
+                              {exercise.exercise_details.equipment_needed && (
                                   <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">
-                                    {exercise.exercise_details.equipment_needed}
-                                  </Badge>
-                                )}
-                              </div>
+                                  {exercise.exercise_details.equipment_needed}
+                                </Badge>
+                              )}
+                            </div>
 
-                              {exercise.notes && (
+                            {exercise.notes && (
                                 <div className="mt-3 flex items-start gap-2 text-sm">
                                   <ClipboardList className="h-4 w-4 mt-0.5 text-muted-foreground" />
                                   <p className="text-muted-foreground text-sm">{exercise.notes}</p>
-                                </div>
-                              )}
-                            </CardContent>
-                          )}
-                        </Card>
+                              </div>
+                            )}
+                          </CardContent>
+                        )}
+                      </Card>
                       </motion.div>
                     ))}
                   </div>

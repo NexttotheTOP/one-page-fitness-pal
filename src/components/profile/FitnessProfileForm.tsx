@@ -19,6 +19,8 @@ import Markdown from 'react-markdown';
 import { cn } from '@/lib/utils';
 import { motion } from "framer-motion";
 import remarkGfm from 'remark-gfm';
+import { saveProfileGeneration, getUserProfileGenerations, deleteProfileGeneration, updateProfileGenerationLabel } from "@/lib/db";
+import { useAuth } from "@/lib/auth-context";
 
 interface FitnessProfileFormProps {
   onSubmit: (data: FitnessProfileData) => void;
@@ -26,6 +28,11 @@ interface FitnessProfileFormProps {
   initiallyExpanded?: boolean;
   initialData?: FitnessProfileData;
   threadId?: string;
+  imagePaths?: {
+    front: string[];
+    side: string[];
+    back: string[];
+  };
 }
 
 export interface FitnessProfileData {
@@ -88,14 +95,17 @@ export default function FitnessProfileForm({
   className = "", 
   initiallyExpanded = true,
   initialData,
-  threadId
+  threadId,
+  imagePaths
 }: FitnessProfileFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(initiallyExpanded);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingGenerations, setIsLoadingGenerations] = useState(false);
   const [markdown, setMarkdown] = useState('');
   const [savedGenerations, setSavedGenerations] = useState<SavedGeneration[]>([]);
-  const [showSavedGenerations, setShowSavedGenerations] = useState(false);
+  const [showSavedGenerations, setShowSavedGenerations] = useState(true);
   const [selectedGeneration, setSelectedGeneration] = useState<SavedGeneration | null>(null);
   const [overviewContent, setOverviewContent] = useState<string[]>([]);
   const [age, setAge] = useState(initialData?.age?.toString() || "");
@@ -110,29 +120,29 @@ export default function FitnessProfileForm({
   const [customDiet, setCustomDiet] = useState("");
   const [customRestriction, setCustomRestriction] = useState("");
 
-  // Load saved generations from localStorage
+  // Load saved generations from Supabase
   useEffect(() => {
-    const loadSavedGenerations = () => {
-      const savedData = localStorage.getItem('fitness-profile-generations');
-      if (savedData) {
-        try {
-          const parsedData = JSON.parse(savedData) as SavedGeneration[];
-          setSavedGenerations(parsedData);
-        } catch (err) {
-          console.error('Error loading saved generations:', err);
-        }
+    const loadSavedGenerations = async () => {
+      if (!user) return;
+      
+      setIsLoadingGenerations(true);
+      try {
+        const generations = await getUserProfileGenerations(user.id);
+        setSavedGenerations(generations);
+      } catch (err) {
+        console.error('Error loading saved generations:', err);
+        toast({
+          title: "Error",
+          description: "Failed to load your saved fitness plans.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingGenerations(false);
       }
     };
     
     loadSavedGenerations();
-  }, []);
-
-  // Update localStorage when savedGenerations changes
-  useEffect(() => {
-    if (savedGenerations.length > 0) {
-      localStorage.setItem('fitness-profile-generations', JSON.stringify(savedGenerations));
-    }
-  }, [savedGenerations]);
+  }, [user, toast]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,6 +180,15 @@ export default function FitnessProfileForm({
   };
 
   const handleGenerateOverview = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to generate a profile overview.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!age || !gender || !height || !weight || !activityLevel) {
       toast({
         title: "Missing Information",
@@ -185,7 +204,7 @@ export default function FitnessProfileForm({
     setSelectedGeneration(null);
 
     try {
-      // Modified to use a simpler callback that only shows the result when complete
+      // Use a synchronous callback that sets the markdown and then saves to Supabase
       await generateProfileOverview(
         {
           thread_id: threadId,
@@ -197,24 +216,40 @@ export default function FitnessProfileForm({
           fitness_goals: fitnessGoals,
           dietary_preferences: dietaryPreferences,
           health_restrictions: healthRestrictions,
+          // Include imagePaths if available
+          ...(imagePaths && { imagePaths }),
         },
         (finalMarkdown) => {
+          // First set the markdown (synchronous operation)
           setMarkdown(finalMarkdown);
           
-          // Save this generation automatically
-          const newGeneration: SavedGeneration = {
-            id: `gen-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            content: finalMarkdown,
-            label: `Generation ${new Date().toLocaleString()}`
-          };
-          
-          setSavedGenerations(prev => [newGeneration, ...prev]);
-          
-          toast({
-            title: "Generation Saved",
-            description: "Your fitness profile has been generated and saved for future reference.",
-          });
+          // Then save to Supabase separately (don't use async in the callback)
+          if (user) {
+            const newGeneration = {
+              timestamp: new Date().toISOString(),
+              content: finalMarkdown,
+              label: `Generation ${new Date().toLocaleString()}`
+            };
+            
+            // Save to Supabase after the callback completes
+            saveProfileGeneration(user.id, newGeneration)
+              .then(savedGeneration => {
+                setSavedGenerations(prev => [savedGeneration, ...prev]);
+                
+                toast({
+                  title: "Generation Saved",
+                  description: "Your fitness profile has been generated and saved for future reference.",
+                });
+              })
+              .catch(error => {
+                console.error('Error saving generation:', error);
+                toast({
+                  title: "Warning",
+                  description: "Generated overview was created but couldn't be saved to your account.",
+                  variant: "destructive",
+                });
+              });
+          }
         }
       );
       
@@ -235,28 +270,57 @@ export default function FitnessProfileForm({
     setMarkdown(generation.content);
   };
   
-  const deleteGeneration = (id: string) => {
-    setSavedGenerations(prev => prev.filter(gen => gen.id !== id));
+  const deleteGeneration = async (id: string) => {
+    if (!user) return;
     
-    // If the deleted generation was selected, clear the selection
-    if (selectedGeneration?.id === id) {
-      setSelectedGeneration(null);
+    try {
+      await deleteProfileGeneration(user.id, id);
+      setSavedGenerations(prev => prev.filter(gen => gen.id !== id));
+      
+      // If the deleted generation was selected, clear the selection
+      if (selectedGeneration?.id === id) {
+        setSelectedGeneration(null);
+      }
+      
+      toast({
+        title: "Generation Deleted",
+        description: "The saved generation has been removed.",
+      });
+    } catch (error) {
+      console.error('Error deleting generation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the generation. Please try again.",
+        variant: "destructive",
+      });
     }
-    
-    toast({
-      title: "Generation Deleted",
-      description: "The saved generation has been removed.",
-    });
   };
   
-  const renameGeneration = (id: string, newLabel: string) => {
-    setSavedGenerations(prev => 
-      prev.map(gen => 
-        gen.id === id 
-          ? {...gen, label: newLabel} 
-          : gen
-      )
-    );
+  const renameGeneration = async (id: string, newLabel: string) => {
+    if (!user) return;
+    
+    try {
+      await updateProfileGenerationLabel(user.id, id, newLabel);
+      setSavedGenerations(prev => 
+        prev.map(gen => 
+          gen.id === id 
+            ? {...gen, label: newLabel} 
+            : gen
+        )
+      );
+      
+      toast({
+        title: "Generation Renamed",
+        description: "The label has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error renaming generation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to rename the generation. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -397,8 +461,8 @@ export default function FitnessProfileForm({
                   <div className="flex items-center gap-2 mb-4">
                     <h3 className="text-base font-semibold text-fitness-charcoal">Goals & Preferences</h3>
                     <div className="h-px bg-gray-200 flex-grow"></div>
-                  </div>
-                  
+                </div>
+
                   <div className="space-y-2">
                     <Label className="flex items-center gap-1.5">
                       <Heart className="h-3.5 w-3.5 text-muted-foreground" />
@@ -608,9 +672,19 @@ export default function FitnessProfileForm({
                   variant="ghost"
                   className="gap-1 text-muted-foreground hover:text-fitness-charcoal"
                   onClick={() => setShowSavedGenerations(!showSavedGenerations)}
+                  disabled={isLoadingGenerations}
                 >
-                  <ClipboardList className="w-4 h-4" />
-                  {savedGenerations.length > 0 ? `Saved Plans (${savedGenerations.length})` : "No Saved Plans"}
+                  {isLoadingGenerations ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardList className="w-4 h-4" />
+                      {showSavedGenerations ? "Hide Saved Plans" : `Saved Plans (${savedGenerations.length})`}
+                    </>
+                  )}
                 </Button>
                 
                 <div className="flex-1"></div>
@@ -645,7 +719,7 @@ export default function FitnessProfileForm({
               </div>
 
               {/* Saved Generations Panel */}
-              {showSavedGenerations && savedGenerations.length > 0 && (
+              {showSavedGenerations && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -658,49 +732,60 @@ export default function FitnessProfileForm({
                     Your Saved Fitness Plans
                   </h4>
                   
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                    {savedGenerations.map((generation) => (
-                      <div 
-                        key={generation.id}
-                        className={cn(
-                          "flex items-center justify-between p-2 rounded-md border bg-white hover:border-fitness-purple/30 transition-colors",
-                          selectedGeneration?.id === generation.id ? "border-fitness-purple/50 bg-fitness-purple/5" : "border-gray-200"
-                        )}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <h5 className="font-medium text-sm truncate">
-                            {generation.label}
-                          </h5>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(generation.timestamp).toLocaleString()}
-                          </p>
+                  {isLoadingGenerations ? (
+                    <div className="flex justify-center items-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-fitness-purple" />
+                    </div>
+                  ) : savedGenerations.length > 0 ? (
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                      {savedGenerations.map((generation) => (
+                        <div 
+                          key={generation.id}
+                          className={cn(
+                            "flex items-center justify-between p-2 rounded-md border bg-white hover:border-fitness-purple/30 transition-colors",
+                            selectedGeneration?.id === generation.id ? "border-fitness-purple/50 bg-fitness-purple/5" : "border-gray-200"
+                          )}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-medium text-sm truncate">
+                              {generation.label}
+                            </h5>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(generation.timestamp).toLocaleString()}
+                            </p>
+                          </div>
+                          
+                          <div className="flex gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 rounded-full hover:bg-fitness-purple/10 hover:text-fitness-purple"
+                              title="View this plan"
+                              onClick={() => loadGeneration(generation)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 rounded-full hover:bg-red-50 hover:text-red-500"
+                              title="Delete this plan"
+                              onClick={() => deleteGeneration(generation.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        
-                        <div className="flex gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 rounded-full hover:bg-fitness-purple/10 hover:text-fitness-purple"
-                            title="View this plan"
-                            onClick={() => loadGeneration(generation)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 rounded-full hover:bg-red-50 hover:text-red-500"
-                            title="Delete this plan"
-                            onClick={() => deleteGeneration(generation.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <p>You haven't saved any fitness plans yet.</p>
+                      <p className="text-sm mt-1">Generate a profile overview to get started.</p>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
@@ -747,12 +832,28 @@ export default function FitnessProfileForm({
                             remarkPlugins={[remarkGfm]}
                             components={{
                               h1: ({ children }) => <h1 className="text-xl font-bold text-fitness-charcoal mt-6 mb-4">{children}</h1>,
-                              h2: ({ children }) => <h2 className="text-lg font-semibold text-fitness-purple mt-5 mb-3 flex items-center gap-2">
-                                {children.toString().includes("Dietary") ? 
-                                  <AlignLeft className="h-4 w-4 text-green-600" /> : 
-                                  <Activity className="h-4 w-4 text-blue-600" />}
-                                {children}
-                              </h2>,
+                              h2: ({ children }) => {
+                                const content = children.toString();
+                                return (
+                                  <>
+                                    <h2 className="text-lg font-semibold text-fitness-purple mt-5 mb-3 flex items-center gap-2">
+                                      {content.includes("Dietary") ? 
+                                        <AlignLeft className="h-4 w-4 text-green-600" /> : 
+                                        <Activity className="h-4 w-4 text-blue-600" />}
+                                      {children}
+                                    </h2>
+                                    {(content.includes("Dietary") || 
+                                      content.includes("Plan") || 
+                                      content.includes("Composition") || 
+                                      content.includes("Workout") || 
+                                      content.includes("Fitness") || 
+                                      content.includes("Exercise") ||
+                                      content.includes("Assessment")) && (
+                                      <div className="h-1 bg-gradient-to-r from-fitness-purple/20 to-fitness-purple/5 rounded-full mb-4"></div>
+                                    )}
+                                  </>
+                                );
+                              },
                               h3: ({ children }) => {
                                 const content = children.toString();
                                 // Special formatting for meal-related sections

@@ -94,7 +94,7 @@ const Index = () => {
             <p className="text-muted-foreground mt-2 text-lg">
               Create, manage and track your personal workout plans
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <Button 
                 onClick={() => navigate('/create-workout')}
@@ -107,13 +107,13 @@ const Index = () => {
               
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="text"
+            <Input
+              type="text"
                   placeholder="Search your workouts..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 h-11 bg-white border-gray-200 min-w-[250px] transition-all focus-visible:ring-fitness-purple/25"
-                />
+            />
               </div>
             </div>
           </div>
@@ -133,44 +133,44 @@ const Index = () => {
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <Loader2 className="h-10 w-10 text-fitness-purple animate-spin mb-4" />
               <p className="text-muted-foreground">Loading your workout plans...</p>
-            </div>
-          ) : filteredWorkouts.length > 0 ? (
+          </div>
+        ) : filteredWorkouts.length > 0 ? (
             <motion.div 
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
               variants={container}
               initial="hidden"
               animate="show"
             >
-              {filteredWorkouts.map((workout) => (
+            {filteredWorkouts.map((workout) => (
                 <motion.div key={workout.id} variants={item}>
-                  <WorkoutPlan
-                    id={workout.id}
-                    name={workout.name}
-                    description={workout.description}
-                    exercises={workout.exercises.map(ex => ({
-                      id: ex.id,
-                      name: ex.name,
-                      sets: ex.sets,
-                      reps: ex.reps,
-                      notes: ex.notes || undefined,
-                      order: ex.order,
-                      exercise_details: {
-                        description: ex.exercise_details.description,
-                        category: ex.exercise_details.category,
-                        muscle_groups: ex.exercise_details.muscle_groups,
-                        difficulty: ex.exercise_details.difficulty_level,
-                        equipment_needed: ex.exercise_details.equipment_needed
-                      }
-                    }))}
-                  />
+              <WorkoutPlan
+                id={workout.id}
+                name={workout.name}
+                description={workout.description}
+                exercises={workout.exercises.map(ex => ({
+                  id: ex.id,
+                  name: ex.name,
+                  sets: ex.sets,
+                  reps: ex.reps,
+                  notes: ex.notes || undefined,
+                  order: ex.order,
+                  exercise_details: {
+                    description: ex.exercise_details.description,
+                    category: ex.exercise_details.category,
+                    muscle_groups: ex.exercise_details.muscle_groups,
+                    difficulty: ex.exercise_details.difficulty_level,
+                    equipment_needed: ex.exercise_details.equipment_needed
+                  }
+                }))}
+              />
                 </motion.div>
-              ))}
+            ))}
             </motion.div>
           ) : (
             <div className="text-center py-16 bg-white rounded-xl border border-gray-100 shadow-sm">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
                 <Dumbbell className="h-8 w-8 text-muted-foreground" />
-              </div>
+          </div>
               <h3 className="text-lg font-medium text-fitness-charcoal mb-2">No workouts found</h3>
               <p className="text-muted-foreground max-w-md mx-auto mb-6">
                 {searchQuery ? 
@@ -186,8 +186,8 @@ const Index = () => {
                   Create Your First Workout
                 </Button>
               )}
-            </div>
-          )}
+          </div>
+        )}
         </div>
         
         {/* Quick Links Section */}

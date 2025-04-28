@@ -7,14 +7,20 @@ import { getUserFitnessProfile, createFitnessProfile, updateFitnessProfile, getO
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, X, Info, FileImage } from 'lucide-react';
+import { Camera, Upload, X, Info, FileImage, Loader2, Brain, ScanLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { uploadBodyImage, getUserBodyImages, deleteBodyImage } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
+import { analyzeBodyComposition } from '@/lib/api';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface BodyImage {
   id: string;
-  url: string;
+  url?: string; // signed URL for display, optional in case it fails
+  storagePath: string; // relative path in bucket for deletion
   date: Date;
   type: 'front' | 'side' | 'back';
 }
@@ -26,12 +32,15 @@ const FitnessProfile = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [profileData, setProfileData] = useState<FitnessProfileData | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(null);
   
   // Image upload related states
   const [images, setImages] = useState<BodyImage[]>([]);
   const [activeTab, setActiveTab] = useState<'front' | 'side' | 'back'>('front');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -47,23 +56,41 @@ const FitnessProfile = () => {
           const { id, user_id, thread_id, created_at, updated_at, ...profileData } = profile;
           setProfileData(profileData);
           setThreadId(thread_id);
+          setProfileId(id);
+          // Fetch body images from backend
+          const imgs = await getUserBodyImages(user.id, id);
+          // For each image, generate a signed URL for display and store storagePath
+          const imagesWithUrls = await Promise.all(
+            imgs.map(async (img) => {
+              let path = img.url;
+              if (path.startsWith('https://')) {
+                const url = new URL(path);
+                path = url.pathname.split('/body-images/')[1];
+              }
+              if (path.startsWith('body-images/')) {
+                path = path.replace('body-images/', '');
+              }
+              const { data: signedUrlData } = await supabase
+                .storage
+                .from('body-images')
+                .createSignedUrl(path, 60 * 60); // 1 hour expiry
+              return {
+                id: img.id,
+                url: signedUrlData?.signedUrl,
+                storagePath: path,
+                date: new Date(img.uploaded_at),
+                type: img.type
+              };
+            })
+          );
+          setImages(imagesWithUrls);
         } else {
           // If no profile exists, ensure we have a thread_id
           const newThreadId = await getOrCreateThreadId(user.id);
           setThreadId(newThreadId);
+          setProfileId(null);
+          setImages([]);
         }
-        
-        // TODO: Fetch body images from backend
-        // For now, we'll just use placeholder data
-        setImages([
-          // Example image - in real implementation these would come from the backend
-          // {
-          //   id: 'img1',
-          //   url: 'https://via.placeholder.com/300x400',
-          //   date: new Date(),
-          //   type: 'front'
-          // }
-        ]);
       } catch (error) {
         console.error('Error fetching profile data:', error);
         toast({
@@ -115,7 +142,7 @@ const FitnessProfile = () => {
     }
   };
 
-  const handleImageUpload = (file: File) => {
+  const handleImageUpload = async (file: File) => {
     // File type validation
     if (!file.type.startsWith('image/')) {
       toast({
@@ -136,28 +163,53 @@ const FitnessProfile = () => {
       return;
     }
 
-    // Create URL for preview
-    const imageUrl = URL.createObjectURL(file);
-    
-    // Add image to state
-    const newImage: BodyImage = {
-      id: `img-${Date.now()}`,
-      url: imageUrl,
-      date: new Date(),
-      type: activeTab
-    };
-    
-    // Replace existing image of same type if exists
-    setImages(prev => {
-      const filtered = prev.filter(img => img.type !== activeTab);
-      return [...filtered, newImage];
-    });
+    if (!user || !profileId) {
+      toast({
+        title: "Profile not loaded",
+        description: "Please wait for your profile to load before uploading.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // TODO: Upload image to backend
-    toast({
-      title: "Success",
-      description: `${activeTab} view image uploaded successfully.`,
-    });
+    try {
+      const dbImage = await uploadBodyImage(user.id, profileId, file, activeTab);
+      let path = dbImage.url;
+      if (path.startsWith('https://')) {
+        const url = new URL(path);
+        path = url.pathname.split('/body-images/')[1];
+      }
+      if (path.startsWith('body-images/')) {
+        path = path.replace('body-images/', '');
+      }
+      const { data: signedUrlData } = await supabase
+        .storage
+        .from('body-images')
+        .createSignedUrl(path, 60 * 60); // 1 hour expiry
+      setImages(prev => {
+        const filtered = prev.filter(img => img.type !== activeTab);
+        return [
+          ...filtered,
+          {
+            id: dbImage.id,
+            url: signedUrlData?.signedUrl,
+            storagePath: path,
+            date: new Date(dbImage.uploaded_at),
+            type: dbImage.type
+          }
+        ];
+      });
+      toast({
+        title: "Success",
+        description: `${activeTab} view image uploaded successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Could not upload image. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -184,9 +236,83 @@ const FitnessProfile = () => {
     }
   };
 
-  const removeImage = (id: string) => {
-    setImages(prev => prev.filter(img => img.id !== id));
-    // TODO: Remove image from backend
+  const removeImage = async (id: string, storagePath: string) => {
+    try {
+      await deleteBodyImage(id, storagePath);
+      setImages(prev => prev.filter(img => img.id !== id));
+      toast({
+        title: "Deleted",
+        description: "Image deleted successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Delete failed",
+        description: "Could not delete image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // NEW: Handle Body Composition Analysis
+  const handleAnalyzeBody = async () => {
+    if (!user || !profileId || !profileData) {
+      toast({
+        title: "Missing Data",
+        description: "Please ensure your profile is loaded and saved before analyzing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if at least one image of each type exists
+    const hasFront = images.some(img => img.type === 'front');
+    const hasSide = images.some(img => img.type === 'side');
+    const hasBack = images.some(img => img.type === 'back');
+
+    if (!hasFront || !hasSide || !hasBack) {
+      toast({
+        title: "Missing Images",
+        description: "Please ensure at least one front, side, and back image is uploaded for analysis.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+
+    // Collect all storage paths, grouped by type
+    const frontImagePaths = images.filter(img => img.type === 'front').map(img => img.storagePath);
+    const sideImagePaths = images.filter(img => img.type === 'side').map(img => img.storagePath);
+    const backImagePaths = images.filter(img => img.type === 'back').map(img => img.storagePath);
+
+    try {
+      const result = await analyzeBodyComposition({
+        userId: user.id,
+        profileId: profileId,
+        profileData: profileData,
+        imagePaths: {
+          front: frontImagePaths,
+          side: sideImagePaths,
+          back: backImagePaths,
+        },
+      });
+      setAnalysisResult(result);
+      toast({
+        title: "Analysis Complete",
+        description: "Your body composition analysis is ready.",
+      });
+    } catch (error: any) {
+      console.error('Error analyzing body composition:', error);
+      toast({
+        title: "Analysis Failed",
+        description: error.message || "An error occurred during analysis. Please try again.",
+        variant: "destructive",
+      });
+      setAnalysisResult("Error: Could not generate analysis.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   // Current image for the active tab
@@ -213,6 +339,11 @@ const FitnessProfile = () => {
     );
   }
 
+  const hasAllImageTypes = 
+    images.some(img => img.type === 'front') &&
+    images.some(img => img.type === 'side') &&
+    images.some(img => img.type === 'back');
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -232,7 +363,10 @@ const FitnessProfile = () => {
             <CardHeader className="pb-3 bg-gradient-to-r from-purple-100 to-blue-50">
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-lg text-fitness-charcoal">Body Composition Tracking</CardTitle>
+                  <CardTitle className="text-lg text-fitness-charcoal flex items-center gap-2">
+                    <ScanLine className="h-5 w-5 text-fitness-purple" />
+                    Body Composition Tracking
+                  </CardTitle>
                   <CardDescription>
                     Upload images to track your progress and get AI-powered body composition insights
                   </CardDescription>
@@ -266,7 +400,10 @@ const FitnessProfile = () => {
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onClick={triggerFileInput}
-                    onRemove={removeImage}
+                    onRemove={(id) => {
+                      const img = images.find(i => i.id === id);
+                      if (img) removeImage(img.id, img.storagePath);
+                    }}
                     isDragging={isDragging}
                     title="Front View"
                   />
@@ -279,7 +416,10 @@ const FitnessProfile = () => {
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onClick={triggerFileInput}
-                    onRemove={removeImage}
+                    onRemove={(id) => {
+                      const img = images.find(i => i.id === id);
+                      if (img) removeImage(img.id, img.storagePath);
+                    }}
                     isDragging={isDragging}
                     title="Side View"
                   />
@@ -292,7 +432,10 @@ const FitnessProfile = () => {
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onClick={triggerFileInput}
-                    onRemove={removeImage}
+                    onRemove={(id) => {
+                      const img = images.find(i => i.id === id);
+                      if (img) removeImage(img.id, img.storagePath);
+                    }}
                     isDragging={isDragging}
                     title="Back View"
                   />
@@ -306,9 +449,54 @@ const FitnessProfile = () => {
                 accept="image/*"
                 className="hidden"
               />
+              
+              {/* Analysis Button */}
+              <div className="flex justify-end mt-6">
+                <Button
+                  onClick={handleAnalyzeBody}
+                  disabled={!hasAllImageTypes || !profileId || isAnalyzing}
+                  className="bg-fitness-purple hover:bg-fitness-purple/90 transition-all"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="w-4 h-4 mr-2" />
+                      Analyze Body Composition
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Analysis Result Section */}
+        {(isAnalyzing || analysisResult) && (
+          <div className="mb-8">
+            <Card className="overflow-hidden border-0 shadow-md">
+              <CardHeader className="bg-gradient-to-r from-blue-100 to-green-50">
+                <CardTitle className="text-lg text-fitness-charcoal">AI Body Composition Analysis</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {isAnalyzing ? (
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <Loader2 className="h-10 w-10 animate-spin text-fitness-purple mb-4" />
+                    <p className="text-muted-foreground">Analyzing your images and profile data...</p>
+                    <p className="text-xs text-muted-foreground mt-2">This might take a minute</p>
+                  </div>
+                ) : analysisResult ? (
+                  <div className="prose prose-sm max-w-none text-gray-700">
+                    <Markdown remarkPlugins={[remarkGfm]}>{analysisResult}</Markdown>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          </div>
+        )}
         
         {/* Fitness Profile Form */}
         <FitnessProfileForm 
@@ -317,6 +505,15 @@ const FitnessProfile = () => {
           initialData={profileData || undefined}
           threadId={threadId || undefined}
           className="shadow-md border-0"
+          imagePaths={
+            images.length > 0 
+              ? {
+                  front: images.filter(img => img.type === 'front').map(img => img.storagePath),
+                  side: images.filter(img => img.type === 'side').map(img => img.storagePath),
+                  back: images.filter(img => img.type === 'back').map(img => img.storagePath),
+                }
+              : undefined
+          }
         />
       </main>
     </div>
@@ -345,13 +542,17 @@ const ImageUploadArea = ({
   isDragging,
   title
 }: ImageUploadAreaProps) => {
-  if (image) {
+  if (image?.url) {
     return (
       <div className="relative h-80 w-full">
         <img 
           src={image.url} 
           alt={`${title} body image`}
-          className="w-full h-full object-contain rounded-lg"
+          className="w-full h-full object-contain rounded-lg bg-gray-100"
+          onError={(e) => {
+            e.currentTarget.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            e.currentTarget.style.display = 'none';
+          }}
         />
         <div className="absolute top-0 right-0 p-2 flex gap-2">
           <Button 

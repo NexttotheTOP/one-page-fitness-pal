@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { WorkoutPlan, Exercise, ExerciseCategory, DifficultyLevel } from "@/types/workout";
+import { SavedGeneration } from '@/components/profile/FitnessProfileForm';
 
 // Define the type for our default workouts that includes exercises
 interface DefaultWorkout {
@@ -17,6 +18,67 @@ interface DefaultWorkout {
     difficulty_level: DifficultyLevel;
     equipment_needed: string;
   }>;
+}
+
+// Fitness profile generation functions
+export async function saveProfileGeneration(userId: string, generation: Omit<SavedGeneration, 'id'>): Promise<SavedGeneration> {
+  const { data, error } = await supabase
+    .from('fitness_profile_generations')
+    .insert({
+      user_id: userId,
+      content: generation.content,
+      label: generation.label,
+      timestamp: generation.timestamp
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  if (!data) throw new Error('Failed to save generation');
+  
+  return {
+    id: data.id,
+    content: data.content,
+    label: data.label,
+    timestamp: data.timestamp
+  };
+}
+
+export async function getUserProfileGenerations(userId: string): Promise<SavedGeneration[]> {
+  const { data, error } = await supabase
+    .from('fitness_profile_generations')
+    .select('*')
+    .eq('user_id', userId)
+    .order('timestamp', { ascending: false });
+
+  if (error) throw error;
+  
+  return (data || []).map(gen => ({
+    id: gen.id,
+    content: gen.content,
+    label: gen.label,
+    timestamp: gen.timestamp
+  }));
+}
+
+export async function deleteProfileGeneration(userId: string, generationId: string): Promise<void> {
+  const { error } = await supabase
+    .from('fitness_profile_generations')
+    .delete()
+    .eq('user_id', userId)
+    .eq('id', generationId);
+
+  if (error) throw error;
+}
+
+export async function updateProfileGenerationLabel(userId: string, generationId: string, newLabel: string): Promise<void> {
+  const { error } = await supabase
+    .from('fitness_profile_generations')
+    .update({ label: newLabel })
+    .eq('user_id', userId)
+    .eq('id', generationId);
+
+  if (error) throw error;
 }
 
 async function getExerciseIdByName(userId: string, name: string): Promise<string> {
@@ -238,4 +300,63 @@ export async function getUserWorkouts(userId: string): Promise<WorkoutPlanWithEx
   }
 
   return workoutsWithExercises;
+}
+
+export async function uploadBodyImage(userId: string, profileId: string, file: File, type: 'front' | 'side' | 'back') {
+  const filePath = `${userId}/${profileId}/${type}-${Date.now()}-${file.name}`;
+  const { data, error } = await supabase.storage
+    .from('body-images')
+    .upload(filePath, file, { upsert: true });
+
+  if (error) throw error;
+
+  // Get a public URL (or use .getPublicUrl if you want public access)
+  const { data: urlData } = supabase.storage.from('body-images').getPublicUrl(filePath);
+
+  // Save metadata to body_images table
+  const { data: dbData, error: dbError } = await supabase
+    .from('body_images')
+    .insert({
+      user_id: userId,
+      profile_id: profileId,
+      type,
+      url: urlData.publicUrl,
+      uploaded_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (dbError) throw dbError;
+
+  return dbData;
 } 
+
+export async function getUserBodyImages(userId: string, profileId: string) {
+  const { data, error } = await supabase
+    .from('body_images')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('profile_id', profileId)
+    .order('uploaded_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteBodyImage(imageId: string, storagePath: string) {
+  // Delete from DB
+  const { error: dbError } = await supabase
+    .from('body_images')
+    .delete()
+    .eq('id', imageId);
+
+  if (dbError) throw dbError;
+
+  // Delete from Storage
+  const { error: storageError } = await supabase
+    .storage
+    .from('body-images')
+    .remove([storagePath]);
+
+  if (storageError) throw storageError;
+}

@@ -1,3 +1,5 @@
+import { type FitnessProfileData } from '@/components/profile/FitnessProfileForm';
+
 interface FitnessProfileRequest {
   thread_id?: string;
   age: number;
@@ -8,6 +10,22 @@ interface FitnessProfileRequest {
   fitness_goals: string[];
   dietary_preferences: string[];
   health_restrictions: string[];
+  imagePaths?: {
+    front: string[];
+    side: string[];
+    back: string[];
+  };
+}
+
+interface AnalyzeBodyCompositionRequest {
+  userId: string;
+  profileId: string;
+  profileData: FitnessProfileData; // Re-use the existing interface
+  imagePaths: {
+    front: string[];
+    side: string[];
+    back: string[];
+  };
 }
 
 export async function generateProfileOverview(
@@ -15,6 +33,7 @@ export async function generateProfileOverview(
   onMarkdownUpdate: (markdown: string) => void
 ): Promise<void> {
   try {
+    console.log('Sending data to /fitness/profile:', JSON.stringify(data, null, 2));
     const response = await fetch('http://localhost:8000/fitness/profile', {
       method: 'POST',
       headers: {
@@ -29,7 +48,7 @@ export async function generateProfileOverview(
 
     // Wait for the complete response
     const responseData = await response.json();
-    
+
     // Use the content directly from the backend without cleaning
     const markdown = responseData.content || '';
     
@@ -164,5 +183,34 @@ export async function queryRagSystem(
     console.error('Error querying RAG system:', error);
     onMarkdownUpdate('**Error: Failed to query the knowledge base**');
     throw error;
+  }
+}
+
+export async function analyzeBodyComposition(
+  data: AnalyzeBodyCompositionRequest
+): Promise<string> {
+  // Log the data being sent to the backend for debugging
+  console.log('Sending data to /fitness/analyze-body-composition:', JSON.stringify(data, null, 2));
+
+  try {
+    const response = await fetch('http://localhost:8000/fitness/analyze-body-composition', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorData}`);
+    }
+
+    const responseData = await response.json();
+    return responseData.analysis || 'No analysis content received.'; // Adjust based on backend response
+
+  } catch (error) {
+    console.error('Error analyzing body composition:', error);
+    throw error; // Rethrow the error to be caught in the component
   }
 } 

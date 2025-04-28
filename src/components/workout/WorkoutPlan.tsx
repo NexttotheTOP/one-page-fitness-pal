@@ -114,9 +114,9 @@ export default function WorkoutPlan({ id, name, description, exercises }: Workou
             {exercises.length} {exercises.length === 1 ? 'exercise' : 'exercises'}
           </span>
           <div className="h-px bg-gray-200 flex-grow"></div>
-        </div>
-        
-        <div className="space-y-3">
+      </div>
+
+      <div className="space-y-3">
           {displayedExercises.map((exercise, index) => (
             <motion.div 
               key={`${id}-${exercise.id}`}
@@ -128,20 +128,20 @@ export default function WorkoutPlan({ id, name, description, exercises }: Workou
                 index % 2 === 0 ? "bg-gray-50" : "bg-white"
               )}
             >
-              <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
                 <div className="flex items-start gap-2">
                   <div className="mt-0.5">
                     <Dumbbell className="h-4 w-4 text-fitness-purple" />
                   </div>
-                  <div>
+              <div>
                     <p className="font-medium text-sm text-fitness-charcoal">{exercise.name}</p>
                     <div className="flex items-center text-xs text-muted-foreground mt-1">
                       <span className="font-medium">{exercise.sets} sets</span>
                       <span className="mx-1">×</span>
                       <span className="font-medium">{exercise.reps} reps</span>
                     </div>
-                  </div>
-                </div>
+              </div>
+            </div>
                 <Badge 
                   variant="outline" 
                   className={cn("text-xs", getDifficultyColor(exercise.exercise_details.difficulty))}
@@ -149,43 +149,43 @@ export default function WorkoutPlan({ id, name, description, exercises }: Workou
                   {exercise.exercise_details.difficulty}
                 </Badge>
               </div>
-              {exercise.notes && (
+            {exercise.notes && (
                 <div className="mt-2 pl-3 ml-4 border-l-2 border-purple-200">
                   <p className="text-xs text-muted-foreground">{exercise.notes}</p>
-                </div>
-              )}
+              </div>
+            )}
             </motion.div>
-          ))}
-        </div>
+        ))}
+      </div>
       </CardContent>
 
       <CardFooter className="p-4 pt-0 flex flex-col gap-2">
-        {hasMoreExercises && (
-          <Button
-            variant="ghost"
+      {hasMoreExercises && (
+        <Button
+          variant="ghost"
             size="sm"
             className="w-full text-muted-foreground hover:text-foreground hover:bg-gray-100"
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            {isExpanded ? (
-              <>
-                Show Less <ChevronUp className="ml-2 h-4 w-4" />
-              </>
-            ) : (
-              <>
-                Show {exercises.length - 3} More <ChevronDown className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
-        )}
-
-        <Button
-          className="w-full bg-fitness-purple hover:bg-fitness-purple/90 text-white transition-colors"
-          onClick={() => setIsDetailOpen(true)}
+          onClick={() => setIsExpanded(!isExpanded)}
         >
-          <Eye className="h-4 w-4 mr-2" />
-          View Workout
+          {isExpanded ? (
+            <>
+              Show Less <ChevronUp className="ml-2 h-4 w-4" />
+            </>
+          ) : (
+            <>
+              Show {exercises.length - 3} More <ChevronDown className="ml-2 h-4 w-4" />
+            </>
+          )}
         </Button>
+      )}
+
+      <Button
+          className="w-full bg-fitness-purple hover:bg-fitness-purple/90 text-white transition-colors"
+        onClick={() => setIsDetailOpen(true)}
+      >
+          <Eye className="h-4 w-4 mr-2" />
+        View Workout
+      </Button>
       </CardFooter>
 
       <WorkoutDetailDialog
