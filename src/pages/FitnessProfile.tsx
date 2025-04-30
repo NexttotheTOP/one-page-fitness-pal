@@ -7,7 +7,7 @@ import { getUserFitnessProfile, createFitnessProfile, updateFitnessProfile, getO
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, X, Info, FileImage, Loader2, Brain, ScanLine } from 'lucide-react';
+import { Camera, Upload, X, Info, FileImage, Loader2, Brain, ScanLine, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { analyzeBodyComposition } from '@/lib/api';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface BodyImage {
   id: string;
@@ -41,6 +42,12 @@ const FitnessProfile = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+
+  // New state for body composition section
+  const [isBodySectionOpen, setIsBodySectionOpen] = useState(false);
+
+  // Add a new state for the analysis section
+  const [isAnalysisSectionOpen, setIsAnalysisSectionOpen] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -124,6 +131,21 @@ const FitnessProfile = () => {
         title: "Success",
         description: "Your fitness profile has been saved.",
       });
+
+      // If we have all types of images, we can optionally analyze the body composition
+      const hasAllTypes = images.some(img => img.type === 'front') && 
+                         images.some(img => img.type === 'side') && 
+                         images.some(img => img.type === 'back');
+      
+      if (hasAllTypes && profileId && !analysisResult) {
+        // Maybe add a small delay to not overwhelm the user with too many things at once
+        setTimeout(() => {
+          toast({
+            title: "Body Analysis",
+            description: "Your body photos are ready for analysis. Generate a fitness overview to include body analysis.",
+          });
+        }, 1500);
+      }
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
@@ -253,15 +275,15 @@ const FitnessProfile = () => {
     }
   };
 
-  // NEW: Handle Body Composition Analysis
-  const handleAnalyzeBody = async () => {
+  // Analyze body images function - refactored to be called by other functions
+  const analyzeBodyImages = async () => {
     if (!user || !profileId || !profileData) {
       toast({
         title: "Missing Data",
         description: "Please ensure your profile is loaded and saved before analyzing.",
         variant: "destructive",
       });
-      return;
+      return null;
     }
 
     // Check if at least one image of each type exists
@@ -275,7 +297,7 @@ const FitnessProfile = () => {
         description: "Please ensure at least one front, side, and back image is uploaded for analysis.",
         variant: "destructive",
       });
-      return;
+      return null;
     }
 
     setIsAnalyzing(true);
@@ -302,6 +324,7 @@ const FitnessProfile = () => {
         title: "Analysis Complete",
         description: "Your body composition analysis is ready.",
       });
+      return result;
     } catch (error: any) {
       console.error('Error analyzing body composition:', error);
       toast({
@@ -310,6 +333,7 @@ const FitnessProfile = () => {
         variant: "destructive",
       });
       setAnalysisResult("Error: Could not generate analysis.");
+      return null;
     } finally {
       setIsAnalyzing(false);
     }
@@ -360,140 +384,188 @@ const FitnessProfile = () => {
         {/* Body Image Upload Section */}
         <div className="mb-8">
           <Card className="overflow-hidden border-0 shadow-md">
-            <CardHeader className="pb-3 bg-gradient-to-r from-purple-100 to-blue-50">
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="text-lg text-fitness-charcoal flex items-center gap-2">
-                    <ScanLine className="h-5 w-5 text-fitness-purple" />
-                    Body Composition Tracking
-                  </CardTitle>
-                  <CardDescription>
-                    Upload images to track your progress and get AI-powered body composition insights
-                  </CardDescription>
-                </div>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="rounded-full w-8 h-8">
-                        <Info className="h-4 w-4 text-muted-foreground" />
+            <Collapsible open={isBodySectionOpen} onOpenChange={setIsBodySectionOpen}>
+              <CardHeader className="pb-3 bg-gradient-to-r from-purple-100 to-blue-50">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="text-lg text-fitness-charcoal flex items-center gap-2">
+                      <ScanLine className="h-5 w-5 text-fitness-purple" />
+                      Body Composition Tracking
+                    </CardTitle>
+                    <CardDescription>
+                      Upload images to track your progress and get AI-powered body composition insights
+                    </CardDescription>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="rounded-full w-8 h-8">
+                            <Info className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm">
+                          <p>Upload front, side, and back images to get better analysis. Images are securely stored and only used for your personal fitness tracking.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full h-8 w-8 transition-all hover:bg-black/5"
+                      >
+                        {isBodySectionOpen ? (
+                          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        )}
                       </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-sm">
-                      <p>Upload front, side, and back images to get better analysis. Images are securely stored and only used for your personal fitness tracking.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'front' | 'side' | 'back')}>
-                <TabsList className="grid grid-cols-3 mb-8">
-                  <TabsTrigger value="front">Front View</TabsTrigger>
-                  <TabsTrigger value="side">Side View</TabsTrigger>
-                  <TabsTrigger value="back">Back View</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="front" className="mt-0">
-                  <ImageUploadArea 
-                    image={currentImage}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={triggerFileInput}
-                    onRemove={(id) => {
-                      const img = images.find(i => i.id === id);
-                      if (img) removeImage(img.id, img.storagePath);
-                    }}
-                    isDragging={isDragging}
-                    title="Front View"
+                    </CollapsibleTrigger>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CollapsibleContent>
+                <CardContent className="p-6">
+                  <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'front' | 'side' | 'back')}>
+                    <TabsList className="grid grid-cols-3 mb-8">
+                      <TabsTrigger value="front">Front View</TabsTrigger>
+                      <TabsTrigger value="side">Side View</TabsTrigger>
+                      <TabsTrigger value="back">Back View</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="front" className="mt-0">
+                      <ImageUploadArea 
+                        image={currentImage}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onClick={triggerFileInput}
+                        onRemove={(id) => {
+                          const img = images.find(i => i.id === id);
+                          if (img) removeImage(img.id, img.storagePath);
+                        }}
+                        isDragging={isDragging}
+                        title="Front View"
+                      />
+                    </TabsContent>
+                    
+                    <TabsContent value="side" className="mt-0">
+                      <ImageUploadArea 
+                        image={currentImage}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onClick={triggerFileInput}
+                        onRemove={(id) => {
+                          const img = images.find(i => i.id === id);
+                          if (img) removeImage(img.id, img.storagePath);
+                        }}
+                        isDragging={isDragging}
+                        title="Side View"
+                      />
+                    </TabsContent>
+                    
+                    <TabsContent value="back" className="mt-0">
+                      <ImageUploadArea 
+                        image={currentImage}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onClick={triggerFileInput}
+                        onRemove={(id) => {
+                          const img = images.find(i => i.id === id);
+                          if (img) removeImage(img.id, img.storagePath);
+                        }}
+                        isDragging={isDragging}
+                        title="Back View"
+                      />
+                    </TabsContent>
+                  </Tabs>
+                  
+                  <input 
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
                   />
-                </TabsContent>
-                
-                <TabsContent value="side" className="mt-0">
-                  <ImageUploadArea 
-                    image={currentImage}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={triggerFileInput}
-                    onRemove={(id) => {
-                      const img = images.find(i => i.id === id);
-                      if (img) removeImage(img.id, img.storagePath);
-                    }}
-                    isDragging={isDragging}
-                    title="Side View"
-                  />
-                </TabsContent>
-                
-                <TabsContent value="back" className="mt-0">
-                  <ImageUploadArea 
-                    image={currentImage}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={triggerFileInput}
-                    onRemove={(id) => {
-                      const img = images.find(i => i.id === id);
-                      if (img) removeImage(img.id, img.storagePath);
-                    }}
-                    isDragging={isDragging}
-                    title="Back View"
-                  />
-                </TabsContent>
-              </Tabs>
-              
-              <input 
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                className="hidden"
-              />
-              
-              {/* Analysis Button */}
-              <div className="flex justify-end mt-6">
-                <Button
-                  onClick={handleAnalyzeBody}
-                  disabled={!hasAllImageTypes || !profileId || isAnalyzing}
-                  className="bg-fitness-purple hover:bg-fitness-purple/90 transition-all"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Analyzing...
-                    </>
+                  
+                  {/* Info text to connect body photos with profile generation */}
+                  {hasAllImageTypes ? (
+                    <div className="mt-6 flex items-center p-3 bg-blue-50 rounded-md text-sm text-blue-700 border border-blue-100">
+                      <Info className="h-4 w-4 mr-2 flex-shrink-0 text-blue-500" />
+                      <p>
+                        Body photos will be automatically analyzed when you generate your fitness profile overview.
+                      </p>
+                    </div>
                   ) : (
-                    <>
-                      <Brain className="w-4 h-4 mr-2" />
-                      Analyze Body Composition
-                    </>
+                    <div className="mt-6 flex items-center p-3 bg-amber-50 rounded-md text-sm text-amber-700 border border-amber-100">
+                      <Info className="h-4 w-4 mr-2 flex-shrink-0 text-amber-500" />
+                      <p>
+                        <strong>Please upload all three views (front, side, and back).</strong> Complete uploads are 
+                        required for body composition analysis to be included in your fitness profile overview.
+                      </p>
+                    </div>
                   )}
-                </Button>
-              </div>
-            </CardContent>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
           </Card>
         </div>
 
         {/* Analysis Result Section */}
-        {(isAnalyzing || analysisResult) && (
+        {analysisResult && (
           <div className="mb-8">
             <Card className="overflow-hidden border-0 shadow-md">
-              <CardHeader className="bg-gradient-to-r from-blue-100 to-green-50">
-                <CardTitle className="text-lg text-fitness-charcoal">AI Body Composition Analysis</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                {isAnalyzing ? (
-                  <div className="flex flex-col items-center justify-center py-10">
-                    <Loader2 className="h-10 w-10 animate-spin text-fitness-purple mb-4" />
-                    <p className="text-muted-foreground">Analyzing your images and profile data...</p>
-                    <p className="text-xs text-muted-foreground mt-2">This might take a minute</p>
+              <Collapsible open={isAnalysisSectionOpen} onOpenChange={setIsAnalysisSectionOpen}>
+                <CardHeader className="bg-gradient-to-r from-blue-100 to-green-50">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="text-lg text-fitness-charcoal flex items-center gap-2">
+                        <ScanLine className="h-5 w-5 text-blue-600" />
+                        Body Composition Analysis
+                      </CardTitle>
+                      <CardDescription className="text-sm">
+                        AI-powered assessment based on your uploaded photos and profile information
+                      </CardDescription>
+                    </div>
+                    
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full h-8 w-8 transition-all hover:bg-black/5"
+                      >
+                        {isAnalysisSectionOpen ? (
+                          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
                   </div>
-                ) : analysisResult ? (
-                  <div className="prose prose-sm max-w-none text-gray-700">
-                    <Markdown remarkPlugins={[remarkGfm]}>{analysisResult}</Markdown>
-                  </div>
-                ) : null}
-              </CardContent>
+                </CardHeader>
+                
+                <CollapsibleContent>
+                  <CardContent className="p-6">
+                    {isAnalyzing ? (
+                      <div className="flex flex-col items-center justify-center py-10">
+                        <Loader2 className="h-10 w-10 animate-spin text-fitness-purple mb-4" />
+                        <p className="text-muted-foreground">Analyzing your images and profile data...</p>
+                        <p className="text-xs text-muted-foreground mt-2">This might take a minute</p>
+                      </div>
+                    ) : (
+                      <div className="prose prose-sm max-w-none text-gray-700">
+                        <Markdown remarkPlugins={[remarkGfm]}>{analysisResult}</Markdown>
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
             </Card>
           </div>
         )}
@@ -503,7 +575,6 @@ const FitnessProfile = () => {
           onSubmit={handleProfileSubmit} 
           initiallyExpanded={true}
           initialData={profileData || undefined}
-          threadId={threadId || undefined}
           className="shadow-md border-0"
           imagePaths={
             images.length > 0 

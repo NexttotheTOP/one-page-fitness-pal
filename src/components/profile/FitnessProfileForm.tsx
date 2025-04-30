@@ -27,7 +27,6 @@ interface FitnessProfileFormProps {
   className?: string;
   initiallyExpanded?: boolean;
   initialData?: FitnessProfileData;
-  threadId?: string;
   imagePaths?: {
     front: string[];
     side: string[];
@@ -90,12 +89,16 @@ const COMMON_HEALTH_RESTRICTIONS = [
   "None",
 ];
 
+// Function to generate a new thread ID
+function generateThreadId(): string {
+  return crypto.randomUUID();
+}
+
 export default function FitnessProfileForm({ 
   onSubmit, 
   className = "", 
   initiallyExpanded = true,
   initialData,
-  threadId,
   imagePaths
 }: FitnessProfileFormProps) {
   const { toast } = useToast();
@@ -179,6 +182,7 @@ export default function FitnessProfileForm({
     setList(list.filter((i) => i !== item));
   };
 
+  // Update the handleGenerateOverview function to generate a new thread_id for each call
   const handleGenerateOverview = async () => {
     if (!user) {
       toast({
@@ -203,11 +207,15 @@ export default function FitnessProfileForm({
     // Reset selected generation when generating a new one
     setSelectedGeneration(null);
 
+    // Generate a new thread_id for this specific overview
+    const newThreadId = generateThreadId();
+
     try {
       // Use a synchronous callback that sets the markdown and then saves to Supabase
       await generateProfileOverview(
         {
-          thread_id: threadId,
+          user_id: user.id, // Include the user ID in every request
+          thread_id: newThreadId, // Use the newly generated thread ID
           age: parseInt(age),
           gender,
           height,
@@ -704,7 +712,9 @@ export default function FitnessProfileForm({
                   ) : (
                     <>
                       <ClipboardList className="w-4 h-4 mr-2 text-fitness-purple" />
-                      Generate AI Overview
+                      {imagePaths && (imagePaths.front.length > 0 || imagePaths.side.length > 0 || imagePaths.back.length > 0) 
+                        ? "Generate AI Overview with Analysis" 
+                        : "Generate AI Overview"}
                     </>
                   )}
                 </Button>
@@ -842,13 +852,11 @@ export default function FitnessProfileForm({
                                         <Activity className="h-4 w-4 text-blue-600" />}
                                       {children}
                                     </h2>
-                                    {(content.includes("Dietary") || 
-                                      content.includes("Plan") || 
-                                      content.includes("Composition") || 
-                                      content.includes("Workout") || 
-                                      content.includes("Fitness") || 
-                                      content.includes("Exercise") ||
-                                      content.includes("Assessment")) && (
+                                    {(content.includes("Dietary Plan") || 
+                                      content.includes("Body Composition Analysis") || 
+                                      content.includes("Fitness plan") || 
+                                      content.includes("Progress Comparison") ||
+                                      content.includes("Profile Assessment")) && (
                                       <div className="h-1 bg-gradient-to-r from-fitness-purple/20 to-fitness-purple/5 rounded-full mb-4"></div>
                                     )}
                                   </>

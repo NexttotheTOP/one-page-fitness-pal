@@ -1,7 +1,8 @@
 import { type FitnessProfileData } from '@/components/profile/FitnessProfileForm';
 
 interface FitnessProfileRequest {
-  thread_id?: string;
+  user_id: string;
+  thread_id: string;
   age: number;
   gender: string;
   height: string;
