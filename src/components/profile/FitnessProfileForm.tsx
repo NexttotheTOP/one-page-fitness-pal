@@ -830,10 +830,125 @@ export default function FitnessProfileForm({
                   
                   <div className="bg-white p-6 rounded border border-gray-100 max-h-[800px] overflow-y-auto">
                     {isGenerating ? (
-                      <div className="flex flex-col items-center justify-center py-10">
-                        <Loader2 className="h-10 w-10 animate-spin text-fitness-purple mb-4" />
-                        <p className="text-muted-foreground">Generating your personalized fitness overview...</p>
-                        <p className="text-xs text-muted-foreground mt-2">This may take a moment</p>
+                      <div className="space-y-6 py-8">
+                        <div className="flex flex-col items-center justify-center mb-4">
+                          <h3 className="text-fitness-purple font-semibold text-lg mb-3">Our AI Coaching Team is Working on Your Plan</h3>
+                          <p className="text-muted-foreground text-center max-w-md">
+                            Our specialized AI coaches are analyzing your profile data to create a personalized fitness and nutrition plan.
+                          </p>
+                        </div>
+                        
+                        {/* Coach Team Progress Steps */}
+                        <div className="space-y-5 max-w-xl mx-auto">
+                          {/* Step 1: Data Retrieval */}
+                          <div className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all">
+                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <ClipboardList className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-sm font-medium text-fitness-charcoal">Data Analysis Coach</h4>
+                              <p className="text-xs text-muted-foreground mt-1">Retrieving your previous fitness data and current profile information...</p>
+                            </div>
+                            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                          </div>
+                          
+                          {/* Step 2: Profile Assessment */}
+                          <motion.div 
+                            initial={{ opacity: 0.5, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 2, duration: 0.5 }}
+                            className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                              <User className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-sm font-medium text-fitness-charcoal">Profile Assessment Coach</h4>
+                              <p className="text-xs text-muted-foreground mt-1">Analyzing your body composition, fitness level, and personal goals...</p>
+                            </div>
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 2, duration: 0.5 }}
+                            >
+                              <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                            </motion.div>
+                          </motion.div>
+                          
+                          {/* Step 3: Nutrition Planning */}
+                          <motion.div 
+                            initial={{ opacity: 0.5, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 4, duration: 0.5 }}
+                            className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                              <Utensils className="h-5 w-5 text-green-600" />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-sm font-medium text-fitness-charcoal">Nutrition Coach</h4>
+                              <p className="text-xs text-muted-foreground mt-1">Creating meal plans based on your dietary preferences and restrictions...</p>
+                            </div>
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 4, duration: 0.5 }}
+                            >
+                              <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                            </motion.div>
+                          </motion.div>
+                          
+                          {/* Step 4: Workout Planning */}
+                          <motion.div 
+                            initial={{ opacity: 0.5, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 6, duration: 0.5 }}
+                            className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                              <Activity className="h-5 w-5 text-amber-600" />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-sm font-medium text-fitness-charcoal">Fitness Coach</h4>
+                              <p className="text-xs text-muted-foreground mt-1">Designing workout routines tailored to your fitness goals and experience level...</p>
+                            </div>
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 6, duration: 0.5 }}
+                            >
+                              <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
+                            </motion.div>
+                          </motion.div>
+                          
+                          {/* Step 5: Final Optimization */}
+                          <motion.div 
+                            initial={{ opacity: 0.5, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 8, duration: 0.5 }}
+                            className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                              <Eye className="h-5 w-5 text-indigo-600" />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="text-sm font-medium text-fitness-charcoal">Head Coach</h4>
+                              <p className="text-xs text-muted-foreground mt-1">Reviewing and optimizing your complete plan for maximum results...</p>
+                            </div>
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 8, duration: 0.5 }}
+                            >
+                              <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+                            </motion.div>
+                          </motion.div>
+                        </div>
+                        
+                        <div className="flex flex-col items-center justify-center mt-6 pt-4 border-t border-gray-100">
+                          <p className="text-sm text-fitness-purple font-medium">Creating your personalized fitness journey</p>
+                          <p className="text-xs text-muted-foreground mt-1">This may take a moment as our team works to create your perfect plan</p>
+                        </div>
                       </div>
                     ) : (
                       <div className="prose prose-sm max-w-none text-gray-700">
