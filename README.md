@@ -1,73 +1,148 @@
-# Welcome to your Lovable project
+# One Page Fitness Pal
 
-## Project info
+A modern fitness application for generating personalized fitness and dietary plans.
 
-**URL**: https://lovable.dev/projects/7ad76669-a6ba-459d-8f58-c43c8988858c
+## Markdown Formatting Guide for AI-Generated Content
 
-## How can I edit this code?
+To ensure consistent rendering of AI-generated fitness plans, follow these formatting guidelines. Our frontend formats markdown in specific ways to create a visually engaging user experience.
 
-There are several ways of editing your application.
+### Heading Structure
 
-**Use Lovable**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/7ad76669-a6ba-459d-8f58-c43c8988858c) and start prompting.
 
-Changes made via Lovable will be committed automatically to this repo.
+#### Section Headings (H2)
+```markdown
+## Dietary Plan
+## Body Composition Analysis
+## Fitness Plan
+## Progress Comparison
+## Profile Assessment
+```
+These are rendered with:
+- Purple text
+- Unique icons for each section type:
+  - Dietary Plan: Utensils icon in green
+  - Body Composition Analysis: Ruler icon in blue
+  - Fitness Plan: Activity icon in orange
+  - Progress Comparison: Line Chart icon in indigo
+  - Profile Assessment: User icon in purple
+- Purple gradient underline for all major sections
 
-**Use your preferred IDE**
+#### Subsection Headings (H3)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Different subsections get special treatment:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+**Meal Plan Sections:**
+```markdown
+### Meal Plan
+```
+Rendered with green background, left border, and utensils icon.
 
-Follow these steps:
+**Meal Time Sections:**
+```markdown
+### Breakfast
+### Lunch
+### Dinner
+### Snacks
+```
+Each has a distinct color and icon:
+- Breakfast: Amber with coffee icon
+- Lunch: Blue with utensils icon
+- Dinner: Indigo with utensils icon
+- Snacks: Green with apple icon
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Text Formatting
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+#### Food Items
+Enclose food items in bold:
+```markdown
+**Scrambled Eggs with Spinach**
+**Greek Yogurt with Berries**
+**Grilled Chicken with Vegetables**
+```
+These are rendered with a gray background and purple left border.
 
-# Step 3: Install the necessary dependencies.
-npm i
+#### Workout Days
+Format workout days in bold:
+```markdown
+**Day 1: Upper Body**
+**Day 2: Lower Body**
+**Day 3: Rest**
+```
+These are rendered with a blue background and blue left border.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+#### Measurements & Calculations
+Format calculations consistently using bold:
+```markdown
+**BMR = 1500 calories/day**
+**Total Daily Calories = 2000 calories/day**
+**Protein = 150g protein**
+**Fats = 60g grams**
+**Carbohydrates = 200g grams**
 ```
 
-**Edit a file directly in GitHub**
+#### Macronutrients
+Format macro breakdowns using italics with this exact pattern:
+```markdown
+_Macros: Approximately 30g protein, 45g carbs, 15g fat_
+```
+These are rendered as distinct colored pills for each macro.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Lists
+Use standard markdown lists:
+```markdown
+- Item one
+- Item two
+- Item three
 
-**Use GitHub Codespaces**
+1. First step
+2. Second step
+3. Third step
+```
+Keep lists clean with single line breaks between items.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Spacing & Structure
+- Separate major sections with horizontal rules (`---`)
+- Avoid using more than two consecutive line breaks
+- Keep paragraphs concise
 
-## What technologies are used for this project?
+### Example Fitness Plan Structure
 
-This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Body Composition Analysis
+Your current BMI is 24.2, which is within the normal range.
+**BMR = 1550 calories/day**
+**Total Daily Calories = 2100 calories/day**
 
-## How can I deploy this project?
+## Dietary Plan
 
-Simply open [Lovable](https://lovable.dev/projects/7ad76669-a6ba-459d-8f58-c43c8988858c) and click on Share -> Publish.
+### Meal Plan
+Your optimal macronutrient distribution:
+**Protein = 150g protein**
+**Fats = 70g grams**
+**Carbohydrates = 210g grams**
 
-## Can I connect a custom domain to my Lovable project?
+### Breakfast
+**Scrambled Eggs with Avocado**
+Two eggs scrambled with 1/4 avocado and a slice of whole grain toast.
+_Macros: Approximately 20g protein, 15g carbs, 15g fat_
 
-Yes it is!
+### Lunch
+**Grilled Chicken Salad**
+4oz chicken breast on mixed greens with olive oil dressing.
+_Macros: Approximately 35g protein, 10g carbs, 12g fat_
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Fitness Plan
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+**Day 1: Upper Body Strength**
+- Bench Press: 3 sets of 8-10 reps
+- Dumbbell Rows: 3 sets of 10-12 reps
+- Shoulder Press: 3 sets of 8-10 reps
+
+**Day 2: Lower Body Power**
+- Squats: 3 sets of 8-10 reps
+- Romanian Deadlifts: 3 sets of 10-12 reps
+- Lunges: 3 sets of 10 per leg
+```
+
+Following these formatting guidelines will ensure that your AI-generated content renders beautifully with all the special styling in the fitness application interface.

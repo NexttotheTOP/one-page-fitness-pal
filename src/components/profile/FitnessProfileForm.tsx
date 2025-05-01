@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, X, ClipboardList, Save, Loader2, User, Activity, Ruler, Weight, Heart, AlignLeft, Coffee, Utensils, Apple, Moon, Eye, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, X, ClipboardList, Save, Loader2, User, Activity, Ruler, Weight, Heart, AlignLeft, Coffee, Utensils, Apple, Moon, Eye, Trash2, LineChart, Info } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { generateProfileOverview } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
@@ -122,6 +122,9 @@ export default function FitnessProfileForm({
   const [customGoal, setCustomGoal] = useState("");
   const [customDiet, setCustomDiet] = useState("");
   const [customRestriction, setCustomRestriction] = useState("");
+  
+  // Reference to the overview section for smooth scrolling
+  const overviewSectionRef = useRef<HTMLDivElement>(null);
 
   // Load saved generations from Supabase
   useEffect(() => {
@@ -209,6 +212,14 @@ export default function FitnessProfileForm({
 
     // Generate a new thread_id for this specific overview
     const newThreadId = generateThreadId();
+    
+    // Scroll to the overview section with smooth behavior
+    setTimeout(() => {
+      overviewSectionRef.current?.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }, 100);
 
     try {
       // Use a synchronous callback that sets the markdown and then saves to Supabase
@@ -805,6 +816,7 @@ export default function FitnessProfileForm({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                   className="p-5 bg-gradient-to-r from-gray-50 to-white rounded-lg shadow-sm border border-gray-100 overflow-hidden"
+                  ref={overviewSectionRef}
                 >
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-md font-semibold flex items-center gap-2 text-fitness-charcoal">
@@ -856,7 +868,7 @@ export default function FitnessProfileForm({
                           <motion.div 
                             initial={{ opacity: 0.5, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 2, duration: 0.5 }}
+                            transition={{ delay: 7, duration: 0.5 }}
                             className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
                           >
                             <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
@@ -869,7 +881,7 @@ export default function FitnessProfileForm({
                             <motion.div
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
-                              transition={{ delay: 2, duration: 0.5 }}
+                              transition={{ delay: 15, duration: 0.5 }}
                             >
                               <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
                             </motion.div>
@@ -879,7 +891,7 @@ export default function FitnessProfileForm({
                           <motion.div 
                             initial={{ opacity: 0.5, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 4, duration: 0.5 }}
+                            transition={{ delay: 21, duration: 0.5 }}
                             className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
                           >
                             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
@@ -892,7 +904,7 @@ export default function FitnessProfileForm({
                             <motion.div
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
-                              transition={{ delay: 4, duration: 0.5 }}
+                              transition={{ delay: 33, duration: 0.5 }}
                             >
                               <Loader2 className="h-5 w-5 animate-spin text-green-600" />
                             </motion.div>
@@ -902,7 +914,7 @@ export default function FitnessProfileForm({
                           <motion.div 
                             initial={{ opacity: 0.5, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 6, duration: 0.5 }}
+                            transition={{ delay: 45, duration: 0.5 }}
                             className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
                           >
                             <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
@@ -915,7 +927,7 @@ export default function FitnessProfileForm({
                             <motion.div
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
-                              transition={{ delay: 6, duration: 0.5 }}
+                              transition={{ delay: 53, duration: 0.5 }}
                             >
                               <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
                             </motion.div>
@@ -925,7 +937,7 @@ export default function FitnessProfileForm({
                           <motion.div 
                             initial={{ opacity: 0.5, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 8, duration: 0.5 }}
+                            transition={{ delay: 62, duration: 0.5 }}
                             className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
                           >
                             <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
@@ -938,7 +950,7 @@ export default function FitnessProfileForm({
                             <motion.div
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
-                              transition={{ delay: 8, duration: 0.5 }}
+                              transition={{ delay: 69, duration: 0.5 }}
                             >
                               <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
                             </motion.div>
@@ -948,6 +960,22 @@ export default function FitnessProfileForm({
                         <div className="flex flex-col items-center justify-center mt-6 pt-4 border-t border-gray-100">
                           <p className="text-sm text-fitness-purple font-medium">Creating your personalized fitness journey</p>
                           <p className="text-xs text-muted-foreground mt-1">This may take a moment as our team works to create your perfect plan</p>
+                        </div>
+                        
+                        {/* Information bar about automatic saving */}
+                        <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-lg text-sm">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5">
+                              <Info className="h-5 w-5 text-blue-500" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-blue-800 mb-1">You don't need to wait here</p>
+                              <p className="text-blue-700 text-xs">
+                                Your fitness plan will be automatically saved to your account once it's ready. 
+                                Feel free to continue using other parts of the app and come back later.
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ) : (
@@ -963,14 +991,22 @@ export default function FitnessProfileForm({
                                   <>
                                     <h2 className="text-lg font-semibold text-fitness-purple mt-5 mb-3 flex items-center gap-2">
                                       {content.includes("Dietary") ? 
-                                        <AlignLeft className="h-4 w-4 text-green-600" /> : 
+                                        <Utensils className="h-4 w-4 text-green-600" /> : 
+                                        content.includes("Body Composition") ? 
+                                        <Ruler className="h-4 w-4 text-blue-600" /> :
+                                        content.includes("Fitness") ? 
+                                        <Activity className="h-4 w-4 text-orange-600" /> :
+                                        content.includes("Progress") ? 
+                                        <LineChart className="h-4 w-4 text-indigo-600" /> :
+                                        content.includes("Profile Assessment") ? 
+                                        <User className="h-4 w-4 text-purple-600" /> :
                                         <Activity className="h-4 w-4 text-blue-600" />}
                                       {children}
                                     </h2>
                                     {(content.includes("Dietary Plan") || 
                                       content.includes("Body Composition Analysis") || 
-                                      content.includes("Fitness plan") || 
-                                      content.includes("Progress Comparison") ||
+                                      content.includes("Fitness Plan") || 
+                                      content.includes("Progress Tracking") ||
                                       content.includes("Profile Assessment")) && (
                                       <div className="h-1 bg-gradient-to-r from-fitness-purple/20 to-fitness-purple/5 rounded-full mb-4"></div>
                                     )}
