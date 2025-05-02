@@ -40,7 +40,8 @@ export default function WorkoutPlan({ id, name, description, exercises }: Workou
   
   // Get primary muscle groups for display
   const allMuscleGroups = exercises.flatMap(ex => ex.exercise_details.muscle_groups);
-  const uniqueMuscleGroups = [...new Set(allMuscleGroups)].slice(0, 3);
+  const uniqueMuscleGroups = [...new Set(allMuscleGroups)];
+  const displayedMuscleGroups = uniqueMuscleGroups.slice(0, 3);
 
   // Count exercises by difficulty to determine workout level
   const difficultyCount = {
@@ -94,14 +95,14 @@ export default function WorkoutPlan({ id, name, description, exercises }: Workou
         </div>
         
         <div className="flex flex-wrap gap-2 mt-2">
-          {uniqueMuscleGroups.map((muscle, i) => (
+          {displayedMuscleGroups.map((muscle, i) => (
             <Badge key={i} variant="outline" className="bg-purple-50 text-fitness-purple border-purple-200">
               {muscle}
             </Badge>
           ))}
-          {allMuscleGroups.length > uniqueMuscleGroups.length && (
+          {uniqueMuscleGroups.length > displayedMuscleGroups.length && (
             <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
-              +{allMuscleGroups.length - uniqueMuscleGroups.length} more
+              +{uniqueMuscleGroups.length - displayedMuscleGroups.length} more
             </Badge>
           )}
         </div>

@@ -441,7 +441,7 @@ const FitnessKnowledge = () => {
                 </div>
                 
                 <Button 
-                  onClick={startNewChat} 
+                  onClick={createNewConversation} 
                   className="w-full bg-fitness-purple hover:bg-fitness-purple/90 transition-colors mb-2"
                   size="sm"
                 >
@@ -515,21 +515,33 @@ const FitnessKnowledge = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowConversationsList(true)}
-                  className="mr-2 md:hidden"
+                  className="mr-2 md:hidden h-9 w-9 rounded-full hover:bg-gray-100"
                 >
-                  <MessageSquare className="h-5 w-5" />
+                  <MessageSquare className="h-5 w-5 text-fitness-purple" />
                 </Button>
                 
                 {activeConversation && (
                   <div className="flex items-center">
-                    <h2 className="text-lg font-medium text-fitness-charcoal">{activeConversation.title}</h2>
-                    {isProcessing && (
-                      <div className="ml-3 flex items-center">
-                        <div className="animate-pulse h-2 w-2 rounded-full bg-fitness-purple mr-1"></div>
-                        <div className="animate-pulse h-2 w-2 rounded-full bg-fitness-purple mr-1" style={{ animationDelay: '300ms' }}></div>
-                        <div className="animate-pulse h-2 w-2 rounded-full bg-fitness-purple" style={{ animationDelay: '600ms' }}></div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-r from-fitness-purple to-purple-500 flex items-center justify-center shadow-sm">
+                        <Brain className="h-4 w-4 text-white" />
                       </div>
-                    )}
+                      <div>
+                        <h2 className="text-lg font-medium text-fitness-charcoal flex items-center">
+                          {activeConversation.title}
+                          {isProcessing && (
+                            <div className="ml-3 flex items-center">
+                              <div className="animate-pulse h-1.5 w-1.5 rounded-full bg-fitness-purple mr-1"></div>
+                              <div className="animate-pulse h-1.5 w-1.5 rounded-full bg-fitness-purple mr-1" style={{ animationDelay: '300ms' }}></div>
+                              <div className="animate-pulse h-1.5 w-1.5 rounded-full bg-fitness-purple" style={{ animationDelay: '600ms' }}></div>
+                            </div>
+                          )}
+                        </h2>
+                        <p className="text-xs text-muted-foreground">
+                          {formatConversationDate(activeConversation.updatedAt)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -540,9 +552,9 @@ const FitnessKnowledge = () => {
                     variant="outline"
                     size="sm"
                     onClick={createNewConversation}
-                    className="hidden md:flex items-center border-gray-200 hover:bg-gray-50 text-muted-foreground transition-colors"
+                    className="hidden md:flex items-center gap-1.5 border-gray-200 hover:bg-gray-50 hover:text-fitness-purple transition-colors h-9 px-3 rounded-full"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-4 w-4" />
                     New Chat
                   </Button>
                 </div>
@@ -554,9 +566,9 @@ const FitnessKnowledge = () => {
               {activeConversation ? (
                 /* Active chat with messages */
                 <div className="flex-1 flex flex-col relative">
-                  <Card className="flex-1 overflow-hidden border-0 shadow-sm rounded-xl mb-4">
-                    <ScrollArea className="flex-1 h-full px-4 pt-4 pb-2" ref={scrollAreaRef}>
-                      <div className="space-y-6 pb-2">
+                  <Card className="flex-1 overflow-hidden border-0 shadow-sm rounded-xl mb-4 bg-gradient-to-b from-white to-gray-50/50">
+                    <ScrollArea className="flex-1 h-full" ref={scrollAreaRef}>
+                      <div className="space-y-6 px-4 py-4">
                         <AnimatePresence initial={false}>
                           {activeConversation.messages.map((message, index) => (
                             <motion.div
@@ -579,7 +591,7 @@ const FitnessKnowledge = () => {
                                   className={cn(
                                     "rounded-2xl p-4",
                                     message.role === 'user'
-                                      ? "bg-fitness-purple text-white"
+                                      ? "bg-gradient-to-br from-fitness-purple to-fitness-purple/90 text-white shadow-sm"
                                       : "bg-white border border-gray-100 shadow-sm text-gray-800"
                                   )}
                                 >
@@ -599,14 +611,48 @@ const FitnessKnowledge = () => {
                                           li: ({ children }) => <li className="my-0.5">{children}</li>,
                                           h3: ({ children }) => <h3 className="text-lg font-semibold my-2">{children}</h3>,
                                           h4: ({ children }) => <h4 className="text-md font-semibold my-1.5">{children}</h4>,
-                                          a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{children}</a>,
-                                          code: ({ children }) => <code className="bg-gray-100 px-1 py-0.5 rounded text-red-500 text-sm">{children}</code>,
-                                          pre: ({ children }) => <pre className="bg-gray-100 p-2 rounded-md overflow-x-auto my-2 text-sm">{children}</pre>
+                                          a: ({ children, href }) => (
+                                            <a 
+                                              href={href} 
+                                              target="_blank" 
+                                              rel="noopener noreferrer" 
+                                              className={cn(
+                                                "hover:underline",
+                                                message.role === 'user' ? "text-blue-200" : "text-blue-600"
+                                              )}
+                                            >
+                                              {children}
+                                            </a>
+                                          ),
+                                          code: ({ children }) => (
+                                            <code 
+                                              className={cn(
+                                                "px-1 py-0.5 rounded text-sm",
+                                                message.role === 'user' 
+                                                  ? "bg-white/20 text-white" 
+                                                  : "bg-gray-100 text-red-500"
+                                              )}
+                                            >
+                                              {children}
+                                            </code>
+                                          ),
+                                          pre: ({ children }) => (
+                                            <pre 
+                                              className={cn(
+                                                "p-2 rounded-md overflow-x-auto my-2 text-sm",
+                                                message.role === 'user' 
+                                                  ? "bg-white/10" 
+                                                  : "bg-gray-100"
+                                              )}
+                                            >
+                                              {children}
+                                            </pre>
+                                          )
                                         }}
                                       >
                                         {message.content}
                                       </ReactMarkdown>
-                                      <div className="text-xs opacity-50 mt-2 text-right">
+                                      <div className="text-xs opacity-70 mt-2 text-right">
                                         {typeof message.timestamp === 'string' 
                                           ? new Date(message.timestamp).toLocaleTimeString([], {
                                               hour: '2-digit',
@@ -638,31 +684,78 @@ const FitnessKnowledge = () => {
                   {/* Input area */}
                   <div className="flex space-x-2 mb-2">
                     <div className="relative flex-1">
-                      <Input
-                        ref={inputRef}
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Ask anything about fitness..."
-                        disabled={isProcessing}
-                        className={cn(
-                          "flex-1 bg-white border-gray-200 rounded-full h-12 pl-4 pr-4 shadow-sm transition-all duration-300",
-                          isProcessing ? "border-fitness-purple shadow-sm" : "",
-                          "focus-visible:ring-fitness-purple/25"
-                        )}
-                      />
-                      <Button 
-                        onClick={handleSendMessage} 
-                        disabled={isProcessing || inputValue.trim() === ''}
-                        className={cn(
-                          "absolute right-1 top-1 rounded-full h-10 w-10 p-0 transition-all duration-300",
+                      <div className={cn(
+                        "group relative flex items-center rounded-full overflow-hidden transition-all duration-300 shadow-sm",
+                        isProcessing 
+                          ? "bg-gradient-to-r from-purple-50 to-blue-50 shadow-md" 
+                          : "bg-white hover:shadow-md"
+                      )}>
+                        <div className={cn(
+                          "absolute left-0 top-0 bottom-0 w-[3px] rounded-l-full transition-all duration-300",
                           isProcessing 
-                            ? "bg-fitness-purple/70 cursor-not-allowed" 
-                            : "bg-fitness-purple hover:bg-fitness-purple/90"
-                        )}
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
+                            ? "bg-gradient-to-b from-fitness-purple to-blue-400" 
+                            : "bg-transparent group-focus-within:bg-gradient-to-b from-fitness-purple to-blue-400"
+                        )} />
+                        
+                        <Input
+                          ref={inputRef}
+                          value={inputValue}
+                          onChange={(e) => setInputValue(e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          placeholder="Ask anything about fitness..."
+                          disabled={isProcessing}
+                          className={cn(
+                            "flex-1 border-0 focus-visible:ring-0 h-12 pl-4 pr-20 bg-transparent transition-all",
+                            isProcessing ? "text-fitness-charcoal/90" : "text-fitness-charcoal",
+                          )}
+                        />
+                        
+                        <div className="absolute right-1 top-1 flex items-center gap-2">
+                          {inputValue.trim().length > 0 && !isProcessing && (
+                            <div className="text-xs text-muted-foreground animate-fadeIn mr-1">
+                              Press Enter ↵
+                            </div>
+                          )}
+                          
+                          <Button 
+                            onClick={handleSendMessage} 
+                            disabled={isProcessing || inputValue.trim() === ''}
+                            className={cn(
+                              "rounded-full h-10 w-10 p-0 transition-all duration-300 relative group/button",
+                              isProcessing 
+                                ? "bg-gray-200 cursor-not-allowed" 
+                                : inputValue.trim() === ''
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : "bg-gradient-to-r from-fitness-purple to-purple-500 hover:from-fitness-purple/90 hover:to-purple-500/90 text-white shadow-sm"
+                            )}
+                          >
+                            {isProcessing ? (
+                              <div className="flex items-center justify-center animate-spin">
+                                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              </div>
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4 transition-transform group-hover/button:scale-110" />
+                                <span className="absolute inset-0 rounded-full bg-white opacity-0 group-hover/button:opacity-10 transition-opacity"></span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {isProcessing && (
+                        <div className="text-xs text-muted-foreground mt-1.5 ml-3 animate-fadeIn flex items-center">
+                          <div className="mr-2 flex items-center space-x-1">
+                            <div className="h-1.5 w-1.5 bg-fitness-purple rounded-full animate-pulse"></div>
+                            <div className="h-1.5 w-1.5 bg-fitness-purple rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                            <div className="h-1.5 w-1.5 bg-fitness-purple rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                          </div>
+                          Searching knowledge base...
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -670,24 +763,76 @@ const FitnessKnowledge = () => {
                 /* Welcome screen for new users */
                 <div className="flex-1 flex flex-col items-center justify-center max-w-full py-4 md:py-0">
                   <div className="text-center animate-fadeIn w-full mx-auto px-2">
+                    {/* Knowledge System Explanation Card */}
                     <motion.div 
-                      className="bg-white rounded-xl md:rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 mb-6 transition-all duration-300 hover:shadow-md max-w-2xl mx-auto"
+                      className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl md:rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 mb-6 transition-all duration-300 hover:shadow-md max-w-3xl mx-auto"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="flex items-center justify-center gap-4 mb-4">
+                        <div className="flex items-center justify-center h-12 w-12 bg-white rounded-full shadow-sm">
+                          <Brain className="h-6 w-6 text-fitness-purple" />
+                        </div>
+                        <div className="h-px flex-1 bg-gradient-to-r from-purple-200 to-transparent"></div>
+                        <div className="flex items-center justify-center h-12 w-12 bg-white rounded-full shadow-sm">
+                          <Search className="h-6 w-6 text-blue-500" />
+                        </div>
+                      </div>
+                      <h3 className="text-lg md:text-xl font-semibold text-fitness-charcoal mb-3">
+                        How Our Fitness Knowledge System Works
+                      </h3>
+                      <div className="text-gray-700 text-sm md:text-base space-y-3 max-w-2xl mx-auto">
+                        <p>
+                          Our AI-powered fitness assistant combines the knowledge from top fitness experts with advanced search capabilities:
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                          <div className="bg-white/80 p-3 rounded-lg shadow-sm border border-purple-100">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <Badge className="bg-fitness-purple text-white">Step 1</Badge>
+                              <span className="font-medium text-fitness-charcoal">Knowledge Base Search</span>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              We search our extensive library of content from Jeff Nippard, AthleanX, and Renaissance Periodization videos.
+                            </p>
+                          </div>
+                          <div className="bg-white/80 p-3 rounded-lg shadow-sm border border-blue-100">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <Badge className="bg-blue-500 text-white">Step 2</Badge>
+                              <span className="font-medium text-fitness-charcoal">Web Search Fallback</span>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              If we can't find relevant information in our knowledge base, we'll search the web for reliable answers.
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500 italic mt-3">
+                          We'll always cite our sources and tell you exactly where the information comes from.
+                        </p>
+                      </div>
+                    </motion.div>
+
+                    <motion.div 
+                      className="bg-gradient-to-r from-fitness-purple-light to-purple-50 rounded-xl md:rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 mb-6 transition-all duration-300 hover:shadow-md max-w-2xl mx-auto"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4 }}
                     >
-                      <div className="h-16 w-16 rounded-full bg-fitness-purple-light mx-auto mb-4 flex items-center justify-center">
+                      <div className="h-16 w-16 rounded-full bg-white mx-auto mb-4 flex items-center justify-center shadow-sm">
                         <Brain className="h-8 w-8 text-fitness-purple" />
                       </div>
                       <h3 className="text-xl md:text-2xl font-bold text-fitness-charcoal mb-3">
                         Fitness Knowledge AI
                       </h3>
-                      <p className="text-gray-600 mb-4 max-w-lg mx-auto">
+                      <p className="text-gray-700 mb-4 max-w-lg mx-auto">
                         Get evidence-based answers from top fitness experts like AthleanX, Jeff Nippard, and Renaissance Periodization.
                       </p>
-                      <div className="mb-5">
+                      <div className="mb-5 flex flex-wrap gap-2 justify-center">
                         <Badge variant="outline" className="py-1.5 px-3 bg-amber-50 text-amber-700 border-amber-200">
-                          Powered by YouTube's top fitness creators
+                          Backed by YouTube's top fitness creators
+                        </Badge>
+                        <Badge variant="outline" className="py-1.5 px-3 bg-blue-50 text-blue-700 border-blue-200">
+                          Reliable information with sources
                         </Badge>
                       </div>
                       <div>
