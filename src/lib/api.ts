@@ -123,9 +123,12 @@ export async function queryFitnessCoach(
 
 export async function queryRagSystem(
   query: string,
-  onMarkdownUpdate: (markdown: string) => void
+  onAnswerUpdate: (text: string) => void,
+  onStepUpdate?: (step: string) => void,
+  onSourceUpdate?: (source: any) => void,
+  onError?: (error: string) => void
 ): Promise<void> {
-  let accumulatedMarkdown = '';
+  let accumulatedAnswer = '';
 
   try {
     const response = await fetch('http://localhost:8000/ask', {
@@ -165,16 +168,56 @@ export async function queryRagSystem(
           }
 
           try {
-            // Parse the JSON and extract just the content
+            // Parse the JSON content
             const jsonContent = JSON.parse(content);
-            if (jsonContent.content) {
-              accumulatedMarkdown += jsonContent.content;
-              onMarkdownUpdate(accumulatedMarkdown);
+            
+            // Handle different message types
+            if (jsonContent.type) {
+              switch (jsonContent.type) {
+                case 'step':
+                  if (onStepUpdate) onStepUpdate(jsonContent.content);
+                  break;
+                  
+                case 'source':
+                  if (onSourceUpdate) onSourceUpdate(jsonContent.content);
+                  break;
+                  
+                case 'answer':
+                  accumulatedAnswer += jsonContent.content;
+                  onAnswerUpdate(accumulatedAnswer);
+                  break;
+                  
+                case 'sources_summary':
+                  // We may handle the complete sources summary if needed
+                  break;
+                  
+                case 'error':
+                  if (onError) onError(jsonContent.content);
+                  break;
+                  
+                default:
+                  // For backward compatibility
+                  if (typeof jsonContent.content === 'string') {
+                    accumulatedAnswer += jsonContent.content;
+                    onAnswerUpdate(accumulatedAnswer);
+                  }
+              }
+            } else {
+              // For backward compatibility with old format
+              if (jsonContent.content) {
+                accumulatedAnswer += jsonContent.content;
+                onAnswerUpdate(accumulatedAnswer);
+              } else {
+                // Directly use content if it's a string
+                accumulatedAnswer += content;
+                onAnswerUpdate(accumulatedAnswer);
+              }
             }
           } catch (e) {
             // If JSON parsing fails, just add the content directly
-            accumulatedMarkdown += content;
-            onMarkdownUpdate(accumulatedMarkdown);
+            console.error('Error parsing SSE message:', e);
+            accumulatedAnswer += content;
+            onAnswerUpdate(accumulatedAnswer);
           }
         }
       }
@@ -182,7 +225,11 @@ export async function queryRagSystem(
 
   } catch (error) {
     console.error('Error querying RAG system:', error);
-    onMarkdownUpdate('**Error: Failed to query the knowledge base**');
+    if (onError) {
+      onError(error instanceof Error ? error.message : String(error));
+    } else {
+      onAnswerUpdate('**Error: Failed to query the knowledge base**');
+    }
     throw error;
   }
 }

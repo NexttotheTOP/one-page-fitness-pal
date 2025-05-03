@@ -19,11 +19,22 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
 // Define types
+type Source = {
+  content: string;
+  metadata: {
+    source?: string;
+    title?: string;
+    [key: string]: any;
+  };
+};
+
 type Message = {
   role: 'user' | 'assistant';
   content: string;
   loading?: boolean;
   timestamp: Date;
+  sources?: Source[];
+  steps?: string[];
 };
 
 type Conversation = {
@@ -266,8 +277,14 @@ const FitnessKnowledge = () => {
     setIsProcessing(true);
 
     try {
+      // Reset source and step arrays for new conversation
+      let currentSources: any[] = [];
+      let currentSteps: string[] = [];
+
       // Function to update the assistant's message as streaming comes in
       const updateAssistantMessage = (content: string) => {
+        console.log('Updating assistant message with new content:', content.length);
+        
         setConversations(prev => {
           const newConversations = [...prev];
           const convIndex = newConversations.findIndex(c => c.id === activeConversationId);
@@ -278,10 +295,17 @@ const FitnessKnowledge = () => {
             
             if (lastIndex >= 0 && conversation.messages[lastIndex].role === 'assistant') {
               const updatedMessages = [...conversation.messages];
+              // Preserve any existing steps and sources when updating the content
+              const preservedSteps = updatedMessages[lastIndex].steps || [];
+              const preservedSources = updatedMessages[lastIndex].sources || [];
+              
               updatedMessages[lastIndex] = { 
                 role: 'assistant', 
                 content, 
-                timestamp: updatedMessages[lastIndex].timestamp
+                timestamp: updatedMessages[lastIndex].timestamp,
+                // Keep the steps and sources when updating content
+                steps: preservedSteps,
+                sources: preservedSources
               };
               
               newConversations[convIndex] = {
@@ -296,8 +320,99 @@ const FitnessKnowledge = () => {
         });
       };
 
-      // Query the RAG system
-      await queryRagSystem(userMessage, updateAssistantMessage);
+      // Step update handler
+      const handleStepUpdate = (step: string) => {
+        currentSteps.push(step);
+        // Log to console for debugging
+        console.log('Processing step:', step);
+        console.log('Current steps array length:', currentSteps.length);
+        
+        // Update the message with the current steps
+        setConversations(prev => {
+          const newConversations = [...prev];
+          const convIndex = newConversations.findIndex(c => c.id === activeConversationId);
+          
+          if (convIndex >= 0) {
+            const conversation = newConversations[convIndex];
+            const lastIndex = conversation.messages.length - 1;
+            
+            if (lastIndex >= 0 && conversation.messages[lastIndex].role === 'assistant') {
+              const updatedMessages = [...conversation.messages];
+              updatedMessages[lastIndex] = { 
+                ...updatedMessages[lastIndex],
+                steps: [...currentSteps],
+                timestamp: updatedMessages[lastIndex].timestamp
+              };
+              
+              console.log('Updated message with steps:', updatedMessages[lastIndex]);
+              
+              newConversations[convIndex] = {
+                ...conversation,
+                messages: updatedMessages,
+                updatedAt: new Date()
+              };
+            }
+          }
+          
+          return newConversations;
+        });
+      };
+
+      // Source update handler
+      const handleSourceUpdate = (source: any) => {
+        currentSources.push(source);
+        // Log to console for debugging
+        console.log('Source found:', source);
+        console.log('Current sources array length:', currentSources.length);
+        
+        // Update the message with the current sources
+        setConversations(prev => {
+          const newConversations = [...prev];
+          const convIndex = newConversations.findIndex(c => c.id === activeConversationId);
+          
+          if (convIndex >= 0) {
+            const conversation = newConversations[convIndex];
+            const lastIndex = conversation.messages.length - 1;
+            
+            if (lastIndex >= 0 && conversation.messages[lastIndex].role === 'assistant') {
+              const updatedMessages = [...conversation.messages];
+              updatedMessages[lastIndex] = { 
+                ...updatedMessages[lastIndex],
+                sources: [...currentSources],
+                timestamp: updatedMessages[lastIndex].timestamp
+              };
+              
+              console.log('Updated message with sources:', updatedMessages[lastIndex]);
+              
+              newConversations[convIndex] = {
+                ...conversation,
+                messages: updatedMessages,
+                updatedAt: new Date()
+              };
+            }
+          }
+          
+          return newConversations;
+        });
+      };
+
+      // Error handler
+      const handleError = (error: string) => {
+        toast({
+          title: "Error",
+          description: error,
+          variant: "destructive",
+        });
+      };
+
+      // Query the RAG system with enhanced streaming support
+      await queryRagSystem(
+        userMessage, 
+        updateAssistantMessage,
+        handleStepUpdate,
+        handleSourceUpdate,
+        handleError
+      );
       
     } catch (error) {
       console.error('Error querying RAG system:', error);
@@ -694,24 +809,82 @@ const FitnessKnowledge = () => {
                                                       {message.content}
                                                     </ReactMarkdown>
                                                     
-                                                    {/* Only show timestamp on last message in group */}
-                                                    {msgIndex === group.length - 1 && (
-                                                      <div className="text-[10px] mt-1 text-gray-400">
-                                                        {typeof message.timestamp === 'string' 
-                                                          ? new Date(message.timestamp).toLocaleTimeString([], {
-                                                              hour: '2-digit',
-                                                              minute: '2-digit'
-                                                            })
-                                                          : message.timestamp.toLocaleTimeString([], {
-                                                              hour: '2-digit',
-                                                              minute: '2-digit'
-                                                            })
-                                                        }
+                                                    {/* Display processing steps if available */}
+                                                    {message.steps && message.steps.length > 0 && (
+                                                      <div className="mt-3 bg-gray-50 rounded-lg p-2 border border-gray-100">
+                                                        <details className="text-xs">
+                                                          <summary className="font-medium text-fitness-purple cursor-pointer">
+                                                            View processing steps ({message.steps.length})
+                                                          </summary>
+                                                          <div className="pt-2 pb-1 pl-1">
+                                                            <ul className="space-y-1">
+                                                              {message.steps.map((step, stepIndex) => (
+                                                                <li key={stepIndex} className="flex items-start">
+                                                                  <span className="inline-block w-4 h-4 bg-fitness-purple-light rounded-full text-fitness-purple text-center text-[10px] mr-2 flex-shrink-0 mt-0.5">
+                                                                    {stepIndex + 1}
+                                                                  </span>
+                                                                  <span className="text-gray-700">{step}</span>
+                                                                </li>
+                                                              ))}
+                                                            </ul>
+                                                          </div>
+                                                        </details>
                                                       </div>
                                                     )}
+                                                    
+                                                    {/* Skip debugging log in JSX */}
+                                                    
+                                                    {/* Display sources if available */}
+                                                    {message.sources && message.sources.length > 0 && (
+                                                      <div className="mt-3 bg-blue-50 rounded-lg p-2 border border-blue-100">
+                                                        <details className="text-xs">
+                                                          <summary className="font-medium text-blue-600 cursor-pointer">
+                                                            View sources ({message.sources.length})
+                                                          </summary>
+                                                          <div className="pt-2 pb-1">
+                                                            <ul className="space-y-2 divide-y divide-blue-100">
+                                                              {message.sources.map((source, sourceIndex) => (
+                                                                <li key={sourceIndex} className="pt-2 first:pt-0">
+                                                                  <div className="flex items-center mb-1">
+                                                                    <Badge 
+                                                                      variant="outline" 
+                                                                      className="mr-2 bg-white border-blue-200 text-blue-700 text-[10px] px-1.5 py-0"
+                                                                    >
+                                                                      Source {sourceIndex + 1}
+                                                                    </Badge>
+                                                                    <span className="font-medium text-blue-800">
+                                                                      {source.metadata?.title || source.metadata?.source || 'Reference'}
+                                                                    </span>
+                                                                  </div>
+                                                                  <div className="text-gray-600 pl-1 text-xs bg-white p-1.5 rounded border border-blue-100">
+                                                                    {source.content}
+                                                                  </div>
+                                                                </li>
+                                                              ))}
+                                                            </ul>
+                                                          </div>
+                                                        </details>
+                                                      </div>
+                                                    )}
+                                                    
                                                   </>
                                                 )}
                                               </div>
+                                              {/* Timestamp below message box - assistant */}
+                                              {msgIndex === group.length - 1 && (
+                                                <div className="text-[10px] mt-1 ml-2 text-gray-900">
+                                                  {typeof message.timestamp === 'string' 
+                                                    ? new Date(message.timestamp).toLocaleTimeString([], {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                      })
+                                                    : message.timestamp.toLocaleTimeString([], {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                      })
+                                                  }
+                                                </div>
+                                              )}
                                             </motion.div>
                                           ))}
                                         </div>
@@ -774,22 +947,22 @@ const FitnessKnowledge = () => {
                                                   {message.content}
                                                 </ReactMarkdown>
                                                 
-                                                {/* Only show timestamp on last message in group */}
-                                                {msgIndex === group.length - 1 && (
-                                                  <div className="text-[10px] mt-1 opacity-70 text-right">
-                                                    {typeof message.timestamp === 'string' 
-                                                      ? new Date(message.timestamp).toLocaleTimeString([], {
-                                                          hour: '2-digit',
-                                                          minute: '2-digit'
-                                                        })
-                                                      : message.timestamp.toLocaleTimeString([], {
-                                                          hour: '2-digit',
-                                                          minute: '2-digit'
-                                                        })
-                                                    }
-                                                  </div>
-                                                )}
                                               </div>
+                                              {/* Timestamp below message box - user */}
+                                              {msgIndex === group.length - 1 && (
+                                                <div className="text-[10px] mt-1 mr-2 text-black text-right">
+                                                  {typeof message.timestamp === 'string' 
+                                                    ? new Date(message.timestamp).toLocaleTimeString([], {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                      })
+                                                    : message.timestamp.toLocaleTimeString([], {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                      })
+                                                  }
+                                                </div>
+                                              )}
                                             </motion.div>
                                           ))}
                                         </div>
@@ -813,13 +986,17 @@ const FitnessKnowledge = () => {
                         "group relative flex items-center rounded-2xl overflow-hidden transition-all duration-300 shadow-sm",
                         isProcessing 
                           ? "bg-gradient-to-r from-purple-50 to-blue-50 shadow-md" 
-                          : "bg-gradient-to-r from-white to-gray-50 hover:shadow-md"
+                          : inputValue.trim() === ''
+                            ? "bg-gradient-to-r from-blue-50 to-purple-50 hover:shadow-md"
+                            : "bg-white hover:shadow-md"
                       )}>
                         <div className={cn(
                           "absolute left-0 top-0 bottom-0 w-[3px] rounded-l-full transition-all duration-300",
                           isProcessing 
                             ? "bg-gradient-to-b from-fitness-purple to-blue-400" 
-                            : "bg-transparent group-focus-within:bg-gradient-to-b from-fitness-purple to-blue-400"
+                            : inputValue.trim() !== ''
+                              ? "bg-gradient-to-b from-fitness-purple to-blue-400"
+                              : "bg-transparent group-focus-within:bg-gradient-to-b from-fitness-purple to-blue-400"
                         )} />
                         
                         <Input
@@ -831,7 +1008,7 @@ const FitnessKnowledge = () => {
                           disabled={isProcessing}
                           className={cn(
                             "flex-1 border-0 focus-visible:ring-0 h-16 pl-6 pr-24 bg-transparent transition-all text-base",
-                            isProcessing ? "text-fitness-charcoal/90" : "text-fitness-charcoal",
+                            isProcessing ? "text-fitness-charcoal/90" : "text-fitness-charcoal"
                           )}
                         />
                         
@@ -849,9 +1026,7 @@ const FitnessKnowledge = () => {
                               "rounded-xl h-11 w-11 p-0 transition-all duration-300 relative group/button",
                               isProcessing 
                                 ? "bg-gray-200 cursor-not-allowed" 
-                                : inputValue.trim() === ''
-                                  ? "bg-gradient-to-br from-gray-100 to-gray-200 text-gray-400 cursor-not-allowed"
-                                  : "bg-gradient-to-br from-fitness-purple to-purple-500 hover:from-fitness-purple/90 hover:to-purple-500/90 text-white shadow-sm"
+                                : "bg-gradient-to-br from-fitness-purple to-purple-500 hover:from-fitness-purple/90 hover:to-purple-500/90 text-white shadow-sm"
                             )}
                           >
                             {isProcessing ? (
@@ -864,7 +1039,10 @@ const FitnessKnowledge = () => {
                             ) : (
                               <>
                                 <div className="bg-gradient-to-br from-white/20 to-transparent absolute inset-0 opacity-0 group-hover/button:opacity-100 transition-opacity rounded-xl"></div>
-                                <Send className="h-5 w-5 transition-transform group-hover/button:scale-110" />
+                                <Send className={cn(
+                                  "h-5 w-5 transition-transform group-hover/button:scale-110",
+                                  inputValue.trim() !== '' ? "text-white" : "text-gray-400"
+                                )} />
                               </>
                             )}
                           </Button>
