@@ -507,9 +507,9 @@ const FitnessKnowledge = () => {
           </div>
           
           {/* Main chat area */}
-          <div className="col-span-12 md:col-span-9 lg:col-span-10 flex flex-col h-full">
+          <div className="col-span-12 md:col-span-9 lg:col-span-10 flex flex-col h-full max-h-[calc(100vh-160px)] overflow-hidden">
             {/* Header with title and controls */}
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 flex-shrink-0">
               <div className="flex items-center">
                 <Button
                   variant="ghost"
@@ -562,133 +562,258 @@ const FitnessKnowledge = () => {
             </div>
             
             {/* Chat content */}
-            <div className="flex-1 flex flex-col h-full">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               {activeConversation ? (
                 /* Active chat with messages */
-                <div className="flex-1 flex flex-col relative">
-                  <Card className="flex-1 overflow-hidden border-0 shadow-sm rounded-xl mb-4 bg-gradient-to-b from-white to-gray-50/50">
-                    <ScrollArea className="flex-1 h-full" ref={scrollAreaRef}>
-                      <div className="space-y-6 px-4 py-4">
-                        <AnimatePresence initial={false}>
-                          {activeConversation.messages.map((message, index) => (
-                            <motion.div
-                              key={index}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className={`flex ${
-                                message.role === 'user' ? "justify-end" : "justify-start"
-                              }`}
-                            >
-                              <div className="flex items-start max-w-[85%] gap-2">
-                                {message.role === 'assistant' && (
-                                  <Avatar className="h-8 w-8 mt-1">
-                                    <AvatarFallback className="bg-fitness-purple text-white">AI</AvatarFallback>
-                                  </Avatar>
-                                )}
-                                
-                                <div
-                                  className={cn(
-                                    "rounded-2xl p-4",
-                                    message.role === 'user'
-                                      ? "bg-gradient-to-br from-fitness-purple to-fitness-purple/90 text-white shadow-sm"
-                                      : "bg-white border border-gray-100 shadow-sm text-gray-800"
-                                  )}
+                <div className="flex flex-col h-full">
+                  {/* Message container with fixed height */}
+                  <div className="flex-1 overflow-hidden min-h-0 relative mb-4">
+                    <div className="absolute top-0 w-full h-16 bg-gradient-to-b from-gray-50 via-gray-50 to-transparent z-10 pointer-events-none" />
+                    
+                    <ScrollArea 
+                      className="h-full overflow-y-auto pr-2" 
+                      ref={scrollAreaRef}
+                    >
+                      <div className="px-4 py-4">
+                        {/* Date separators with grouping */}
+                        {(() => {
+                          // Group messages by date
+                          const messagesByDate: Record<string, Message[]> = {};
+                          
+                          activeConversation.messages.forEach(msg => {
+                            const date = new Date(msg.timestamp);
+                            const dateStr = date.toLocaleDateString();
+                            
+                            if (!messagesByDate[dateStr]) {
+                              messagesByDate[dateStr] = [];
+                            }
+                            
+                            messagesByDate[dateStr].push(msg);
+                          });
+                          
+                          // Render each date group
+                          return Object.entries(messagesByDate).map(([dateStr, messages]) => (
+                            <div key={dateStr} className="mb-6 last:mb-0">
+                              <div className="flex items-center justify-center mb-4">
+                                <div className="h-px bg-gray-200 flex-1" />
+                                <Badge 
+                                  variant="outline" 
+                                  className="mx-2 px-3 py-1 bg-white text-xs text-gray-500 font-normal"
                                 >
-                                  {message.loading ? (
-                                    <div className="flex items-center space-x-2">
-                                      <LoadingSpinner size="sm" />
-                                      <span>Thinking...</span>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <ReactMarkdown 
-                                        remarkPlugins={[remarkGfm]}
-                                        components={{
-                                          p: ({ children }) => <p className="prose prose-sm max-w-none mb-2">{children}</p>,
-                                          ul: ({ children }) => <ul className="list-disc pl-4 my-1.5">{children}</ul>,
-                                          ol: ({ children }) => <ol className="list-decimal pl-4 my-1.5">{children}</ol>,
-                                          li: ({ children }) => <li className="my-0.5">{children}</li>,
-                                          h3: ({ children }) => <h3 className="text-lg font-semibold my-2">{children}</h3>,
-                                          h4: ({ children }) => <h4 className="text-md font-semibold my-1.5">{children}</h4>,
-                                          a: ({ children, href }) => (
-                                            <a 
-                                              href={href} 
-                                              target="_blank" 
-                                              rel="noopener noreferrer" 
-                                              className={cn(
-                                                "hover:underline",
-                                                message.role === 'user' ? "text-blue-200" : "text-blue-600"
-                                              )}
-                                            >
-                                              {children}
-                                            </a>
-                                          ),
-                                          code: ({ children }) => (
-                                            <code 
-                                              className={cn(
-                                                "px-1 py-0.5 rounded text-sm",
-                                                message.role === 'user' 
-                                                  ? "bg-white/20 text-white" 
-                                                  : "bg-gray-100 text-red-500"
-                                              )}
-                                            >
-                                              {children}
-                                            </code>
-                                          ),
-                                          pre: ({ children }) => (
-                                            <pre 
-                                              className={cn(
-                                                "p-2 rounded-md overflow-x-auto my-2 text-sm",
-                                                message.role === 'user' 
-                                                  ? "bg-white/10" 
-                                                  : "bg-gray-100"
-                                              )}
-                                            >
-                                              {children}
-                                            </pre>
-                                          )
-                                        }}
-                                      >
-                                        {message.content}
-                                      </ReactMarkdown>
-                                      <div className="text-xs opacity-70 mt-2 text-right">
-                                        {typeof message.timestamp === 'string' 
-                                          ? new Date(message.timestamp).toLocaleTimeString([], {
-                                              hour: '2-digit',
-                                              minute: '2-digit'
-                                            })
-                                          : message.timestamp.toLocaleTimeString([], {
-                                              hour: '2-digit',
-                                              minute: '2-digit'
-                                            })
-                                        }
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                                
-                                {message.role === 'user' && (
-                                  <Avatar className="h-8 w-8 mt-1">
-                                    <AvatarFallback className="bg-gray-200 text-fitness-charcoal">{displayName.substring(0, 2)}</AvatarFallback>
-                                  </Avatar>
-                                )}
+                                  {new Date(dateStr).toLocaleDateString(undefined, { 
+                                    weekday: 'short', 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                  })}
+                                </Badge>
+                                <div className="h-px bg-gray-200 flex-1" />
                               </div>
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
+                              
+                              {/* Group consecutive messages by the same role */}
+                              {(() => {
+                                const messageGroups: Message[][] = [];
+                                let currentGroup: Message[] = [];
+                                
+                                messages.forEach((msg, i) => {
+                                  if (i === 0 || msg.role === messages[i-1].role) {
+                                    currentGroup.push(msg);
+                                  } else {
+                                    messageGroups.push([...currentGroup]);
+                                    currentGroup = [msg];
+                                  }
+                                });
+                                
+                                if (currentGroup.length > 0) {
+                                  messageGroups.push(currentGroup);
+                                }
+                                
+                                return messageGroups.map((group, groupIndex) => (
+                                  <div key={groupIndex} className="mb-6 last:mb-0">
+                                    {group[0].role === 'assistant' ? (
+                                      <>
+                                        <div className="text-xs font-medium text-fitness-purple mb-1 ml-1">
+                                          FitnessPal
+                                        </div>
+                                        <div className="space-y-1">
+                                          {group.map((message, msgIndex) => (
+                                            <motion.div
+                                              key={`${dateStr}-${groupIndex}-${msgIndex}`}
+                                              initial={{ opacity: 0, y: 10 }}
+                                              animate={{ opacity: 1, y: 0 }}
+                                              transition={{ duration: 0.2 }}
+                                              className="max-w-[85%]"
+                                            >
+                                              <div
+                                                className={cn(
+                                                  "rounded-2xl p-4",
+                                                  "bg-white border border-gray-100 shadow-sm text-gray-800",
+                                                  // Special radius for grouped messages
+                                                  msgIndex === 0 && group.length > 1 && "rounded-bl-md",
+                                                  msgIndex > 0 && msgIndex < group.length - 1 && "rounded-l-md",
+                                                  msgIndex === group.length - 1 && group.length > 1 && "rounded-tl-md"
+                                                )}
+                                              >
+                                                {message.loading ? (
+                                                  <div className="flex items-center space-x-2">
+                                                    <LoadingSpinner size="sm" />
+                                                    <span>Thinking...</span>
+                                                  </div>
+                                                ) : (
+                                                  <>
+                                                    <ReactMarkdown 
+                                                      remarkPlugins={[remarkGfm]}
+                                                      components={{
+                                                        p: ({ children }) => <p className="prose prose-sm max-w-none mb-2">{children}</p>,
+                                                        ul: ({ children }) => <ul className="list-disc pl-4 my-1.5">{children}</ul>,
+                                                        ol: ({ children }) => <ol className="list-decimal pl-4 my-1.5">{children}</ol>,
+                                                        li: ({ children }) => <li className="my-0.5">{children}</li>,
+                                                        h3: ({ children }) => <h3 className="text-lg font-semibold my-2">{children}</h3>,
+                                                        h4: ({ children }) => <h4 className="text-md font-semibold my-1.5">{children}</h4>,
+                                                        a: ({ children, href }) => (
+                                                          <a 
+                                                            href={href} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="text-blue-600 hover:underline"
+                                                          >
+                                                            {children}
+                                                          </a>
+                                                        ),
+                                                        code: ({ children }) => (
+                                                          <code className="bg-gray-100 px-1 py-0.5 rounded text-red-500 text-sm">
+                                                            {children}
+                                                          </code>
+                                                        ),
+                                                        pre: ({ children }) => (
+                                                          <pre className="bg-gray-100 p-2 rounded-md overflow-x-auto my-2 text-sm">
+                                                            {children}
+                                                          </pre>
+                                                        )
+                                                      }}
+                                                    >
+                                                      {message.content}
+                                                    </ReactMarkdown>
+                                                    
+                                                    {/* Only show timestamp on last message in group */}
+                                                    {msgIndex === group.length - 1 && (
+                                                      <div className="text-[10px] mt-1 text-gray-400">
+                                                        {typeof message.timestamp === 'string' 
+                                                          ? new Date(message.timestamp).toLocaleTimeString([], {
+                                                              hour: '2-digit',
+                                                              minute: '2-digit'
+                                                            })
+                                                          : message.timestamp.toLocaleTimeString([], {
+                                                              hour: '2-digit',
+                                                              minute: '2-digit'
+                                                            })
+                                                        }
+                                                      </div>
+                                                    )}
+                                                  </>
+                                                )}
+                                              </div>
+                                            </motion.div>
+                                          ))}
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="text-xs font-medium text-fitness-purple mb-1 mr-1 text-right">
+                                          You
+                                        </div>
+                                        <div className="space-y-1 flex flex-col items-end">
+                                          {group.map((message, msgIndex) => (
+                                            <motion.div
+                                              key={`${dateStr}-${groupIndex}-${msgIndex}`}
+                                              initial={{ opacity: 0, y: 10 }}
+                                              animate={{ opacity: 1, y: 0 }}
+                                              transition={{ duration: 0.2 }}
+                                              className="max-w-[85%]"
+                                            >
+                                              <div
+                                                className={cn(
+                                                  "rounded-2xl p-4",
+                                                  "bg-gradient-to-br from-fitness-purple to-fitness-purple/90 text-white shadow-sm",
+                                                  // Special radius for grouped messages
+                                                  msgIndex === 0 && group.length > 1 && "rounded-br-md",
+                                                  msgIndex > 0 && msgIndex < group.length - 1 && "rounded-r-md",
+                                                  msgIndex === group.length - 1 && group.length > 1 && "rounded-tr-md"
+                                                )}
+                                              >
+                                                <ReactMarkdown 
+                                                  remarkPlugins={[remarkGfm]}
+                                                  components={{
+                                                    p: ({ children }) => <p className="prose prose-sm max-w-none mb-2">{children}</p>,
+                                                    ul: ({ children }) => <ul className="list-disc pl-4 my-1.5">{children}</ul>,
+                                                    ol: ({ children }) => <ol className="list-decimal pl-4 my-1.5">{children}</ol>,
+                                                    li: ({ children }) => <li className="my-0.5">{children}</li>,
+                                                    h3: ({ children }) => <h3 className="text-lg font-semibold my-2">{children}</h3>,
+                                                    h4: ({ children }) => <h4 className="text-md font-semibold my-1.5">{children}</h4>,
+                                                    a: ({ children, href }) => (
+                                                      <a 
+                                                        href={href} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer" 
+                                                        className="text-blue-200 hover:underline"
+                                                      >
+                                                        {children}
+                                                      </a>
+                                                    ),
+                                                    code: ({ children }) => (
+                                                      <code className="bg-white/20 px-1 py-0.5 rounded text-white text-sm">
+                                                        {children}
+                                                      </code>
+                                                    ),
+                                                    pre: ({ children }) => (
+                                                      <pre className="bg-white/10 p-2 rounded-md overflow-x-auto my-2 text-sm">
+                                                        {children}
+                                                      </pre>
+                                                    )
+                                                  }}
+                                                >
+                                                  {message.content}
+                                                </ReactMarkdown>
+                                                
+                                                {/* Only show timestamp on last message in group */}
+                                                {msgIndex === group.length - 1 && (
+                                                  <div className="text-[10px] mt-1 opacity-70 text-right">
+                                                    {typeof message.timestamp === 'string' 
+                                                      ? new Date(message.timestamp).toLocaleTimeString([], {
+                                                          hour: '2-digit',
+                                                          minute: '2-digit'
+                                                        })
+                                                      : message.timestamp.toLocaleTimeString([], {
+                                                          hour: '2-digit',
+                                                          minute: '2-digit'
+                                                        })
+                                                    }
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </motion.div>
+                                          ))}
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                ));
+                              })()}
+                            </div>
+                          ));
+                        })()}
                       </div>
                     </ScrollArea>
-                  </Card>
+                  </div>
                   
-                  {/* Input area */}
-                  <div className="flex space-x-2 mb-2">
+                  {/* Input area - position it at the bottom with flex-shrink-0 */}
+                  {/* Input area - position it at the bottom */}
+                  <div className="flex mb-6 mt-4 flex-shrink-0">
                     <div className="relative flex-1">
                       <div className={cn(
-                        "group relative flex items-center rounded-full overflow-hidden transition-all duration-300 shadow-sm",
+                        "group relative flex items-center rounded-2xl overflow-hidden transition-all duration-300 shadow-sm",
                         isProcessing 
                           ? "bg-gradient-to-r from-purple-50 to-blue-50 shadow-md" 
-                          : "bg-white hover:shadow-md"
+                          : "bg-gradient-to-r from-white to-gray-50 hover:shadow-md"
                       )}>
                         <div className={cn(
                           "absolute left-0 top-0 bottom-0 w-[3px] rounded-l-full transition-all duration-300",
@@ -705,12 +830,12 @@ const FitnessKnowledge = () => {
                           placeholder="Ask anything about fitness..."
                           disabled={isProcessing}
                           className={cn(
-                            "flex-1 border-0 focus-visible:ring-0 h-12 pl-4 pr-20 bg-transparent transition-all",
+                            "flex-1 border-0 focus-visible:ring-0 h-16 pl-6 pr-24 bg-transparent transition-all text-base",
                             isProcessing ? "text-fitness-charcoal/90" : "text-fitness-charcoal",
                           )}
                         />
                         
-                        <div className="absolute right-1 top-1 flex items-center gap-2">
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                           {inputValue.trim().length > 0 && !isProcessing && (
                             <div className="text-xs text-muted-foreground animate-fadeIn mr-1">
                               Press Enter ↵
@@ -721,12 +846,12 @@ const FitnessKnowledge = () => {
                             onClick={handleSendMessage} 
                             disabled={isProcessing || inputValue.trim() === ''}
                             className={cn(
-                              "rounded-full h-10 w-10 p-0 transition-all duration-300 relative group/button",
+                              "rounded-xl h-11 w-11 p-0 transition-all duration-300 relative group/button",
                               isProcessing 
                                 ? "bg-gray-200 cursor-not-allowed" 
                                 : inputValue.trim() === ''
-                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                  : "bg-gradient-to-r from-fitness-purple to-purple-500 hover:from-fitness-purple/90 hover:to-purple-500/90 text-white shadow-sm"
+                                  ? "bg-gradient-to-br from-gray-100 to-gray-200 text-gray-400 cursor-not-allowed"
+                                  : "bg-gradient-to-br from-fitness-purple to-purple-500 hover:from-fitness-purple/90 hover:to-purple-500/90 text-white shadow-sm"
                             )}
                           >
                             {isProcessing ? (
@@ -738,8 +863,8 @@ const FitnessKnowledge = () => {
                               </div>
                             ) : (
                               <>
-                                <Send className="h-4 w-4 transition-transform group-hover/button:scale-110" />
-                                <span className="absolute inset-0 rounded-full bg-white opacity-0 group-hover/button:opacity-10 transition-opacity"></span>
+                                <div className="bg-gradient-to-br from-white/20 to-transparent absolute inset-0 opacity-0 group-hover/button:opacity-100 transition-opacity rounded-xl"></div>
+                                <Send className="h-5 w-5 transition-transform group-hover/button:scale-110" />
                               </>
                             )}
                           </Button>
@@ -747,7 +872,7 @@ const FitnessKnowledge = () => {
                       </div>
                       
                       {isProcessing && (
-                        <div className="text-xs text-muted-foreground mt-1.5 ml-3 animate-fadeIn flex items-center">
+                        <div className="text-xs text-muted-foreground mt-2 ml-3 animate-fadeIn flex items-center">
                           <div className="mr-2 flex items-center space-x-1">
                             <div className="h-1.5 w-1.5 bg-fitness-purple rounded-full animate-pulse"></div>
                             <div className="h-1.5 w-1.5 bg-fitness-purple rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
@@ -761,8 +886,8 @@ const FitnessKnowledge = () => {
                 </div>
               ) : (
                 /* Welcome screen for new users */
-                <div className="flex-1 flex flex-col items-center justify-center max-w-full py-4 md:py-0">
-                  <div className="text-center animate-fadeIn w-full mx-auto px-2">
+                <div className="flex-1 flex flex-col items-center overflow-auto py-4 md:py-6">
+                  <div className="text-center w-full mx-auto px-2 pb-6">
                     {/* Knowledge System Explanation Card */}
                     <motion.div 
                       className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl md:rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 mb-6 transition-all duration-300 hover:shadow-md max-w-3xl mx-auto"
