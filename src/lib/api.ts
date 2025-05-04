@@ -122,6 +122,8 @@ export async function queryFitnessCoach(
 }
 
 export async function queryRagSystem(
+  userId: string,
+  threadId: string,
   query: string,
   onAnswerUpdate: (text: string) => void,
   onStepUpdate?: (step: string) => void,
@@ -129,6 +131,7 @@ export async function queryRagSystem(
   onError?: (error: string) => void
 ): Promise<void> {
   let accumulatedAnswer = '';
+  console.log(`queryRagSystem called - userId: ${userId}, threadId: ${threadId}, query length: ${query.length}`);
 
   try {
     const response = await fetch('http://localhost:8000/ask', {
@@ -136,20 +139,31 @@ export async function queryRagSystem(
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ question: query })
+      body: JSON.stringify({ 
+        question: query,
+        user_id: userId,
+        thread_id: threadId
+      })
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`HTTP error! status: ${response.status}, response: ${errorText}`);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const reader = response.body!.getReader();
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
+    let isDone = false;
 
-    while (true) {
+    while (!isDone) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        isDone = true;
+        console.log('Stream complete - done flag received');
+        break;
+      }
 
       // Decode the chunk and add to buffer
       buffer += decoder.decode(value, { stream: true });
@@ -164,7 +178,9 @@ export async function queryRagSystem(
           
           // Check for completion message
           if (content === '[DONE]') {
-            return;
+            console.log('Received [DONE] completion marker');
+            isDone = true;
+            break;
           }
 
           try {
@@ -175,29 +191,35 @@ export async function queryRagSystem(
             if (jsonContent.type) {
               switch (jsonContent.type) {
                 case 'step':
+                  console.log(`Step update: ${jsonContent.content.substring(0, 30)}...`);
                   if (onStepUpdate) onStepUpdate(jsonContent.content);
                   break;
                   
                 case 'source':
+                  console.log(`Source update: ${jsonContent.content.content.substring(0, 30)}...`);
                   if (onSourceUpdate) onSourceUpdate(jsonContent.content);
                   break;
                   
                 case 'answer':
+                  console.log(`Answer update, length: ${jsonContent.content.length}`);
                   accumulatedAnswer += jsonContent.content;
                   onAnswerUpdate(accumulatedAnswer);
                   break;
                   
                 case 'sources_summary':
+                  console.log('Received sources summary');
                   // We may handle the complete sources summary if needed
                   break;
                   
                 case 'error':
+                  console.error(`Error from backend: ${jsonContent.content}`);
                   if (onError) onError(jsonContent.content);
                   break;
                   
                 default:
                   // For backward compatibility
                   if (typeof jsonContent.content === 'string') {
+                    console.log(`Default update, length: ${jsonContent.content.length}`);
                     accumulatedAnswer += jsonContent.content;
                     onAnswerUpdate(accumulatedAnswer);
                   }
@@ -205,10 +227,12 @@ export async function queryRagSystem(
             } else {
               // For backward compatibility with old format
               if (jsonContent.content) {
+                console.log(`Legacy content update, length: ${jsonContent.content.length}`);
                 accumulatedAnswer += jsonContent.content;
                 onAnswerUpdate(accumulatedAnswer);
               } else {
                 // Directly use content if it's a string
+                console.log(`Direct string update, length: ${content.length}`);
                 accumulatedAnswer += content;
                 onAnswerUpdate(accumulatedAnswer);
               }
@@ -222,6 +246,31 @@ export async function queryRagSystem(
         }
       }
     }
+
+    // Make sure we process any remaining buffer content
+    if (buffer.length > 0) {
+      console.log(`Processing remaining buffer content: ${buffer.length} bytes`);
+      if (buffer.startsWith('data: ')) {
+        try {
+          const content = buffer.slice(6);
+          if (content !== '[DONE]') {
+            const jsonContent = JSON.parse(content);
+            if (jsonContent.content) {
+              accumulatedAnswer += jsonContent.content;
+              onAnswerUpdate(accumulatedAnswer);
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing final buffer content:', e);
+        }
+      }
+    }
+
+    console.log(`queryRagSystem complete - final answer length: ${accumulatedAnswer.length}`);
+    
+    // Wait a moment to ensure UI has updated before returning
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return;
 
   } catch (error) {
     console.error('Error querying RAG system:', error);
