@@ -22,7 +22,9 @@ import {
   createConversation, 
   addMessageToConversation as saveMessageToConversation, 
   deleteConversation,
-  updateMessage
+  updateMessage,
+  Message as DatabaseMessage,
+  Conversation as DatabaseConversation
 } from '@/lib/conversations';
 import { supabase } from '@/lib/supabase';
 
@@ -52,6 +54,79 @@ type Conversation = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+// Utility functions for conversation handling
+// These are extracted from the component for better code organization
+
+/**
+ * Save an assistant message directly to Supabase
+ * Guaranteed to save even if other approaches fail
+ */
+async function saveAssistantMessage(
+  conversationId: string, 
+  content: string, 
+  timestamp: Date,
+  sources: any[] = [],
+  steps: string[] = []
+): Promise<void> {
+  console.log('*** DIRECT SAVE - Saving assistant message ***');
+  console.log(`Saving assistant message with content length: ${content.length}`);
+  
+  try {
+    // Direct insert to Supabase
+    console.log('Performing direct insert to Supabase for assistant message');
+    const { error } = await supabase
+      .from('knowledge_messages')
+      .insert({
+        conversation_id: conversationId,
+        role: 'assistant',
+        content: content,
+        timestamp: timestamp.toISOString(),
+        sources: sources || [],
+        steps: steps || []
+      });
+      
+    if (error) {
+      console.error('Error in direct save of assistant message:', error);
+      throw error;
+    } else {
+      console.log('Successfully saved assistant message directly to Supabase');
+    }
+  } catch (err) {
+    console.error('Exception in saveAssistantMessage:', err);
+    throw err;
+  }
+}
+
+/**
+ * Create a conversation title from the first user message
+ */
+function generateConversationTitle(message: string): string {
+  return message.length > 25 
+    ? `${message.substring(0, 25)}...` 
+    : message;
+}
+
+/**
+ * Format a conversation date for display
+ */
+function formatConversationDate(date: Date): string {
+  const now = new Date();
+  const conversationDate = new Date(date);
+  
+  // If today, show time
+  if (conversationDate.toDateString() === now.toDateString()) {
+    return conversationDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  }
+  
+  // If this year, show month and day
+  if (conversationDate.getFullYear() === now.getFullYear()) {
+    return conversationDate.toLocaleDateString([], {month: 'short', day: 'numeric'});
+  }
+  
+  // Otherwise show date with year
+  return conversationDate.toLocaleDateString([], {year: 'numeric', month: 'short', day: 'numeric'});
+}
 
 const FitnessKnowledge = () => {
   // Hooks and state
@@ -243,8 +318,8 @@ const FitnessKnowledge = () => {
   
   const startNewChat = async () => {
     // Use crypto.randomUUID() to generate a proper UUID
-    const newConversation: Conversation = {
-      id: crypto.randomUUID(), // This will generate a proper UUID
+    const newConversation: DatabaseConversation = {
+      id: crypto.randomUUID(),
       title: "New Conversation",
       messages: [],
       createdAt: new Date(),
@@ -269,10 +344,7 @@ const FitnessKnowledge = () => {
   };
   
   const updateConversationTitle = (conversationId: string, firstUserMessage: string) => {
-    // Generate a title based on the first user message
-    const title = firstUserMessage.length > 25 
-      ? `${firstUserMessage.substring(0, 25)}...` 
-      : firstUserMessage;
+    const title = generateConversationTitle(firstUserMessage);
     
     // Update UI immediately
     setConversations(prev => 
@@ -293,14 +365,21 @@ const FitnessKnowledge = () => {
         })
         .eq('id', conversationId)
         .then(({ error }) => {
-          if (error) console.error('Error updating conversation title:', error);
+          if (error) {
+            console.error('Error updating conversation title:', error);
+            toast({
+              title: "Warning",
+              description: "Conversation title may not sync across devices",
+              variant: "destructive",
+            });
+          }
         });
     } catch (error) {
       console.error('Error updating conversation title:', error);
     }
   };
 
-  const addMessageToConversation = (conversationId: string, message: Message, skipSave: boolean = false) => {
+  const addMessageToConversation = (conversationId: string, message: DatabaseMessage, skipSave: boolean = false) => {
     // Update UI immediately
     setConversations(prev => 
       prev.map(conv => 
@@ -320,6 +399,11 @@ const FitnessKnowledge = () => {
         saveMessageToConversation(conversationId, message)
           .catch(error => {
             console.error('Error adding message to conversation:', error);
+            toast({
+              title: "Error",
+              description: "Failed to save message. Your message is visible but may not sync across devices.",
+              variant: "destructive",
+            });
           });
       } catch (error) {
         console.error('Error adding message to conversation:', error);
@@ -333,22 +417,22 @@ const FitnessKnowledge = () => {
     const userMessage = inputValue.trim();
     setInputValue('');
     
-    // Track if this is a new conversation
-    let isNewConversation = false;
-    let conversationId = '';
-    
     // Store timestamps for later use
     const userMessageTimestamp = new Date();
     const assistantMessageTimestamp = new Date();
+    
+    // Track conversation info
+    let conversationId: string;
+    let isNewConversation = false;
     
     // Create a new conversation if none is active
     if (!activeConversation) {
       isNewConversation = true;
       conversationId = crypto.randomUUID();
       
-      const newConversation: Conversation = {
+      const newConversation: DatabaseConversation = {
         id: conversationId,
-        title: userMessage.length > 25 ? `${userMessage.substring(0, 25)}...` : userMessage,
+        title: generateConversationTitle(userMessage),
         messages: [
           { 
             role: 'user', 
@@ -411,56 +495,12 @@ const FitnessKnowledge = () => {
     
     setIsProcessing(true);
 
+    // Variables to track streamed content
+    let accumulatedAnswer = '';
+    let currentSources: any[] = [];
+    let currentSteps: string[] = [];
+    
     try {
-      // Reset source and step arrays for new conversation
-      let currentSources: any[] = [];
-      let currentSteps: string[] = [];
-      // Variable to track the accumulated answer
-      let accumulatedAnswer = '';
-      
-      // Guaranteed save function that will be called directly when stream completes
-      const saveCompletedAssistantMessage = async () => {
-        console.log('*** DIRECT SAVE - Stream complete, saving assistant message ***');
-        console.log(`Saving completed assistant message with content length: ${accumulatedAnswer.length}`);
-        
-        // Create final message with all content
-        const finalAssistantMessage = {
-          role: 'assistant' as const, 
-          content: accumulatedAnswer, 
-          timestamp: assistantMessageTimestamp,
-          sources: currentSources,
-          steps: currentSteps
-        };
-        
-        try {
-          // Direct insert to Supabase
-          console.log('Performing direct insert to Supabase for assistant message');
-          const { error } = await supabase
-            .from('knowledge_messages')
-            .insert({
-              conversation_id: conversationId,
-              role: 'assistant',
-              content: accumulatedAnswer,
-              timestamp: assistantMessageTimestamp.toISOString(),
-              sources: currentSources || [],
-              steps: currentSteps || []
-            });
-            
-          if (error) {
-            console.error('Error in direct save of assistant message:', error);
-            toast({
-              title: "Warning",
-              description: "Assistant response may not sync across devices.",
-              variant: "destructive",
-            });
-          } else {
-            console.log('Successfully saved assistant message directly to Supabase');
-          }
-        } catch (err) {
-          console.error('Exception in saveCompletedAssistantMessage:', err);
-        }
-      };
-
       // Function to update the assistant's message as streaming comes in
       const updateAssistantMessage = (content: string) => {
         console.log('Updating assistant message with new content:', content.length);
@@ -491,7 +531,6 @@ const FitnessKnowledge = () => {
                 sources: preservedSources
               };
               
-              
               newConversations[convIndex] = {
                 ...conversation,
                 messages: updatedMessages,
@@ -507,7 +546,6 @@ const FitnessKnowledge = () => {
       // Step update handler
       const handleStepUpdate = (step: string) => {
         currentSteps.push(step);
-        // Log to console for debugging
         console.log('Processing step:', step);
         console.log('Current steps array length:', currentSteps.length);
         
@@ -545,7 +583,6 @@ const FitnessKnowledge = () => {
       // Source update handler
       const handleSourceUpdate = (source: any) => {
         currentSources.push(source);
-        // Log to console for debugging
         console.log('Source found:', source);
         console.log('Current sources array length:', currentSources.length);
         
@@ -591,7 +628,7 @@ const FitnessKnowledge = () => {
 
       // Query the RAG system with enhanced streaming support
       console.log('Starting queryRagSystem call');
-      await queryRagSystem(
+      const finalAnswer = await queryRagSystem(
         user.id,
         conversationId,
         userMessage,
@@ -601,9 +638,26 @@ const FitnessKnowledge = () => {
         handleError
       );
       
-      // Call the guaranteed save function directly
-      console.log('queryRagSystem returned, now calling saveCompletedAssistantMessage');
-      await saveCompletedAssistantMessage();
+      // Ensure we have the most up-to-date content
+      accumulatedAnswer = finalAnswer || accumulatedAnswer;
+      
+      // Save the final assistant message to Supabase
+      try {
+        await saveAssistantMessage(
+          conversationId,
+          accumulatedAnswer,
+          assistantMessageTimestamp,
+          currentSources,
+          currentSteps
+        );
+      } catch (error) {
+        console.error('Failed to save assistant message:', error);
+        toast({
+          title: "Warning",
+          description: "Response may not sync across devices.",
+          variant: "destructive",
+        });
+      }
       
     } catch (error) {
       console.error('Error querying RAG system:', error);
@@ -689,25 +743,6 @@ const FitnessKnowledge = () => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
-  };
-
-  // Format date for conversation list
-  const formatConversationDate = (date: Date) => {
-    const now = new Date();
-    const conversationDate = new Date(date);
-    
-    // If today, show time
-    if (conversationDate.toDateString() === now.toDateString()) {
-      return conversationDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    }
-    
-    // If this year, show month and day
-    if (conversationDate.getFullYear() === now.getFullYear()) {
-      return conversationDate.toLocaleDateString([], {month: 'short', day: 'numeric'});
-    }
-    
-    // Otherwise show date with year
-    return conversationDate.toLocaleDateString([], {year: 'numeric', month: 'short', day: 'numeric'});
   };
 
   return (

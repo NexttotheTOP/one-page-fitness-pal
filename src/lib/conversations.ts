@@ -1,69 +1,140 @@
 import { supabase } from './supabase';
+import { PostgrestError } from '@supabase/supabase-js';
 
-// Type definitions (can be moved to a types file later)
-export type Message = {
-  role: 'user' | 'assistant';
+// Enhanced type definitions with proper documentation
+export type MessageRole = 'user' | 'assistant';
+
+export interface MessageSource {
+  content: string;
+  metadata: {
+    source?: string;
+    title?: string;
+    author?: string;
+    [key: string]: any;
+  };
+}
+
+export interface Message {
+  role: MessageRole;
   content: string;
   timestamp: Date;
-  sources?: any[];
+  sources?: MessageSource[];
   steps?: string[];
-};
+  loading?: boolean;
+}
 
-export type Conversation = {
+export interface Conversation {
   id: string;
   title: string;
   messages: Message[];
   createdAt: Date;
   updatedAt: Date;
-};
-
-// Load conversations for a user
-export async function getUserConversations(userId: string): Promise<Conversation[]> {
-  // 1. Get all conversations for this user
-  const { data: conversationsData, error: conversationsError } = await supabase
-    .from('knowledge_conversations')
-    .select('id, title, created_at, updated_at')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false });
-
-  if (conversationsError) throw conversationsError;
-  if (!conversationsData) return [];
-
-  // 2. For each conversation, get its messages
-  const conversations = await Promise.all(
-    conversationsData.map(async (conv) => {
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('knowledge_messages')
-        .select('*')
-        .eq('conversation_id', conv.id)
-        .order('timestamp', { ascending: true });
-
-      if (messagesError) throw messagesError;
-
-      // Transform messages to the expected format
-      const messages = messagesData?.map(msg => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-        timestamp: new Date(msg.timestamp),
-        sources: msg.sources || [],
-        steps: msg.steps || []
-      })) || [];
-
-      // Return the conversation in the expected format
-      return {
-        id: conv.id,
-        title: conv.title,
-        messages,
-        createdAt: new Date(conv.created_at),
-        updatedAt: new Date(conv.updated_at)
-      };
-    })
-  );
-
-  return conversations;
 }
 
-// Create a new conversation with a specific ID
+interface DatabaseMessage {
+  id?: string;
+  conversation_id: string;
+  role: MessageRole;
+  content: string;
+  timestamp: string;
+  sources?: MessageSource[];
+  steps?: string[];
+}
+
+interface DatabaseConversation {
+  id: string;
+  user_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Error handling utility
+function handleError(error: PostgrestError | Error | unknown, operation: string): never {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  console.error(`Error in ${operation}:`, error);
+  
+  if (error instanceof PostgrestError) {
+    console.error(`PostgrestError code: ${error.code}, details: ${error.details}`);
+  }
+  
+  throw typeof error === 'object' && error !== null 
+    ? error 
+    : new Error(`Unknown error in ${operation}`);
+}
+
+/**
+ * Load all conversations for a specific user
+ * @param userId The ID of the user whose conversations to load
+ * @returns An array of conversation objects
+ */
+export async function getUserConversations(userId: string): Promise<Conversation[]> {
+  try {
+    // Get all conversations for this user
+    const { data: conversationsData, error: conversationsError } = await supabase
+      .from('knowledge_conversations')
+      .select('id, title, created_at, updated_at')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
+
+    if (conversationsError) throw conversationsError;
+    if (!conversationsData || conversationsData.length === 0) return [];
+
+    // For each conversation, get its messages
+    const conversations = await Promise.all(
+      conversationsData.map(async (conv) => {
+        try {
+          const { data: messagesData, error: messagesError } = await supabase
+            .from('knowledge_messages')
+            .select('*')
+            .eq('conversation_id', conv.id)
+            .order('timestamp', { ascending: true });
+
+          if (messagesError) throw messagesError;
+
+          // Transform messages to the expected format
+          const messages = messagesData?.map(msg => ({
+            role: msg.role as MessageRole,
+            content: msg.content,
+            timestamp: new Date(msg.timestamp),
+            sources: msg.sources || [],
+            steps: msg.steps || []
+          })) || [];
+
+          // Return the conversation in the expected format
+          return {
+            id: conv.id,
+            title: conv.title,
+            messages,
+            createdAt: new Date(conv.created_at),
+            updatedAt: new Date(conv.updated_at)
+          };
+        } catch (error) {
+          console.error(`Error loading messages for conversation ${conv.id}:`, error);
+          // Return conversation with empty messages rather than failing the whole load
+          return {
+            id: conv.id,
+            title: conv.title,
+            messages: [],
+            createdAt: new Date(conv.created_at),
+            updatedAt: new Date(conv.updated_at)
+          };
+        }
+      })
+    );
+
+    return conversations;
+  } catch (error) {
+    return handleError(error, 'getUserConversations');
+  }
+}
+
+/**
+ * Create a new conversation with a specific ID
+ * @param userId The ID of the user creating the conversation
+ * @param conversation The conversation object to create
+ * @returns The created conversation object
+ */
 export async function createConversation(userId: string, conversation: Conversation): Promise<Conversation> {
   console.log('createConversation called with:', {
     userId,
@@ -71,63 +142,76 @@ export async function createConversation(userId: string, conversation: Conversat
     title: conversation.title
   });
   
-  // 1. Insert the conversation with the specified ID
-  const { data: convData, error: convError } = await supabase
-    .from('knowledge_conversations')
-    .insert({
-      id: conversation.id, // Use the frontend-generated ID
-      user_id: userId,
-      title: conversation.title,
-      created_at: conversation.createdAt.toISOString(),
-      updated_at: conversation.updatedAt.toISOString()
-    })
-    .select()
-    .single();
+  try {
+    // 1. Insert the conversation with the specified ID
+    const { data: convData, error: convError } = await supabase
+      .from('knowledge_conversations')
+      .insert({
+        id: conversation.id,
+        user_id: userId,
+        title: conversation.title,
+        created_at: conversation.createdAt.toISOString(),
+        updated_at: conversation.updatedAt.toISOString()
+      })
+      .select()
+      .single();
 
-  if (convError) {
-    console.error('Error in createConversation:', convError);
-    throw convError;
-  }
-  
-  if (!convData) {
-    console.error('No data returned from createConversation');
-    throw new Error('Failed to create conversation');
-  }
-  
-  console.log('Conversation created successfully:', convData.id);
-
-  // 2. Insert the messages if there are any
-  if (conversation.messages && conversation.messages.length > 0) {
-    console.log(`Inserting ${conversation.messages.length} messages for conversation ${conversation.id}`);
-    
-    const messagesForInsert = conversation.messages.map(msg => ({
-      conversation_id: conversation.id,
-      role: msg.role,
-      content: msg.content,
-      timestamp: msg.timestamp.toISOString(),
-      sources: msg.sources || [],
-      steps: msg.steps || []
-    }));
-
-    const { error: msgError } = await supabase
-      .from('knowledge_messages')
-      .insert(messagesForInsert);
-
-    if (msgError) {
-      console.error('Error inserting messages:', msgError);
-      throw msgError;
+    if (convError) {
+      console.error('Error in createConversation:', convError);
+      throw convError;
     }
     
-    console.log(`Successfully inserted ${conversation.messages.length} messages`);
-  } else {
-    console.log('No messages to insert for new conversation');
-  }
+    if (!convData) {
+      console.error('No data returned from createConversation');
+      throw new Error('Failed to create conversation');
+    }
+    
+    console.log('Conversation created successfully:', convData.id);
 
-  // 3. Return the original conversation object
-  return conversation;
+    // 2. Insert the messages if there are any
+    if (conversation.messages && conversation.messages.length > 0) {
+      console.log(`Inserting ${conversation.messages.length} messages for conversation ${conversation.id}`);
+      
+      const messagesForInsert = conversation.messages.map(msg => ({
+        conversation_id: conversation.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp.toISOString(),
+        sources: msg.sources || [],
+        steps: msg.steps || []
+      }));
+
+      // Insert messages in batches to avoid potential size limits
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < messagesForInsert.length; i += BATCH_SIZE) {
+        const batch = messagesForInsert.slice(i, i + BATCH_SIZE);
+        const { error: msgError } = await supabase
+          .from('knowledge_messages')
+          .insert(batch);
+
+        if (msgError) {
+          console.error('Error inserting messages batch:', msgError);
+          throw msgError;
+        }
+      }
+      
+      console.log(`Successfully inserted ${conversation.messages.length} messages`);
+    } else {
+      console.log('No messages to insert for new conversation');
+    }
+
+    // 3. Return the original conversation object
+    return conversation;
+  } catch (error) {
+    return handleError(error, 'createConversation');
+  }
 }
 
-// Add a message to a conversation
+/**
+ * Add a message to an existing conversation
+ * @param conversationId The ID of the conversation to add the message to
+ * @param message The message object to add
+ */
 export async function addMessageToConversation(conversationId: string, message: Message): Promise<void> {
   console.log('addMessageToConversation called:', {
     conversationId,
@@ -172,12 +256,16 @@ export async function addMessageToConversation(conversationId: string, message: 
     
     console.log('Conversation timestamp updated successfully');
   } catch (error) {
-    console.error('Error in addMessageToConversation:', error);
-    throw error;
+    handleError(error, 'addMessageToConversation');
   }
 }
 
-// Update a message in a conversation
+/**
+ * Update an existing message in a conversation
+ * @param conversationId The ID of the conversation containing the message
+ * @param message The updated message object
+ * @param messageId Optional specific message ID to update
+ */
 export async function updateMessage(
   conversationId: string, 
   message: Message,
@@ -228,31 +316,47 @@ export async function updateMessage(
       console.log('Message updated successfully in Supabase');
     }
   } catch (error) {
-    console.error('Error in updateMessage:', error);
-    throw error;
+    handleError(error, 'updateMessage');
   }
 }
 
-// Delete a conversation
+/**
+ * Delete a conversation and all its messages
+ * @param conversationId The ID of the conversation to delete
+ */
 export async function deleteConversation(conversationId: string): Promise<void> {
-  // Due to cascade delete, we only need to delete the conversation
-  const { error } = await supabase
-    .from('knowledge_conversations')
-    .delete()
-    .eq('id', conversationId);
+  try {
+    // Due to cascade delete, we only need to delete the conversation
+    const { error } = await supabase
+      .from('knowledge_conversations')
+      .delete()
+      .eq('id', conversationId);
 
-  if (error) throw error;
+    if (error) throw error;
+  } catch (error) {
+    handleError(error, 'deleteConversation');
+  }
 }
 
-// In conversations.ts, add this function
+/**
+ * Find a message ID based on conversation ID and timestamp
+ * @param conversationId The ID of the conversation containing the message
+ * @param timestamp The timestamp of the message to find
+ * @returns The message ID if found, null otherwise
+ */
 export async function getMessageId(conversationId: string, timestamp: Date): Promise<string | null> {
-  const { data, error } = await supabase
-    .from('knowledge_messages')
-    .select('id')
-    .eq('conversation_id', conversationId)
-    .eq('timestamp', timestamp.toISOString())
-    .single();
-  
-  if (error) return null;
-  return data?.id || null;
+  try {
+    const { data, error } = await supabase
+      .from('knowledge_messages')
+      .select('id')
+      .eq('conversation_id', conversationId)
+      .eq('timestamp', timestamp.toISOString())
+      .single();
+    
+    if (error) return null;
+    return data?.id || null;
+  } catch (error) {
+    console.error('Error in getMessageId:', error);
+    return null;
+  }
 }

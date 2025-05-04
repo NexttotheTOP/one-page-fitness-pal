@@ -29,6 +29,25 @@ interface AnalyzeBodyCompositionRequest {
   };
 }
 
+export interface RagMessage {
+  type: 'step' | 'source' | 'answer' | 'sources_summary' | 'error';
+  content: any;
+}
+
+export interface RagCallbacks {
+  onAnswerUpdate: (text: string) => void;
+  onStepUpdate?: (step: string) => void;
+  onSourceUpdate?: (source: any) => void;
+  onError?: (error: string) => void;
+}
+
+export interface RagQueryOptions {
+  userId: string;
+  threadId: string;
+  query: string;
+  callbacks: RagCallbacks;
+}
+
 export async function generateProfileOverview(
   data: FitnessProfileRequest,
   onMarkdownUpdate: (markdown: string) => void
@@ -129,7 +148,7 @@ export async function queryRagSystem(
   onStepUpdate?: (step: string) => void,
   onSourceUpdate?: (source: any) => void,
   onError?: (error: string) => void
-): Promise<void> {
+): Promise<string> {
   let accumulatedAnswer = '';
   console.log(`queryRagSystem called - userId: ${userId}, threadId: ${threadId}, query length: ${query.length}`);
 
@@ -149,14 +168,56 @@ export async function queryRagSystem(
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`HTTP error! status: ${response.status}, response: ${errorText}`);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorMessage = `HTTP error: ${response.status}`;
+      if (onError) onError(errorMessage);
+      throw new Error(errorMessage);
     }
 
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
-    let isDone = false;
+    if (!response.body) {
+      const errorMessage = "Response has no body";
+      if (onError) onError(errorMessage);
+      throw new Error(errorMessage);
+    }
 
+    // Process the stream
+    accumulatedAnswer = await processStream(
+      response.body, 
+      { onAnswerUpdate, onStepUpdate, onSourceUpdate, onError }
+    );
+
+    console.log(`queryRagSystem complete - final answer length: ${accumulatedAnswer.length}`);
+    
+    // Wait a moment to ensure UI has updated before returning
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return accumulatedAnswer;
+
+  } catch (error) {
+    console.error('Error querying RAG system:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    if (onError) {
+      onError(errorMessage);
+    } else {
+      onAnswerUpdate('**Error: Failed to query the knowledge base**');
+    }
+    
+    throw error;
+  }
+}
+
+// Separate the stream processing logic for better code organization
+async function processStream(
+  stream: ReadableStream<Uint8Array>,
+  callbacks: RagCallbacks
+): Promise<string> {
+  const { onAnswerUpdate, onStepUpdate, onSourceUpdate, onError } = callbacks;
+  const reader = stream.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  let isDone = false;
+  let accumulatedAnswer = '';
+
+  try {
     while (!isDone) {
       const { done, value } = await reader.read();
       if (done) {
@@ -185,7 +246,7 @@ export async function queryRagSystem(
 
           try {
             // Parse the JSON content
-            const jsonContent = JSON.parse(content);
+            const jsonContent = JSON.parse(content) as RagMessage;
             
             // Handle different message types
             if (jsonContent.type) {
@@ -208,7 +269,6 @@ export async function queryRagSystem(
                   
                 case 'sources_summary':
                   console.log('Received sources summary');
-                  // We may handle the complete sources summary if needed
                   break;
                   
                 case 'error':
@@ -224,18 +284,16 @@ export async function queryRagSystem(
                     onAnswerUpdate(accumulatedAnswer);
                   }
               }
-            } else {
+            } else if (jsonContent.content) {
               // For backward compatibility with old format
-              if (jsonContent.content) {
-                console.log(`Legacy content update, length: ${jsonContent.content.length}`);
-                accumulatedAnswer += jsonContent.content;
-                onAnswerUpdate(accumulatedAnswer);
-              } else {
-                // Directly use content if it's a string
-                console.log(`Direct string update, length: ${content.length}`);
-                accumulatedAnswer += content;
-                onAnswerUpdate(accumulatedAnswer);
-              }
+              console.log(`Legacy content update, length: ${jsonContent.content.length}`);
+              accumulatedAnswer += jsonContent.content;
+              onAnswerUpdate(accumulatedAnswer);
+            } else {
+              // Directly use content if it's a string and nothing else works
+              console.log(`Direct string update, length: ${content.length}`);
+              accumulatedAnswer += content;
+              onAnswerUpdate(accumulatedAnswer);
             }
           } catch (e) {
             // If JSON parsing fails, just add the content directly
@@ -247,39 +305,34 @@ export async function queryRagSystem(
       }
     }
 
-    // Make sure we process any remaining buffer content
-    if (buffer.length > 0) {
-      console.log(`Processing remaining buffer content: ${buffer.length} bytes`);
-      if (buffer.startsWith('data: ')) {
-        try {
-          const content = buffer.slice(6);
-          if (content !== '[DONE]') {
-            const jsonContent = JSON.parse(content);
-            if (jsonContent.content) {
-              accumulatedAnswer += jsonContent.content;
-              onAnswerUpdate(accumulatedAnswer);
-            }
+    // Process any remaining buffer content
+    if (buffer.length > 0 && buffer.startsWith('data: ')) {
+      try {
+        const content = buffer.slice(6);
+        if (content !== '[DONE]') {
+          const jsonContent = JSON.parse(content);
+          if (jsonContent.content) {
+            accumulatedAnswer += jsonContent.content;
+            onAnswerUpdate(accumulatedAnswer);
           }
-        } catch (e) {
-          console.error('Error parsing final buffer content:', e);
         }
+      } catch (e) {
+        console.error('Error parsing final buffer content:', e);
       }
     }
 
-    console.log(`queryRagSystem complete - final answer length: ${accumulatedAnswer.length}`);
-    
-    // Wait a moment to ensure UI has updated before returning
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return;
-
+    return accumulatedAnswer;
   } catch (error) {
-    console.error('Error querying RAG system:', error);
-    if (onError) {
-      onError(error instanceof Error ? error.message : String(error));
-    } else {
-      onAnswerUpdate('**Error: Failed to query the knowledge base**');
-    }
+    console.error('Error processing stream:', error);
+    if (onError) onError('Error processing response stream');
     throw error;
+  } finally {
+    // Make sure we release the reader if there's an error
+    try {
+      await reader.cancel();
+    } catch (e) {
+      console.error('Error cancelling reader:', e);
+    }
   }
 }
 
