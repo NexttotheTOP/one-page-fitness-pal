@@ -150,7 +150,7 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
       }, null, 2));
       console.log('=======================================');
       
-      const response = await fetch('http://localhost:8000/workout/variation', {
+      const response = await fetch('https://web-production-aafa6.up.railway.app/workout/variation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
