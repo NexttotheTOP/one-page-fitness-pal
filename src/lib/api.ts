@@ -54,7 +54,7 @@ export async function generateProfileOverview(
 ): Promise<void> {
   try {
     console.log('Sending data to /fitness/profile:', JSON.stringify(data, null, 2));
-    const response = await fetch('http://localhost:8000/fitness/profile', {
+    const response = await fetch('http://web-production-aafa6.up.railway.app/fitness/profile', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -90,7 +90,7 @@ export async function queryFitnessCoach(
   let accumulatedMarkdown = '';
 
   try {
-    const response = await fetch('http://localhost:8000/fitness/query', {
+    const response = await fetch('http://web-production-aafa6.up.railway.app/fitness/query', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -153,7 +153,7 @@ export async function queryRagSystem(
   console.log(`queryRagSystem called - userId: ${userId}, threadId: ${threadId}, query length: ${query.length}`);
 
   try {
-    const response = await fetch('http://localhost:8000/ask', {
+    const response = await fetch('http://web-production-aafa6.up.railway.app/ask', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -343,7 +343,7 @@ export async function analyzeBodyComposition(
   console.log('Sending data to /fitness/analyze-body-composition:', JSON.stringify(data, null, 2));
 
   try {
-    const response = await fetch('http://localhost:8000/fitness/analyze-body-composition', {
+    const response = await fetch('http://web-production-aafa6.up.railway.app/fitness/analyze-body-composition', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
