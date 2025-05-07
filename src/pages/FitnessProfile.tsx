@@ -381,6 +381,12 @@ const FitnessProfile = () => {
           </p>
         </div>
         
+        {/* Info badge about profile usage in workout generation */}
+        <div className="mb-6 flex items-center p-3 bg-blue-50 rounded-md text-sm text-blue-700 border border-blue-100 max-w-2xl mx-auto">
+          <Info className="h-4 w-4 mr-2 flex-shrink-0 text-blue-500" />
+          <span><strong>TIP:</strong> When you create workouts, we will always use your profile overview and our findings.</span>
+        </div>
+        
         {/* Body Image Upload Section */}
         <div className="mb-8">
           <Card className="overflow-hidden border-0 shadow-md">

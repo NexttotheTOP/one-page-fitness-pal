@@ -37,6 +37,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { supabase } from "@/lib/supabase";
 import { ExerciseCategory, DifficultyLevel } from "@/types/workout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import WorkoutGenerationAnimation from '@/components/workout/WorkoutGenerationAnimation';
 
 // Add TypeScript interfaces for API
 interface WorkoutNLQRequest {
@@ -95,6 +96,8 @@ const Index = () => {
   const [workoutReasoning, setWorkoutReasoning] = useState<string | null>(null);
   const generatedWorkoutsRef = useRef<HTMLDivElement | null>(null);
   const [viewMode, setViewMode] = useState<'single' | 'week'>('single');
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [selectedWorkouts, setSelectedWorkouts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setDisplayName(getUserDisplayName(user));
@@ -351,6 +354,49 @@ const Index = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to delete workouts.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!window.confirm(`Delete ${selectedWorkouts.size} selected workout(s)? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const ids = Array.from(selectedWorkouts);
+      const { error } = await supabase
+        .from('workout_plans')
+        .delete()
+        .in('id', ids)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setWorkouts(prev => prev.filter(w => !selectedWorkouts.has(w.id)));
+      setSelectedWorkouts(new Set());
+      setDeleteMode(false);
+
+      toast({
+        title: "Deleted",
+        description: "Selected workouts deleted.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error deleting workouts:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete workouts.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty.toLowerCase()) {
       case 'beginner':
@@ -558,17 +604,10 @@ const Index = () => {
                         </Button>
                       </div>
 
-                      {workoutReasoning && (
-                        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                          <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                            <LightbulbIcon className="h-5 w-5 text-blue-500" />
-                            Why these workouts?
-                          </h4>
-                          <p className="text-blue-900">{workoutReasoning}</p>
-                        </div>
-                      )}
                       {/* Generated Workouts Display */}
-                      {generatedWorkouts && generatedWorkouts.length > 0 && (
+                      {isGenerating ? (
+                        <WorkoutGenerationAnimation />
+                      ) : generatedWorkouts && generatedWorkouts.length > 0 && (
                         <motion.div
                           ref={generatedWorkoutsRef}
                           initial={{ opacity: 0, y: 20 }}
@@ -580,6 +619,15 @@ const Index = () => {
                             <Dumbbell className="h-5 w-5 text-fitness-purple" />
                             Generated Workouts
                           </h3>
+                          {workoutReasoning && (
+                            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                              <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                                <LightbulbIcon className="h-5 w-5 text-blue-500" />
+                                Why these workouts?
+                              </h4>
+                              <p className="text-blue-900">{workoutReasoning}</p>
+                            </div>
+                          )}
                           <div className="space-y-4">
                             {generatedWorkouts.map((workout, index) => (
                               <motion.div
@@ -693,10 +741,31 @@ const Index = () => {
         <div className="mt-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-fitness-charcoal">Your Workout Plans</h2>
-            <Badge variant="outline" className="bg-white">
-              {filteredWorkouts.length} {filteredWorkouts.length === 1 ? 'workout' : 'workouts'}
-            </Badge>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="bg-white">
+                {filteredWorkouts.length} {filteredWorkouts.length === 1 ? 'workout' : 'workouts'}
+              </Badge>
+              <Button
+                variant={deleteMode ? "destructive" : "outline"}
+                onClick={() => {
+                  setDeleteMode(!deleteMode);
+                  setSelectedWorkouts(new Set());
+                }}
+                className="ml-2"
+              >
+                {deleteMode ? "Cancel Delete" : "Delete Workouts"}
+              </Button>
+            </div>
           </div>
+          {deleteMode && selectedWorkouts.size > 0 && (
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              className="mb-4"
+            >
+              Delete Selected ({selectedWorkouts.size})
+            </Button>
+          )}
           <Tabs value={viewMode} onValueChange={v => setViewMode(v as 'single' | 'week')} className="mb-6">
             <div className="flex justify-center">
               <TabsList className="bg-gray-100 rounded-lg p-1 flex gap-2">
@@ -718,7 +787,20 @@ const Index = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="shadow-xl shadow-purple-200/40 h-full flex flex-col"
+                    className={`shadow-xl shadow-purple-200/40 h-full flex flex-col cursor-pointer transition-all
+                      ${deleteMode ? "hover:scale-[1.02]" : ""}
+                      ${deleteMode && selectedWorkouts.has(workout.id) ? "border-2 border-red-500 bg-red-50" : ""}
+                    `}
+                    onClick={() => {
+                      if (!deleteMode) return;
+                      setSelectedWorkouts(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(workout.id)) newSet.delete(workout.id);
+                        else newSet.add(workout.id);
+                        return newSet;
+                      });
+                    }}
+                    style={{ pointerEvents: deleteMode ? "auto" : "auto" }}
                   >
                     <WorkoutPlan
                       id={workout.id}
