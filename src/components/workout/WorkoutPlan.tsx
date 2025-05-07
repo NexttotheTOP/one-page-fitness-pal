@@ -79,7 +79,7 @@ export default function WorkoutPlan({ id, name, description, exercises }: Workou
   };
 
   return (
-    <Card className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-all duration-300">
+    <Card className="overflow-hidden border-0 shadow-xl shadow-purple-200/40 hover:shadow-2xl transition-all duration-300 h-full flex flex-col bg-white">
       <CardHeader className="p-4 pb-0 space-y-0">
         <div className="flex items-start justify-between mb-2">
           <div>
@@ -108,7 +108,7 @@ export default function WorkoutPlan({ id, name, description, exercises }: Workou
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 pt-4">
+      <CardContent className="p-4 pt-4 flex-1 flex flex-col">
         <div className="flex items-center gap-2 mb-3">
           <div className="h-px bg-gray-200 flex-grow"></div>
           <span className="text-xs font-medium text-muted-foreground">
@@ -150,17 +150,12 @@ export default function WorkoutPlan({ id, name, description, exercises }: Workou
                   {exercise.exercise_details.difficulty}
                 </Badge>
               </div>
-            {exercise.notes && (
-                <div className="mt-2 pl-3 ml-4 border-l-2 border-purple-200">
-                  <p className="text-xs text-muted-foreground">{exercise.notes}</p>
-              </div>
-            )}
             </motion.div>
         ))}
       </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0 flex flex-col gap-2">
+      <CardFooter className="p-4 pt-0 flex flex-col gap-2 mt-auto">
       {hasMoreExercises && (
         <Button
           variant="ghost"
