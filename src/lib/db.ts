@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { WorkoutPlan, Exercise, ExerciseCategory, DifficultyLevel } from "@/types/workout";
 import { SavedGeneration } from '@/components/profile/FitnessProfileForm';
+import type { WeekSchemaData } from '@/components/WeekSchema';
 
 // Define the type for our default workouts that includes exercises
 interface DefaultWorkout {
@@ -218,14 +219,9 @@ interface WorkoutExerciseWithDetails {
   exercise: DatabaseExercise | null;
 }
 
-export type WorkoutPlanWithExercises = {
-  id: string;
-  name: string;
-  description: string;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-  exercises: {
+// Type for a workout plan with its exercises
+export type WorkoutPlanWithExercises = WorkoutPlan & {
+  exercises: Array<{
     id: string;
     name: string;
     sets: number;
@@ -234,12 +230,17 @@ export type WorkoutPlanWithExercises = {
     order: number;
     exercise_details: {
       description: string;
-      category: string;
+      category: ExerciseCategory;
       muscle_groups: string[];
-      difficulty_level: string;
+      difficulty_level: DifficultyLevel;
       equipment_needed: string;
-    };
-  }[];
+    }
+  }>;
+};
+
+// Type for week schema from DB
+export type WeekSchemaWithWorkouts = WeekSchemaData & {
+  user_id: string;
 };
 
 export async function getUserWorkouts(userId: string): Promise<WorkoutPlanWithExercises[]> {
@@ -359,4 +360,168 @@ export async function deleteBodyImage(imageId: string, storagePath: string) {
     .remove([storagePath]);
 
   if (storageError) throw storageError;
+}
+
+// Function to get user's week schemas
+export async function getUserWeekSchemas(userId: string): Promise<WeekSchemaWithWorkouts[]> {
+  // First get all user's schemas
+  const { data: schemas, error: schemasError } = await supabase
+    .from('week_schemas')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (schemasError) throw schemasError;
+  if (!schemas || schemas.length === 0) return [];
+
+  const schemaResults: WeekSchemaWithWorkouts[] = [];
+
+  // For each schema, get all associated workouts
+  for (const schema of schemas) {
+    // Get workout ids for each day
+    const { data: schemaWorkouts, error: workoutsError } = await supabase
+      .from('week_schema_workouts')
+      .select('*')
+      .eq('week_schema_id', schema.id)
+      .order('day_index') // Order by day of week
+      .order('order_index'); // Then by order within day
+
+    if (workoutsError) throw workoutsError;
+
+    // Organize workouts by day index (0-6 for Mon-Sun)
+    const workoutsByDay: string[][] = Array(7).fill([]).map(() => []);
+    
+    if (schemaWorkouts && schemaWorkouts.length > 0) {
+      for (const workout of schemaWorkouts) {
+        const dayIndex = workout.day_index;
+        workoutsByDay[dayIndex] = [
+          ...workoutsByDay[dayIndex],
+          workout.workout_plan_id
+        ];
+      }
+    }
+
+    schemaResults.push({
+      id: schema.id,
+      name: schema.name,
+      workouts: workoutsByDay,
+      isActive: schema.is_active,
+      created_at: schema.created_at,
+      updated_at: schema.updated_at,
+      user_id: schema.user_id
+    });
+  }
+
+  return schemaResults;
+}
+
+// Function to save or update a week schema
+export async function saveWeekSchema(
+  userId: string, 
+  schema: WeekSchemaData
+): Promise<WeekSchemaWithWorkouts> {
+  try {
+    // If the schema should be active and there's no ID (new schema)
+    // First deactivate all other schemas to avoid constraint violation
+    if (schema.isActive && !schema.id) {
+      const { error: deactivateError } = await supabase
+        .from('week_schemas')
+        .update({ is_active: false })
+        .eq('user_id', userId)
+        .eq('is_active', true);
+        
+      if (deactivateError) {
+        console.error("Error deactivating other schemas:", deactivateError);
+      }
+    }
+    
+    // Now create/update the schema
+    const { data: newSchema, error: schemaError } = await supabase
+      .from('week_schemas')
+      .upsert({
+        id: schema.id || undefined, // If no id, it will be generated
+        user_id: userId,
+        name: schema.name,
+        is_active: schema.isActive || false,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id' // Update if ID exists
+      })
+      .select()
+      .single();
+
+    if (schemaError) throw schemaError;
+    
+    // If schema exists, first delete existing workout relationships 
+    if (schema.id) {
+      const { error: deleteError } = await supabase
+        .from('week_schema_workouts')
+        .delete()
+        .eq('week_schema_id', schema.id);
+      
+      if (deleteError) throw deleteError;
+    }
+
+    // Prepare workout relationships
+    const workoutRelations = [];
+    for (let dayIndex = 0; dayIndex < schema.workouts.length; dayIndex++) {
+      const dayWorkouts = schema.workouts[dayIndex];
+      if (dayWorkouts && dayWorkouts.length > 0) {
+        for (let orderIndex = 0; orderIndex < dayWorkouts.length; orderIndex++) {
+          workoutRelations.push({
+            week_schema_id: newSchema.id,
+            workout_plan_id: dayWorkouts[orderIndex],
+            day_index: dayIndex,
+            order_index: orderIndex,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        }
+      }
+    }
+
+    // Insert workout relationships if there are any
+    if (workoutRelations.length > 0) {
+      const { error: relationError } = await supabase
+        .from('week_schema_workouts')
+        .insert(workoutRelations);
+      
+      if (relationError) throw relationError;
+    }
+
+    // Return the schema with workouts
+    return {
+      ...newSchema,
+      workouts: schema.workouts,
+      isActive: newSchema.is_active
+    };
+  } catch (error) {
+    console.error("Error in saveWeekSchema:", error);
+    throw error;
+  }
+}
+
+// Function to delete a week schema
+export async function deleteWeekSchema(userId: string, schemaId: string): Promise<void> {
+  const { error } = await supabase
+    .from('week_schemas')
+    .delete()
+    .eq('id', schemaId)
+    .eq('user_id', userId);
+  
+  if (error) throw error;
+}
+
+// Function to set a schema as active
+export async function setActiveWeekSchema(userId: string, schemaId: string): Promise<void> {
+  const { error } = await supabase
+    .from('week_schemas')
+    .update({ 
+      is_active: true,
+      updated_at: new Date().toISOString() 
+    })
+    .eq('id', schemaId)
+    .eq('user_id', userId);
+  
+  if (error) throw error;
 }

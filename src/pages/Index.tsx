@@ -30,7 +30,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import WorkoutPlan from '@/components/workout/WorkoutPlan';
 import { useAuth } from "@/lib/auth-context";
 import { getUserDisplayName } from "@/lib/utils";
-import { getUserWorkouts, type WorkoutPlanWithExercises } from '@/lib/db';
+import { getUserWorkouts, type WorkoutPlanWithExercises, getUserWeekSchemas, saveWeekSchema, deleteWeekSchema } from '@/lib/db';
 import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from "framer-motion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -38,6 +38,7 @@ import { supabase } from "@/lib/supabase";
 import { ExerciseCategory, DifficultyLevel } from "@/types/workout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import WorkoutGenerationAnimation from '@/components/workout/WorkoutGenerationAnimation';
+import WeekSchema, { WeekSchemaData } from '@/components/WeekSchema';
 
 // Add TypeScript interfaces for API
 interface WorkoutNLQRequest {
@@ -98,6 +99,12 @@ const Index = () => {
   const [viewMode, setViewMode] = useState<'single' | 'week'>('single');
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedWorkouts, setSelectedWorkouts] = useState<Set<string>>(new Set());
+  const [activeSchema, setActiveSchema] = useState<WeekSchemaData>({
+    name: "My Week Plan",
+    workouts: Array(7).fill([]).map(() => [])
+  });
+  const [savedSchemas, setSavedSchemas] = useState<WeekSchemaData[]>([]);
+  const [isSchemasLoading, setIsSchemasLoading] = useState(false);
 
   useEffect(() => {
     setDisplayName(getUserDisplayName(user));
@@ -127,6 +134,50 @@ const Index = () => {
     };
 
     loadWorkouts();
+  }, [user, toast]);
+
+  // Load user's week schemas
+  useEffect(() => {
+    const loadSchemas = async () => {
+      if (!user) {
+        setSavedSchemas([]);
+        setActiveSchema({
+          name: "My Week Plan",
+          workouts: Array(7).fill([]).map(() => [])
+        });
+        return;
+      }
+
+      try {
+        setIsSchemasLoading(true);
+        const userSchemas = await getUserWeekSchemas(user.id);
+        
+        if (userSchemas.length > 0) {
+          // Find active schema or use the latest one
+          const activeUserSchema = userSchemas.find(s => s.isActive) || userSchemas[0];
+          setActiveSchema(activeUserSchema);
+          setSavedSchemas(userSchemas);
+        } else {
+          // Create default schema if none exist
+          setActiveSchema({
+            name: "My Week Plan",
+            workouts: Array(7).fill([]).map(() => [])
+          });
+          setSavedSchemas([]);
+        }
+      } catch (error) {
+        console.error('Error loading week schemas:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load your week schemas. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSchemasLoading(false);
+      }
+    };
+
+    loadSchemas();
   }, [user, toast]);
 
   // Filter workouts based on search query
@@ -407,6 +458,115 @@ const Index = () => {
         return 'bg-red-50 text-red-700 border-red-200';
       default:
         return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
+
+  // Handle changes to the active schema
+  const handleSchemaChange = (updatedSchema: WeekSchemaData) => {
+    setActiveSchema(updatedSchema);
+  };
+
+  // Handle saving the active schema
+  const handleSaveSchema = async (schema: WeekSchemaData) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to save schemas.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const savedSchema = await saveWeekSchema(user.id, schema);
+      
+      // Update state with saved schema
+      setActiveSchema(savedSchema);
+      
+      // Update saved schemas list
+      setSavedSchemas(prev => {
+        const exists = prev.some(s => s.id === savedSchema.id);
+        if (exists) {
+          return prev.map(s => s.id === savedSchema.id ? savedSchema : s);
+        } else {
+          return [...prev, savedSchema];
+        }
+      });
+      
+      toast({
+        title: "Success",
+        description: `Week schema "${schema.name}" saved.`,
+      });
+    } catch (error) {
+      console.error('Error saving week schema:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save week schema. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle creating a new empty schema
+  const handleCreateNewSchema = (name: string = "New Week Plan") => {
+    const newSchema: WeekSchemaData = {
+      name: name,
+      workouts: Array(7).fill([]).map(() => []),
+      isActive: false // Ensure new schemas are not automatically active
+    };
+    setActiveSchema(newSchema);
+    toast({
+      title: "New Schema Created",
+      description: "Start adding workouts to your new week plan. Save to keep it.",
+    });
+  };
+
+  // Handle deleting a week schema
+  const handleDeleteSchema = async (schemaId: string) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to delete schemas.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await deleteWeekSchema(user.id, schemaId);
+      
+      // Remove from saved schemas state
+      setSavedSchemas(prev => prev.filter(s => s.id !== schemaId));
+      
+      // If active schema was deleted, set to a new one (or create a default)
+      if (activeSchema.id === schemaId) {
+        if (savedSchemas.length > 1) {
+          // Find another schema that's not the deleted one
+          const nextSchema = savedSchemas.find(s => s.id !== schemaId);
+          if (nextSchema) {
+            setActiveSchema(nextSchema);
+          }
+        } else {
+          // Create a new default schema
+          setActiveSchema({
+            name: "My Week Plan",
+            workouts: Array(7).fill([]).map(() => []),
+            isActive: false
+          });
+        }
+      }
+      
+      toast({
+        title: "Success",
+        description: "Week schema deleted successfully.",
+      });
+    } catch (error) {
+      console.error('Error deleting week schema:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete week schema. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -840,11 +1000,15 @@ const Index = () => {
               </div>
             )
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-              <CalendarDays className="h-10 w-10 mb-4 text-fitness-purple" />
-              <h3 className="text-lg font-semibold mb-2">Week Schema (Coming Soon)</h3>
-              <p>Plan your weekly workout schedule here. This feature is under construction!</p>
-            </div>
+            <WeekSchema 
+              workouts={workouts} 
+              activeSchema={activeSchema}
+              savedSchemas={savedSchemas}
+              onSchemaChange={handleSchemaChange}
+              onSaveSchema={handleSaveSchema}
+              onCreateNewSchema={handleCreateNewSchema}
+              onDeleteSchema={handleDeleteSchema}
+            />
           )}
         </div>
       </main>
