@@ -130,6 +130,7 @@ const FitnessProfile = () => {
       toast({
         title: "Success",
         description: "Your fitness profile has been saved.",
+        variant: "success",
       });
 
       // If we have all types of images, we can optionally analyze the body composition
@@ -143,6 +144,7 @@ const FitnessProfile = () => {
           toast({
             title: "Body Analysis",
             description: "Your body photos are ready for analysis. Generate a fitness overview to include body analysis.",
+            variant: "success",
           });
         }, 1500);
       }
@@ -224,6 +226,7 @@ const FitnessProfile = () => {
       toast({
         title: "Success",
         description: `${activeTab} view image uploaded successfully.`,
+        variant: "success",
       });
     } catch (error) {
       toast({
@@ -265,6 +268,7 @@ const FitnessProfile = () => {
       toast({
         title: "Deleted",
         description: "Image deleted successfully.",
+        variant: "success",
       });
     } catch (error) {
       toast({

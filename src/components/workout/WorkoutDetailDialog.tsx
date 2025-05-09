@@ -185,6 +185,7 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
         toast({
           title: "Workout Variations Generated",
           description: "Choose from the generated variations!",
+          variant: "success",
         });
       }, 1000);
       
@@ -291,6 +292,7 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
       toast({
         title: "Success",
         description: `Workout variation "${variation.name}" saved successfully!`,
+        variant: "success",
       });
 
     } catch (error) {
@@ -312,6 +314,7 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
     toast({
       title: "Variation Discarded",
       description: `The variation "${variationName}" has been discarded.`,
+      variant: "success",
     });
   };
 

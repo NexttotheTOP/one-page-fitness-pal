@@ -46,8 +46,9 @@ export default function EditWorkoutDetailsForm({
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Workout details updated successfully",
+        title: "Saved",
+        description: "Workout details updated successfully!",
+        variant: "success",
       });
 
       onSave(name, description);
@@ -61,6 +62,15 @@ export default function EditWorkoutDetailsForm({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    toast({
+      title: "Canceled",
+      description: "No changes were made to the workout.",
+      variant: "success",
+    });
+    onCancel();
   };
 
   return (
@@ -115,7 +125,7 @@ export default function EditWorkoutDetailsForm({
           <Button
             type="button"
             variant="outline"
-            onClick={onCancel}
+            onClick={handleCancel}
             disabled={isLoading}
             className="border-gray-200 hover:bg-gray-100 hover:text-gray-900 transition-colors"
           >

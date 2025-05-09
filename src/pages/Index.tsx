@@ -123,11 +123,7 @@ const Index = () => {
         setWorkouts(userWorkouts);
       } catch (error) {
         console.error('Error loading workouts:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load your workouts. Please try again.",
-          variant: "destructive",
-        });
+        toast.error("Error", "Failed to load your workouts. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -167,11 +163,7 @@ const Index = () => {
         }
       } catch (error) {
         console.error('Error loading week schemas:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load your week schemas. Please try again.",
-          variant: "destructive",
-        });
+        toast.error("Error", "Failed to load your week schemas. Please try again.");
       } finally {
         setIsSchemasLoading(false);
       }
@@ -197,20 +189,12 @@ const Index = () => {
 
   const handleGenerateWorkout = async () => {
     if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to create workouts.",
-        variant: "destructive",
-      });
+      toast.error("Error", "You must be logged in to create workouts.");
       return;
     }
 
     if (!prompt.trim()) {
-      toast({
-        title: "Error",
-        description: "Please describe the workout you want to create.",
-        variant: "destructive",
-      });
+      toast.error("Error", "Please describe the workout you want to create.");
       return;
     }
 
@@ -267,17 +251,10 @@ const Index = () => {
         generatedWorkoutsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100); // slight delay to ensure rendering
 
-      toast({
-        title: "Success",
-        description: `Created ${data.created_workouts.length} personalized workout${data.created_workouts.length > 1 ? 's' : ''}!`,
-      });
+      toast.success("Success", `Created ${data.created_workouts.length} personalized workout${data.created_workouts.length > 1 ? 's' : ''}!`);
     } catch (error) {
       console.error('Error generating workout:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate workout. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Error", error instanceof Error ? error.message : "Failed to generate workout. Please try again.");
     } finally {
       setIsGenerating(false);
 
@@ -286,11 +263,7 @@ const Index = () => {
 
   const handleSaveWorkout = async (workout: any) => {
     if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to save workouts.",
-        variant: "destructive",
-      });
+      toast.error("Error", "You must be logged in to save workouts.");
       return;
     }
 
@@ -390,28 +363,17 @@ const Index = () => {
       const userWorkouts = await getUserWorkouts(user.id);
       setWorkouts(userWorkouts);
 
-      toast({
-        title: "Success",
-        description: `Workout "${workout.name}" saved successfully!`,
-      });
+      toast.success("Success", `Workout "${workout.name}" saved successfully!`);
 
     } catch (error) {
       console.error('Error saving workout:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save workout. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Error", error instanceof Error ? error.message : "Failed to save workout. Please try again.");
     }
   };
 
   const handleBulkDelete = async () => {
     if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to delete workouts.",
-        variant: "destructive",
-      });
+      toast.error("Error", "You must be logged in to delete workouts.");
       return;
     }
 
@@ -433,18 +395,10 @@ const Index = () => {
       setSelectedWorkouts(new Set());
       setDeleteMode(false);
 
-      toast({
-        title: "Deleted",
-        description: "Selected workouts deleted.",
-        variant: "default",
-      });
+      toast.success("Deleted", "Selected workouts deleted.");
     } catch (error) {
       console.error('Error deleting workouts:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete workouts.",
-        variant: "destructive",
-      });
+      toast.error("Error", error instanceof Error ? error.message : "Failed to delete workouts.");
     }
   };
 
@@ -469,11 +423,7 @@ const Index = () => {
   // Handle saving the active schema
   const handleSaveSchema = async (schema: WeekSchemaData) => {
     if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to save schemas.",
-        variant: "destructive",
-      });
+      toast.error("Error", "You must be logged in to save schemas.");
       return;
     }
 
@@ -493,17 +443,10 @@ const Index = () => {
         }
       });
       
-      toast({
-        title: "Success",
-        description: `Week schema "${schema.name}" saved.`,
-      });
+      toast.success("Success", `Week schema "${schema.name}" saved.`);
     } catch (error) {
       console.error('Error saving week schema:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save week schema. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Error", "Failed to save week schema. Please try again.");
     }
   };
 
@@ -515,20 +458,13 @@ const Index = () => {
       isActive: false // Ensure new schemas are not automatically active
     };
     setActiveSchema(newSchema);
-    toast({
-      title: "New Schema Created",
-      description: "Start adding workouts to your new week plan. Save to keep it.",
-    });
+    toast.success("Success", "New Schema Created. Start adding workouts to your new week plan. Save to keep it.");
   };
 
   // Handle deleting a week schema
   const handleDeleteSchema = async (schemaId: string) => {
     if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to delete schemas.",
-        variant: "destructive",
-      });
+      toast.error("Error", "You must be logged in to delete schemas.");
       return;
     }
 
@@ -556,17 +492,10 @@ const Index = () => {
         }
       }
       
-      toast({
-        title: "Success",
-        description: "Week schema deleted successfully.",
-      });
+      toast.success("Success", "Week schema deleted successfully.");
     } catch (error) {
       console.error('Error deleting week schema:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete week schema. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Error", "Failed to delete week schema. Please try again.");
     }
   };
 
