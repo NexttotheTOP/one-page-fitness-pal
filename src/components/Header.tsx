@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Dumbbell, PieChart, Brain, User, LogOut } from 'lucide-react';
+import { Dumbbell, PieChart, Brain, User, LogOut, BarChart } from 'lucide-react';
 import { useAuth } from "@/lib/auth-context";
 import { getUserDisplayName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -88,6 +88,18 @@ const Header = () => {
             >
               <Brain className="h-5 w-5" />
               <span>Knowledge</span>
+            </Link>
+            
+            <Link
+              to="/muscle-model"
+              className={`flex items-center space-x-1 px-4 py-2 rounded-md text-sm font-medium ${
+                location.pathname === '/muscle-model' 
+                  ? 'bg-fitness-purple-light text-fitness-purple'
+                  : 'text-gray-600 hover:text-fitness-purple hover:bg-gray-100'
+              }`}
+            >
+              <BarChart className="h-5 w-5" />
+              <span>3D Muscles</span>
             </Link>
           </nav>
 

@@ -11,6 +11,9 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import FitnessKnowledge from "./pages/FitnessKnowledge";
 import FitnessProfile from "./pages/FitnessProfile";
+import MuscleModelPage from "./pages/MuscleModel";
+import { useEffect } from "react";
+import { initModelControlApi } from "./lib/modelControlApi";
 
 const queryClient = new QueryClient();
 
@@ -33,54 +36,80 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/calories"
-              element={
-                <ProtectedRoute>
-                  <CalorieTracker />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/knowledge"
-              element={
-                <ProtectedRoute>
-                  <FitnessKnowledge />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <FitnessProfile />
-                </ProtectedRoute>
-              }
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  useEffect(() => {
+    let socket: any;
+    let cleanup = () => {};
+    // Only run on client
+    if (typeof window !== "undefined") {
+      (async () => {
+        const { io } = await import("socket.io-client");
+        // TODO: Replace with your backend URL/port
+        socket = io("http://localhost:8000");
+        initModelControlApi(socket);
+        cleanup = () => socket.disconnect();
+      })();
+    }
+    return () => cleanup();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/calories"
+                element={
+                  <ProtectedRoute>
+                    <CalorieTracker />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/knowledge"
+                element={
+                  <ProtectedRoute>
+                    <FitnessKnowledge />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <FitnessProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/muscle-model"
+                element={
+                  <ProtectedRoute>
+                    <MuscleModelPage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
