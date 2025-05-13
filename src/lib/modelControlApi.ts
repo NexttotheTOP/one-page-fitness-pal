@@ -1,11 +1,14 @@
 import { useModelStore } from './modelStore';
 
 export function initModelControlApi(socket: any) {
-  socket.on('model:selectMuscles', (data: { muscleNames: string[] }) => {
-    useModelStore.getState().selectMuscles(data.muscleNames);
+  socket.on('model:selectMuscles', (data: { muscleNames: string[], colors?: Record<string, string> }) => {
+    const muscleMap = Object.fromEntries(
+      data.muscleNames.map(name => [name, data.colors?.[name] || '#FFD600'])
+    );
+    useModelStore.getState().setHighlightedMuscles(muscleMap);
   });
-  socket.on('model:toggleMuscle', (data: { muscleName: string }) => {
-    useModelStore.getState().toggleMuscle(data.muscleName);
+  socket.on('model:toggleMuscle', (data: { muscleName: string, color?: string }) => {
+    useModelStore.getState().toggleHighlightedMuscle(data.muscleName, data.color || '#FFD600');
   });
   socket.on('model:setAnimationFrame', (data: { frame: number }) => {
     useModelStore.getState().setAnimationFrame(data.frame);

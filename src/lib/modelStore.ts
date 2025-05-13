@@ -3,16 +3,16 @@ import { Vector3 } from 'three';
 
 // Define store state interfaces
 interface ModelState {
-  selectedMuscles: string[];
+  highlightedMuscles: Record<string, string>; // muscleName -> color
   animationFrame: number;
   isAnimating: boolean;
   cameraPosition: { x: number; y: number; z: number };
   cameraTarget: { x: number; y: number; z: number };
   
   // Actions that can be triggered
-  selectMuscles: (muscleNames: string[]) => void;
-  toggleMuscle: (muscleName: string) => void;
-  clearSelectedMuscles: () => void;
+  setHighlightedMuscles: (muscleColors: Record<string, string>) => void;
+  toggleHighlightedMuscle: (muscleName: string, color?: string) => void;
+  clearHighlightedMuscles: () => void;
   setAnimationFrame: (frame: number) => void;
   toggleAnimation: (isPlaying?: boolean) => void;
   setCameraPosition: (position: { x: number; y: number; z: number }) => void;
@@ -26,22 +26,24 @@ const DEFAULT_CAMERA_TARGET = { x: 0, y: 0, z: 0 };
 
 // Create the store
 export const useModelStore = create<ModelState>((set) => ({
-  selectedMuscles: [],
+  highlightedMuscles: {},
   animationFrame: 0,
   isAnimating: false,
   cameraPosition: DEFAULT_CAMERA_POSITION,
   cameraTarget: DEFAULT_CAMERA_TARGET,
   
   // Actions
-  selectMuscles: (muscleNames) => set({ selectedMuscles: muscleNames }),
-  
-  toggleMuscle: (muscleName) => set((state) => ({
-    selectedMuscles: state.selectedMuscles.includes(muscleName)
-      ? state.selectedMuscles.filter(name => name !== muscleName)
-      : [...state.selectedMuscles, muscleName]
-  })),
-  
-  clearSelectedMuscles: () => set({ selectedMuscles: [] }),
+  setHighlightedMuscles: (muscleColors) => set({ highlightedMuscles: muscleColors }),
+  toggleHighlightedMuscle: (muscleName, color = '#FFD600') => set((state) => {
+    const newMap = { ...state.highlightedMuscles };
+    if (newMap[muscleName]) {
+      delete newMap[muscleName];
+    } else {
+      newMap[muscleName] = color;
+    }
+    return { highlightedMuscles: newMap };
+  }),
+  clearHighlightedMuscles: () => set({ highlightedMuscles: {} }),
   
   setAnimationFrame: (frame) => set({ animationFrame: frame }),
   

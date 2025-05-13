@@ -63,9 +63,9 @@ Latissimus_Dorsi_R
 Levator_Scapulae_R
 Longissimus_Thoracis_R
 Omohyoid_R
-Pectoralis_Major_01_Clavicular_R
-Pectoralis_Major_02_Sternocostal_R
-Pectoralis_Major_03_Abdominal_R
+Pectoralis_Major_01_Clavicular
+Pectoralis_Major_02_Sternocostal
+Pectoralis_Major_03_Abdominal
 Pectoralis_Minor_R
 Psoas_Major_R
 Psoas_Minor_R
