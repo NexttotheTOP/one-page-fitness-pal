@@ -2245,6 +2245,83 @@ export const muscleMap: Record<string, MuscleInfo> = {
     position: { x: 0, y: -1.2, z: 6 },
     target: { x: 0, y: -1.2, z: 0 }
   }
+},
+"Flexor_Digitorum_Longus": {
+  displayName: "Left Flexor Digitorum Longus",
+  group: "legs",
+  description: "Flexes the lateral four toes and assists with plantarflexion.",
+  relatedExercises: ["Toe Curls", "Towel Grabs"],
+  antagonists: ["Extensor_Digitorum_Longus"],
+  cameraView: {
+    position: { x: -1.5, y: -2.5, z: 6 },
+    target: { x: 0, y: -2.5, z: 0 }
+  }
+},
+"Flexor_Hallucis_Longus": {
+  displayName: "Left Flexor Hallucis Longus",
+  group: "legs",
+  description: "Flexes the big toe and supports push-off during walking.",
+  relatedExercises: ["Toe Presses", "Big Toe Curls"],
+  antagonists: ["Extensor_Hallucis_Longus"],
+  cameraView: {
+    position: { x: -1.5, y: -2.5, z: 6 },
+    target: { x: 0, y: -2.5, z: 0 }
+  }
+},
+"Tibialis_Anterior": {
+  displayName: "Left Tibialis Anterior",
+  group: "legs",
+  description: "Dorsiflexes and inverts the foot; supports ankle stability.",
+  relatedExercises: ["Toe Raises", "Resistance Band Dorsiflexion"],
+  antagonists: ["Gastrocnemius_Lateral_Medial"],
+  cameraView: {
+    position: { x: -1.5, y: -2, z: 6 },
+    target: { x: 0, y: -2, z: 0 }
+  }
+},
+"Extensor_Hallucis_Longus": {
+  displayName: "Left Extensor Hallucis Longus",
+  group: "legs",
+  description: "Extends the big toe and aids in dorsiflexion.",
+  relatedExercises: ["Big Toe Raises", "Toe Band Lifts"],
+  antagonists: ["Flexor_Hallucis_Longus"],
+  cameraView: {
+    position: { x: -1.5, y: -2, z: 6 },
+    target: { x: 0, y: -2, z: 0 }
+  }
+},
+"Extensor_Digitorum_Longus": {
+  displayName: "Left Extensor Digitorum Longus",
+  group: "legs",
+  description: "Extends the toes and dorsiflexes the foot.",
+  relatedExercises: ["Toe Raises", "Foot Band Extensions"],
+  antagonists: ["Flexor_Digitorum_Longus"],
+  cameraView: {
+    position: { x: -1.5, y: -2, z: 6 },
+    target: { x: 0, y: -2, z: 0 }
+  }
+},
+"Fibularis_Brevis": {
+  displayName: "Left Fibularis (Peroneus) Brevis",
+  group: "legs",
+  description: "Everts the foot and supports balance during motion.",
+  relatedExercises: ["Ankle Rolls", "Band Eversion"],
+  antagonists: ["Tibialis_Anterior"],
+  cameraView: {
+    position: { x: -1.5, y: -2, z: 6 },
+    target: { x: 0, y: -2, z: 0 }
+  }
+},
+"Fibularis_Longus": {
+  displayName: "Left Fibularis (Peroneus) Longus",
+  group: "legs",
+  description: "Everts the foot and supports arch during gait.",
+  relatedExercises: ["Banded Eversions", "Lateral Walks"],
+  antagonists: ["Tibialis_Anterior"],
+  cameraView: {
+    position: { x: -1.5, y: -2, z: 6 },
+    target: { x: 0, y: -2, z: 0 }
+  }
 }
 };
 

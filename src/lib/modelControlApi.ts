@@ -25,4 +25,12 @@ export function initModelControlApi(socket: any) {
   socket.on('model:setCameraTarget', (data: { target: { x: number; y: number; z: number } }) => {
     useModelStore.getState().setCameraTarget(data.target);
   });
+  socket.on('model:setCameraView', (data) => {
+    if (data && data.position && data.target) {
+      const { position, target } = data;
+      console.log("Received camera view update:", position, target);
+      useModelStore.getState().setCameraPosition(position);
+      useModelStore.getState().setCameraTarget(target);
+    }
+  });
 }

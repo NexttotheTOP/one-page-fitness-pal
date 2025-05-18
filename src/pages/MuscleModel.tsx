@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, useGLTF } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, useGLTF, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -17,6 +17,7 @@ import { io, Socket } from "socket.io-client";
 import { initModelControlApi } from "../lib/modelControlApi";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useAuth } from '@/lib/auth-context';
 
 // Path to your 3D model
 const MODEL_PATH = '/models/muscle-model.glb';
@@ -29,16 +30,148 @@ interface ModelProps {
 }
 
 function getRandomColor() {
-    const hue = Math.floor(Math.random() * 360);
-    return `hsl(${hue}, 70%, 70%)`;
+  const hue = Math.floor(Math.random() * 360);
+  return `hsl(${hue}, 70%, 70%)`;
 }
 
-function Model({ animationFrame = 0, highlightedMuscles, setHighlightedMuscles }: ModelProps) {
-  const groupRef = useRef<any>(null);
+// Label positioning constants
+const LABEL_OFFSET_X = 0.6; // Increased horizontal offset
+const LABEL_OFFSET_Y = 0.0; // No vertical offset initially
+const LABEL_SPACING = 0.25; // Increased vertical spacing between labels
+const LEFT_SIDE = -1;
+const RIGHT_SIDE = 1;
+
+// Interface for MuscleLabel props
+interface MuscleLabelProps {
+  position: any; // Using any to avoid TypeScript errors
+  muscleName: string;
+  color: string;
+  index: number; // Add index for better positioning
+  totalOnSide: number; // Add total count on this side for distribution
+}
+
+// Simplified muscle label component using Html from drei
+function MuscleLabel({ position, muscleName, color, index, totalOnSide }: MuscleLabelProps) {
+  const [side, setSide] = useState<number>(RIGHT_SIDE);
+  const displayName = muscleMap[muscleName]?.displayName || muscleName;
+  
+  // Determine which side to show the label based on x-position
+  useEffect(() => {
+    setSide(position.x > 0.1 ? LEFT_SIDE : RIGHT_SIDE);
+  }, [position]);
+  
+  // Calculate label position with better distribution
+  const labelPos = useMemo(() => {
+    if (!position) return new THREE.Vector3(0, 0, 0);
+    
+    // Distribute labels vertically based on their index and total count
+    const verticalRange = 2.0; // Total vertical range to distribute labels
+    const verticalOffset = (index / totalOnSide) * verticalRange - (verticalRange / 2);
+    
+    return new THREE.Vector3(
+      position.x + (side * LABEL_OFFSET_X),
+      verticalOffset, // Position labels evenly along the model height
+      position.z
+    );
+  }, [position, side, index, totalOnSide]);
+
+  // Safeguard against rendering issues
+  if (!position || !labelPos) {
+    return null;
+  }
+  
+  return (
+    <Html
+      position={labelPos}
+      center
+      distanceFactor={15}
+      style={{
+        background: 'rgba(255, 255, 255, 0.92)',
+        color: '#333',
+        padding: '1.5px 6px',
+        borderRadius: '3px',
+        fontSize: '4px',
+        fontWeight: 500,
+        whiteSpace: 'nowrap',
+        pointerEvents: 'none',
+        border: `1px solid ${color}`,
+        transform: `translateX(${side === LEFT_SIDE ? -7 : 7}px)`,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.10)'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <span 
+          style={{ 
+            display: 'inline-block', 
+            width: '4px',
+            height: '4px',
+            borderRadius: '50%', 
+            backgroundColor: color,
+            marginRight: '4px'
+          }}
+        />
+        {displayName}
+      </div>
+    </Html>
+  );
+}
+
+function Model({ animationFrame = 0, highlightedMuscles, setHighlightedMuscles, showLabels = true }: ModelProps & { showLabels?: boolean }) {
+  const groupRef = useRef<any>();
   const { scene, animations, nodes } = useGLTF(MODEL_PATH);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [labelPositions, setLabelPositions] = useState<Map<string, any>>(new Map());
   
+  // Process the mesh positions for labels
+  /*
+  useEffect(() => {
+    if (!scene || !isLoaded) return;
+    
+    try {
+      const positions = new Map<string, any>();
+      
+      // Calculate best position for each muscle mesh's label
+      Object.keys(highlightedMuscles).forEach(muscleName => {
+        const mesh = scene.getObjectByName(muscleName);
+        if (!mesh) return;
+        
+        try {
+          const pos = new THREE.Vector3();
+          mesh.getWorldPosition(pos);
+          
+          // Only store valid positions
+          if (isNaN(pos.x) || isNaN(pos.y) || isNaN(pos.z)) return;
+          
+          positions.set(muscleName, pos);
+        } catch (err) {
+          console.warn(`Error getting position for ${muscleName}:`, err);
+        }
+      });
+      
+      // No valid positions found, don't update
+      if (positions.size === 0) return;
+      
+      // Divide positions into left and right sides based on x-coordinate
+      const rightSide: Array<{ key: string, pos: any }> = [];
+      const leftSide: Array<{ key: string, pos: any }> = [];
+      
+      // Sort into left/right sides based on X position
+      positions.forEach((pos, key) => {
+        if (pos.x > 0.1) {
+          leftSide.push({ key, pos });
+        } else {
+          rightSide.push({ key, pos });
+        }
+      });
+      
+      setLabelPositions(positions);
+    } catch (err) {
+      console.error("Error processing label positions:", err);
+    }
+  }, [scene, highlightedMuscles, isLoaded]);
+  */
+
   useEffect(() => {
     if (scene) {
       try {
@@ -117,22 +250,76 @@ function Model({ animationFrame = 0, highlightedMuscles, setHighlightedMuscles }
   return (
     <group ref={groupRef}>
       {isLoaded && (
-        <primitive
-          object={scene}
-          onPointerDown={handlePointerDown}
-          onPointerOver={handlePointerOver}
-          onPointerOut={handlePointerOut}
-        />
+        <>
+          <primitive
+            object={scene}
+            onPointerDown={handlePointerDown}
+            onPointerOver={handlePointerOver}
+            onPointerOut={handlePointerOut}
+          />
+          
+          {/* Render muscle labels with improved positioning 
+          {showLabels && (
+            <group>
+              {Object.entries(highlightedMuscles).map(([muscleName, color], idx) => {
+                const position = labelPositions.get(muscleName);
+                if (!position) return null;
+                
+                // Determine which side this label is on
+                const isRightSide = position.x <= 0.1;
+                
+                // Count total labels on this side for distribution
+                const totalOnSide = Object.entries(highlightedMuscles)
+                  .filter(([_, __], i) => {
+                    const pos = labelPositions.get(Object.keys(highlightedMuscles)[i]);
+                    return pos && (pos.x <= 0.1) === isRightSide;
+                  }).length;
+                
+                // Calculate index among labels on this side
+                const sideIndex = Object.entries(highlightedMuscles)
+                  .filter(([key, _], i) => {
+                    const pos = labelPositions.get(key);
+                    return pos && (pos.x <= 0.1) === isRightSide && 
+                      Object.keys(highlightedMuscles).indexOf(key) < 
+                      Object.keys(highlightedMuscles).indexOf(muscleName);
+                  }).length;
+                
+                return (
+                  <MuscleLabel
+                    key={muscleName}
+                    position={position}
+                    muscleName={muscleName}
+                    color={color}
+                    index={sideIndex}
+                    totalOnSide={Math.max(1, totalOnSide)}
+                  />
+                );
+              })}
+            </group>
+          )} */}
+        </>
       )}
     </group>
   );
 }
 
+// Utility to get or create a session-based thread ID
+function getSessionThreadId() {
+  let threadId = localStorage.getItem('muscleModelThreadId');
+  if (!threadId) {
+    threadId = crypto.randomUUID();
+    localStorage.setItem('muscleModelThreadId', threadId);
+  }
+  return threadId;
+}
+
 // --- Socket.io Chat Hook and ChatTester ---
-function useModelChat() {
+// Update useModelChat to accept userId and threadId
+function useModelChat(userId: string | undefined, threadId: string) {
   const [messages, setMessages] = useState<{role: string; content: string}[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [streamingMessage, setStreamingMessage] = useState("");
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
@@ -142,6 +329,7 @@ function useModelChat() {
     // Attach model control event handlers
     initModelControlApi(socket);
 
+    // --- OLD NON-STREAMING LOGIC (for reference) ---
     // Listen for chat responses
     socket.on("model_response", (data) => {
       if (data.error) {
@@ -153,20 +341,54 @@ function useModelChat() {
       setLoading(false);
     });
 
+    /*
+    // Handler for model_response - STREAMING VERSION
+    const handleModelResponse = (data: any) => {
+      console.log("SOCKET DATA:", data);
+      if (data.error) {
+        setError(data.error);
+        setLoading(false);
+        return;
+      }
+      if (data.stream) {
+        // This is a streaming token/chunk
+        setStreamingMessage((prev) => prev + data.response);
+      } else if (data.done) {
+        // Streaming is done, add the full message to the chat
+        setMessages((msgs) => [
+          ...msgs,
+          { role: "backend", content: streamingMessage }
+        ]);
+        setStreamingMessage(""); // Reset for next message
+        setLoading(false);
+      } else {
+        // Fallback: non-streaming full message (for compatibility)
+        setMessages((msgs) => [
+          ...msgs,
+          { role: "backend", content: data.response }
+        ]);
+        setLoading(false);
+      }
+    };
+
+    socket.on("model_response", handleModelResponse);
+    */
+
     return () => {
       socket.disconnect();
     };
   }, []);
 
   const sendMessage = (msg: string) => {
-    if (!msg.trim() || !socketRef.current) return;
+    if (!msg.trim() || !socketRef.current || !userId) return;
     setError(null);
     setLoading(true);
     setMessages((msgs) => [...msgs, { role: "user", content: msg }]);
+    // setStreamingMessage(""); // Not needed in non-streaming mode
     socketRef.current.emit("model_message", {
       message: msg,
-      thread_id: "test-thread-1",
-      user_id: "test-user-1"
+      thread_id: threadId,
+      user_id: userId,
     });
   };
 
@@ -175,7 +397,9 @@ function useModelChat() {
 
 function ChatTester() {
   const [input, setInput] = useState("");
-  const { messages, sendMessage, loading, error } = useModelChat();
+  const { user } = useAuth();
+  const threadId = useMemo(getSessionThreadId, []);
+  const { messages, sendMessage, loading, error } = useModelChat(user?.id, threadId);
   const messageListRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom on new message
@@ -207,7 +431,7 @@ function ChatTester() {
               <span className="text-fitness-purple text-xl">💬</span>
             </div>
             <p className="text-sm text-gray-500 max-w-xs">
-              Ask me anything about muscles, exercises, or how to use the 3D model.
+              Ask me anything about muscles, exercises, highlitghting specific muscle groups, or anything else you want to know about the human body.
             </p>
           </div>
         ) : (
@@ -241,6 +465,19 @@ function ChatTester() {
             </div>
           ))
         )}
+        
+        {/* Streaming content rendering is commented out
+        {streamingMessage && (
+          <div className="flex justify-start transition-opacity animate-fadeIn">
+            <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-transparent rounded-tl-none text-gray-800 shadow-none border-0">
+              <div>{streamingMessage}</div>
+              <div className="text-[10px] text-right mt-1 text-gray-400">
+                {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              </div>
+            </div>
+          </div>
+        )}
+        */}
         
         {loading && (
           <div className="flex justify-start transition-opacity animate-fadeIn">
@@ -311,11 +548,14 @@ export default function MuscleModelPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("view");
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [showLabels, setShowLabels] = useState(true);
   
   // Refs
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const orbitControlsRef = useRef<any>(null);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
+  // --- Smooth camera transition refs ---
+  const cameraAnimationFrameRef = useRef<number | null>(null);
   
   // Toast
   const { toast } = useToast();
@@ -417,6 +657,15 @@ export default function MuscleModelPage() {
     }
   };
 
+  // Debug function to log vector
+  const logVector = (name: string, vector: any) => {
+    if (!vector) return `${name}: null`;
+    return `${name}: {x: ${vector.x.toFixed(2)}, y: ${vector.y.toFixed(2)}, z: ${vector.z.toFixed(2)}}`;
+  };
+
+  // Flag to prevent onChange handler from firing during programmatic updates
+  const isProgrammaticUpdate = useRef(false);
+
   // Function to focus camera on a specific muscle
   const focusOnMuscle = (muscleName: string) => {
     const muscle = muscleMap[muscleName];
@@ -424,13 +673,24 @@ export default function MuscleModelPage() {
     // Use group view instead of individual muscle view
     const view = muscle.group ? getGroupView(muscle.group, 'front') : null;
     if (view) {
+      // Set flag to prevent onChange from firing
+      isProgrammaticUpdate.current = true;
+      
+      // Update store values
       setCameraPosition(view.position);
       setCameraTarget(view.target);
+      
+      // Directly update OrbitControls if available
       if (orbitControlsRef.current) {
         orbitControlsRef.current.target.set(view.target.x, view.target.y, view.target.z);
         orbitControlsRef.current.object.position.set(view.position.x, view.position.y, view.position.z);
         orbitControlsRef.current.update();
       }
+      
+      // Clear the flag after a short delay
+      setTimeout(() => {
+        isProgrammaticUpdate.current = false;
+      }, 50);
     }
   };
 
@@ -445,6 +705,42 @@ export default function MuscleModelPage() {
     setHighlightedMuscles(newMap);
     focusOnMuscle(muscleName);
   };
+
+  // Smoothly animate camera position and target when they change from the store
+  useEffect(() => {
+    if (!orbitControlsRef.current) return;
+    const controls = orbitControlsRef.current;
+    const camera = controls.object;
+
+    // Set flag to indicate we're making a programmatic update
+    isProgrammaticUpdate.current = true;
+    
+    // Calculate vector distances for debugging
+    const positionDist = new THREE.Vector3(
+      cameraPosition.x - camera.position.x,
+      cameraPosition.y - camera.position.y,
+      cameraPosition.z - camera.position.z
+    ).length();
+    
+    const targetDist = new THREE.Vector3(
+      cameraTarget.x - controls.target.x,
+      cameraTarget.y - controls.target.y,
+      cameraTarget.z - controls.target.z
+    ).length();
+        
+    // DIRECT METHOD: No animation, just set position and target directly
+    camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    controls.target.set(cameraTarget.x, cameraTarget.y, cameraTarget.z);
+    
+    // Force the controls to update and apply constraints
+    controls.update();
+    
+    // Clear the flag after a small delay to allow the update to complete
+    setTimeout(() => {
+      isProgrammaticUpdate.current = false;
+    }, 50);
+
+  }, [cameraPosition, cameraTarget]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -519,6 +815,7 @@ export default function MuscleModelPage() {
                         animationFrame={animationFrame}
                         highlightedMuscles={highlightedMuscles}
                         setHighlightedMuscles={setHighlightedMuscles}
+                        showLabels={showLabels}
                       />
                       
                       {/* Camera controls for user interaction */}
@@ -551,20 +848,40 @@ export default function MuscleModelPage() {
                         dampingFactor={0.1}
                         position={[cameraPosition.x, cameraPosition.y, cameraPosition.z]}
                         onChange={(e) => {
-                          // Update camera position in store when controls change
-                          const pos = orbitControlsRef.current?.object?.position;
-                          const target = orbitControlsRef.current?.target;
-                          const zoom = orbitControlsRef.current?.object?.zoom;
-                          if (pos && target && zoom !== undefined) {
-                            setCameraPosition({ x: pos.x, y: pos.y, z: pos.z });
-                            setCameraTarget({ x: target.x, y: target.y, z: target.z });
-                            console.log(`Camera Position: x: ${pos.x}, y: ${pos.y}, z: ${pos.z}`);
-                            console.log(`Camera Target: x: ${target.x}, y: ${target.y}, z: ${target.z}`);
-                            console.log(`Zoom Level: ${zoom}`);
+                          // Only update store if the change was caused by user interaction
+                          if (!isProgrammaticUpdate.current && orbitControlsRef.current) {
+                            const pos = orbitControlsRef.current.object?.position;
+                            const target = orbitControlsRef.current.target;
+                            if (pos && target) {
+                              setCameraPosition({ x: pos.x, y: pos.y, z: pos.z });
+                              setCameraTarget({ x: target.x, y: target.y, z: target.z });
+                            }
                           }
                         }}
                       />
                     </Canvas>
+                  )}
+                  
+                  {/* Static labels in top-left corner */}
+                  {isModelLoaded && Object.keys(highlightedMuscles).length > 0 && (
+                    <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 rounded-lg p-3 min-w-[180px]"
+                      style={{ background: 'transparent', boxShadow: 'none' }}
+                    >
+                      <div className="font-semibold text-fitness-purple text-xs mb-1">Selected Muscles</div>
+                      {Object.entries(highlightedMuscles).map(([muscle, color]) => (
+                        <div key={muscle} className="flex items-center gap-2 text-xs">
+                          <span style={{
+                            display: 'inline-block',
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            backgroundColor: color,
+                            border: '1px solid #ccc'
+                          }} />
+                          <span>{muscleMap[muscle]?.displayName || muscle}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                   
                   {/* Interaction hint - Changed to light blue */}
@@ -593,6 +910,14 @@ export default function MuscleModelPage() {
                         onClick={() => setHighlightedMuscles({})}
                       >
                         Clear Selection
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-white/90 hover:bg-white text-gray-700 backdrop-blur-sm border border-gray-200 shadow-sm"
+                        onClick={() => setShowLabels(v => !v)}
+                      >
+                        {showLabels ? 'Hide Labels' : 'Show Labels'}
                       </Button>
                     </div>
                   )}
@@ -715,7 +1040,15 @@ export default function MuscleModelPage() {
                 className="h-8 px-2 py-1"
                 onClick={() => setHighlightedMuscles({})}
               >
-                Clear All
+                Clear Selection
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2 py-1"
+                onClick={() => setShowLabels(v => !v)}
+              >
+                {showLabels ? 'Hide Labels' : 'Show Labels'}
               </Button>
             </div>
           </div>
