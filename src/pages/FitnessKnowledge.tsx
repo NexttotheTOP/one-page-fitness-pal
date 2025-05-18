@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Header from '@/components/Header';
-import { Send, Trash2, Brain, Plus, MessageSquare, CornerRightDown, Search, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Send, Trash2, Brain, Plus, MessageSquare, CornerRightDown, Search, ArrowLeft, ChevronRight, Menu, X, PlayCircle, Youtube, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,9 +31,20 @@ import { supabase } from '@/lib/supabase';
 // Define types
 type Source = {
   content: string;
-  metadata: {
+  url?: string;
+  title?: string;
+  author?: string;
+  domain?: string;
+  search_rank?: number;
+  source_type?: string;
+  result_score?: number;
+  metadata?: {
     source?: string;
     title?: string;
+    url?: string;
+    domain?: string;
+    rank?: number;
+    source_type?: string;
     [key: string]: any;
   };
 };
@@ -128,6 +139,104 @@ function formatConversationDate(date: Date): string {
   return conversationDate.toLocaleDateString([], {year: 'numeric', month: 'short', day: 'numeric'});
 }
 
+/**
+ * Extract YouTube video ID from various URL formats
+ */
+function extractYoutubeVideoId(url: string): string | null {
+  if (!url) return null;
+  
+  try {
+    // First, try to create a URL object to handle proper URLs
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname;
+    
+    // Check if it's a YouTube domain
+    if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
+      // Handle youtube.com domain
+      if (hostname.includes('youtube.com')) {
+        // Handle /watch URLs
+        if (urlObj.pathname.includes('/watch')) {
+          return urlObj.searchParams.get('v');
+        }
+        
+        // Handle /embed/ URLs
+        if (urlObj.pathname.includes('/embed/')) {
+          return urlObj.pathname.split('/embed/')[1].split('/')[0];
+        }
+        
+        // Handle shortened /v/ URLs
+        if (urlObj.pathname.includes('/v/')) {
+          return urlObj.pathname.split('/v/')[1].split('/')[0];
+        }
+      }
+      
+      // Handle youtu.be domain (short URLs)
+      if (hostname.includes('youtu.be')) {
+        return urlObj.pathname.split('/')[1];
+      }
+    }
+  } catch (e) {
+    // If URL parsing fails, fall back to regex approach
+    const regExp = /^.*(youtu.be\/|v\/|e\/|u\/\w+\/|embed\/|v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    
+    if (match && match[2].length === 11) {
+      return match[2];
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Check if a source is a YouTube video based on domain, source type, or URL
+ */
+function isYoutubeSource(sourceType?: string, domain?: string, url?: string): boolean {
+  if (sourceType?.toLowerCase().includes('youtube') || domain?.toLowerCase().includes('youtube')) {
+    return true;
+  }
+  
+  if (url) {
+    // Check if URL contains youtube.com or youtu.be
+    return url.includes('youtube.com') || url.includes('youtu.be');
+  }
+  
+  return false;
+}
+
+/**
+ * Component to display a YouTube video thumbnail with a play button overlay
+ */
+function YoutubeThumbnail({ videoId, title }: { videoId: string, title?: string }) {
+  return (
+    <div className="relative h-full w-full overflow-hidden border border-gray-100 rounded group">
+      <a 
+        href={`https://www.youtube.com/watch?v=${videoId}`} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="block h-full"
+      >
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
+          <div className="bg-white rounded-full p-1 shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+            <PlayCircle className="h-5 w-5 text-red-600" />
+          </div>
+        </div>
+        <img 
+          src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`} 
+          alt={title || "YouTube video"} 
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+        {title && title.length > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 bg-black/70 py-1 px-1.5 truncate z-10">
+            <span className="text-[9px] text-white truncate block font-medium">{title}</span>
+          </div>
+        )}
+      </a>
+    </div>
+  );
+}
+
 const FitnessKnowledge = () => {
   // Hooks and state
   const { user } = useAuth();
@@ -144,6 +253,7 @@ const FitnessKnowledge = () => {
   });
   
   const [showConversationsList, setShowConversationsList] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -273,6 +383,22 @@ const FitnessKnowledge = () => {
       }
     }
   }, [user]);
+
+  // Set initial sidebar state based on screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (window.innerWidth < 768) {
+        setSidebarCollapsed(true);
+      }
+    };
+    
+    // Check on initial load
+    checkScreenSize();
+    
+    // Listen for resize events
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Expert suggestion data
   const expertSuggestions = [
@@ -745,16 +871,23 @@ const FitnessKnowledge = () => {
     }
   };
 
+  // Toggle sidebar visibility
+  const toggleSidebar = () => {
+    setSidebarCollapsed(prev => !prev);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       
       <main className="w-full py-6 flex-1 flex flex-col">
-        <div className="grid grid-cols-12 gap-6 h-[calc(100vh-160px)] px-2 md:px-6 xl:px-8">
+        <div className="grid grid-cols-12 gap-6 h-[calc(100vh-160px)] px-2 md:px-6 xl:px-8 relative">
           {/* Left sidebar - Conversation history */}
           <div className={cn(
-            "col-span-12 md:col-span-3 lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 h-full",
-            showConversationsList ? "block" : "hidden md:block"
+            "col-span-12 md:col-span-3 lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-full absolute md:relative z-20",
+            "transform transition-all duration-300 ease-in-out",
+            showConversationsList ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+            sidebarCollapsed && "md:hidden"
           )}>
             <div className="flex flex-col h-full">
               <div className="p-4 pb-2">
@@ -766,7 +899,7 @@ const FitnessKnowledge = () => {
                     onClick={() => setShowConversationsList(false)}
                     className="md:hidden h-7 w-7 rounded-full hover:bg-gray-100"
                   >
-                    <ArrowLeft className="h-4 w-4" />
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
                 
@@ -846,8 +979,35 @@ const FitnessKnowledge = () => {
             </div>
           </div>
           
+          {/* Sidebar toggle button - visible only on md+ screens */}
+          <div className={cn(
+            "hidden md:flex absolute top-1/2 -translate-y-1/2 z-30 transition-all duration-300",
+            sidebarCollapsed ? "left-4" : "left-[calc(25%-12px)] lg:left-[calc(16.666%-12px)]"
+          )}>
+            <Button
+              variant={sidebarCollapsed ? "default" : "ghost"}
+              size="icon"
+              onClick={toggleSidebar}
+              className={cn(
+                "h-9 w-9 rounded-full shadow-sm transition-all duration-300 border",
+                sidebarCollapsed 
+                  ? "bg-fitness-purple hover:bg-fitness-purple/90 text-white border-fitness-purple/30" 
+                  : "bg-white/80 backdrop-blur-sm hover:bg-white text-fitness-purple border-gray-200/50"
+              )}
+            >
+              {sidebarCollapsed ? (
+                <MessageSquare className="h-4 w-4 transition-all" />
+              ) : (
+                <ChevronRight className="h-4 w-4 transition-all" />
+              )}
+            </Button>
+          </div>
+          
           {/* Main chat area */}
-          <div className="col-span-12 md:col-span-9 lg:col-span-10 flex flex-col h-full max-h-[calc(100vh-160px)] overflow-hidden">
+          <div className={cn(
+            "col-span-12 md:col-span-9 lg:col-span-10 flex flex-col h-full max-h-[calc(100vh-160px)] overflow-hidden transition-all duration-300",
+            sidebarCollapsed && "md:col-span-12 lg:col-span-12"
+          )}>
             {/* Header with title and controls */}
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
               <div className="flex items-center">
@@ -857,7 +1017,7 @@ const FitnessKnowledge = () => {
                   onClick={() => setShowConversationsList(true)}
                   className="mr-2 md:hidden h-9 w-9 rounded-full hover:bg-gray-100"
                 >
-                  <MessageSquare className="h-5 w-5 text-fitness-purple" />
+                  <Menu className="h-5 w-5 text-fitness-purple" />
                 </Button>
                 
                 {activeConversation && (
@@ -971,9 +1131,6 @@ const FitnessKnowledge = () => {
                                   <div key={groupIndex} className="mb-6 last:mb-0">
                                     {group[0].role === 'assistant' ? (
                                       <>
-                                        <div className="text-xs font-medium text-fitness-purple mb-1 ml-1">
-                                          FitnessPal
-                                        </div>
                                         <div className="space-y-1">
                                           {group.map((message, msgIndex) => (
                                             <motion.div
@@ -986,7 +1143,7 @@ const FitnessKnowledge = () => {
                                               <div
                                                 className={cn(
                                                   "rounded-2xl p-4",
-                                                  "bg-white border border-gray-100 shadow-sm text-gray-800",
+                                                  "bg-transparent text-gray-800",
                                                   // Special radius for grouped messages
                                                   msgIndex === 0 && group.length > 1 && "rounded-bl-md",
                                                   msgIndex > 0 && msgIndex < group.length - 1 && "rounded-l-md",
@@ -1014,7 +1171,7 @@ const FitnessKnowledge = () => {
                                                             href={href} 
                                                             target="_blank" 
                                                             rel="noopener noreferrer" 
-                                                            className="text-blue-600 hover:underline"
+                                                            className="text-gray-700 hover:text-blue-600 hover:underline transition-colors"
                                                           >
                                                             {children}
                                                           </a>
@@ -1036,7 +1193,7 @@ const FitnessKnowledge = () => {
                                                     
                                                     {/* Display processing steps if available */}
                                                     {message.steps && message.steps.length > 0 && (
-                                                      <div className="mt-3 bg-gray-50 rounded-lg p-2 border border-gray-100">
+                                                      <div className="mt-3 bg-fitness-purple-light/20 rounded-lg p-2 border border-fitness-purple-light/30">
                                                         <details className="text-xs">
                                                           <summary className="font-medium text-fitness-purple cursor-pointer">
                                                             View processing steps ({message.steps.length})
@@ -1045,7 +1202,7 @@ const FitnessKnowledge = () => {
                                                             <ul className="space-y-1">
                                                               {message.steps.map((step, stepIndex) => (
                                                                 <li key={stepIndex} className="flex items-start">
-                                                                  <span className="inline-block w-4 h-4 bg-fitness-purple-light rounded-full text-fitness-purple text-center text-[10px] mr-2 flex-shrink-0 mt-0.5">
+                                                                  <span className="inline-block w-4 h-4 bg-fitness-purple-light/80 rounded-full text-fitness-purple text-center text-[10px] mr-2 flex-shrink-0 mt-0.5">
                                                                     {stepIndex + 1}
                                                                   </span>
                                                                   <span className="text-gray-700">{step}</span>
@@ -1057,36 +1214,172 @@ const FitnessKnowledge = () => {
                                                       </div>
                                                     )}
                                                     
-                                                    {/* Skip debugging log in JSX */}
-                                                    
                                                     {/* Display sources if available */}
                                                     {message.sources && message.sources.length > 0 && (
-                                                      <div className="mt-3 bg-blue-50 rounded-lg p-2 border border-blue-100">
+                                                      <div className="mt-3 bg-blue-50/80 rounded-lg p-2 border border-blue-100/70">
                                                         <details className="text-xs">
                                                           <summary className="font-medium text-blue-600 cursor-pointer">
                                                             View sources ({message.sources.length})
                                                           </summary>
-                                                          <div className="pt-2 pb-1">
-                                                            <ul className="space-y-2 divide-y divide-blue-100">
-                                                              {message.sources.map((source, sourceIndex) => (
-                                                                <li key={sourceIndex} className="pt-2 first:pt-0">
-                                                                  <div className="flex items-center mb-1">
-                                                                    <Badge 
-                                                                      variant="outline" 
-                                                                      className="mr-2 bg-white border-blue-200 text-blue-700 text-[10px] px-1.5 py-0"
-                                                                    >
-                                                                      Source {sourceIndex + 1}
-                                                                    </Badge>
-                                                                    <span className="font-medium text-blue-800">
-                                                                      {source.metadata?.title || source.metadata?.source || 'Reference'}
-                                                                    </span>
-                                                                  </div>
-                                                                  <div className="text-gray-600 pl-1 text-xs bg-white p-1.5 rounded border border-blue-100">
-                                                                    {source.content}
-                                                                  </div>
-                                                                </li>
-                                                              ))}
-                                                            </ul>
+                                                          <div className="pt-4 pb-1">
+                                                            {/* YouTube Thumbnails Grid - Display all YouTube sources at the top in a grid */}
+                                                            {message.sources.some(src => 
+                                                              isYoutubeSource(
+                                                                src.source_type || src.metadata?.source_type, 
+                                                                src.domain || src.metadata?.domain, 
+                                                                src.url || src.metadata?.url || src.metadata?.source
+                                                              ) && extractYoutubeVideoId(src.url || src.metadata?.url || src.metadata?.source || '')
+                                                            ) && (
+                                                              <div className="mb-5 pb-3 border-b border-blue-100">
+                                                                <div className="flex items-center mb-2.5">
+                                                                  <Badge className="bg-red-600 hover:bg-red-700 text-white text-xs px-2.5 py-0.5 mr-2 shadow-sm flex items-center gap-1.5">
+                                                                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" focusable="false">
+                                                                      <path d="M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.254,4,12,4,12,4S5.746,4,4.186,4.418 c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.746,2,12,2,12s0,4.254,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768 C5.746,20,12,20,12,20s6.254,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.254,22,12,22,12S22,7.746,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z"></path>
+                                                                    </svg>
+                                                                    YouTube Sources
+                                                                  </Badge>
+                                                                </div>
+                                                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                                                  {message.sources
+                                                                    .filter(src => {
+                                                                      const url = src.url || src.metadata?.url || src.metadata?.source;
+                                                                      const domain = src.domain || src.metadata?.domain;
+                                                                      const sourceType = src.source_type || src.metadata?.source_type;
+                                                                      
+                                                                      // Only include YouTube sources with valid video IDs
+                                                                      return isYoutubeSource(sourceType, domain, url) && 
+                                                                             extractYoutubeVideoId(url || '') !== null;
+                                                                    })
+                                                                    .map((ytSource, ytIndex) => {
+                                                                      const url = ytSource.url || ytSource.metadata?.url || ytSource.metadata?.source || '';
+                                                                      const title = ytSource.title || ytSource.metadata?.title || '';
+                                                                      const videoId = extractYoutubeVideoId(url);
+                                                                      
+                                                                      // This should never be null due to our filter above
+                                                                      if (!videoId) return <div key={`yt-empty-${ytIndex}`}></div>;
+                                                                      
+                                                                      return (
+                                                                        <div key={`yt-${ytIndex}`} className="relative pb-[56.25%] h-0 overflow-hidden rounded shadow-sm">
+                                                                          <div className="absolute inset-0">
+                                                                            <YoutubeThumbnail 
+                                                                              videoId={videoId} 
+                                                                              title={title.length > 40 ? `${title.substring(0, 40)}...` : title} 
+                                                                            />
+                                                                          </div>
+                                                                        </div>
+                                                                      );
+                                                                    })
+                                                                  }
+                                                                </div>
+                                                              </div>
+                                                            )}
+                                                            
+                                                            {/* Web Search Results */}
+                                                            {message.sources.some(src => 
+                                                              !isYoutubeSource(
+                                                                src.source_type || src.metadata?.source_type, 
+                                                                src.domain || src.metadata?.domain, 
+                                                                src.url || src.metadata?.url || src.metadata?.source
+                                                              ) || extractYoutubeVideoId(src.url || src.metadata?.url || src.metadata?.source || '') === null
+                                                            ) && (
+                                                              <div className="mt-1">
+                                                                <div className="flex items-center mb-2">
+                                                                  <Badge className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2.5 py-0.5 mr-2 flex items-center gap-1.5 shadow-sm">
+                                                                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" focusable="false">
+                                                                      <path d="M17.9,17.39C17.64,16.59 16.89,16 16,16H15V13A1,1 0 0,0 14,12H8V10H10A1,1 0 0,0 11,9V7H13A2,2 0 0,0 15,5V4.59C17.93,5.77 20,8.64 20,12C20,14.08 19.2,15.97 17.9,17.39M11,19.93C7.05,19.44 4,16.08 4,12C4,11.38 4.08,10.78 4.21,10.21L9,15V16A2,2 0 0,0 11,18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"></path>
+                                                                    </svg>
+                                                                    Web Search Results
+                                                                  </Badge>
+                                                                </div>
+                                                                <ul className="space-y-2 divide-y divide-blue-100/80">
+                                                                  {message.sources
+                                                                    .slice()
+                                                                    .filter(source => {
+                                                                      const url = source.url || source.metadata?.url || source.metadata?.source;
+                                                                      const domain = source.domain || source.metadata?.domain;
+                                                                      const sourceType = source.source_type || source.metadata?.source_type;
+                                                                      
+                                                                      // Only include non-YouTube sources
+                                                                      return !isYoutubeSource(sourceType, domain, url) || 
+                                                                              extractYoutubeVideoId(url || '') === null;
+                                                                    })
+                                                                    .sort((a, b) => {
+                                                                      // Handle both old and new data formats
+                                                                      const rankA = a.search_rank !== undefined ? a.search_rank : 
+                                                                                ((a.metadata?.rank as number) || 999);
+                                                                      const rankB = b.search_rank !== undefined ? b.search_rank : 
+                                                                                ((b.metadata?.rank as number) || 999);
+                                                                      return rankA - rankB;
+                                                                    })
+                                                                    .map((source, sourceIndex) => {
+                                                                      // Extract data from either direct properties or metadata
+                                                                      const title = source.title || source.metadata?.title || 'Reference';
+                                                                      const url = source.url || source.metadata?.url || source.metadata?.source;
+                                                                      const domain = source.domain || source.metadata?.domain;
+                                                                      const sourceType = source.source_type || source.metadata?.source_type;
+                                                                      const author = source.author;
+                                                                      const score = source.result_score;
+                                                                      
+                                                                      return (
+                                                                        <li key={sourceIndex} className="pt-2 first:pt-0">
+                                                                          <div className="flex items-center flex-wrap gap-1 mb-1">
+                                                                            <span className="font-medium text-blue-800 mr-1">
+                                                                              {title}
+                                                                            </span>
+                                                                            {domain && (
+                                                                              <Badge 
+                                                                                variant="outline" 
+                                                                                className="bg-gray-50/80 border-gray-200 text-gray-600 text-[10px] px-1.5 py-0"
+                                                                              >
+                                                                                {domain}
+                                                                              </Badge>
+                                                                            )}
+                                                                            {sourceType && sourceType !== "Web Search" && (
+                                                                              <Badge 
+                                                                                variant="outline" 
+                                                                                className="bg-purple-50/80 border-purple-200 text-purple-600 text-[10px] px-1.5 py-0"
+                                                                              >
+                                                                                {sourceType}
+                                                                              </Badge>
+                                                                            )}
+                                                                            {author && author !== "Web" && (
+                                                                              <Badge 
+                                                                                variant="outline" 
+                                                                                className="bg-amber-50/80 border-amber-200 text-amber-600 text-[10px] px-1.5 py-0"
+                                                                              >
+                                                                                {author}
+                                                                              </Badge>
+                                                                            )}
+                                                                            {score !== undefined && (
+                                                                              <Badge 
+                                                                                variant="outline" 
+                                                                                className="bg-green-50/80 border-green-200 text-green-600 text-[10px] px-1.5 py-0"
+                                                                              >
+                                                                                Score: {(score * 100).toFixed(0)}%
+                                                                              </Badge>
+                                                                            )}
+                                                                          </div>
+                                                                          
+                                                                          <div className="text-gray-600 pl-1 text-xs bg-white/70 p-1.5 rounded border border-blue-100/60">
+                                                                            {source.content}
+                                                                            {url && (
+                                                                              <a 
+                                                                                href={url} 
+                                                                                target="_blank" 
+                                                                                rel="noopener noreferrer" 
+                                                                                className="mt-1 block text-gray-500 hover:text-blue-500 hover:underline text-[10px] truncate transition-colors"
+                                                                              >
+                                                                                {url}
+                                                                              </a>
+                                                                            )}
+                                                                          </div>
+                                                                        </li>
+                                                                      );
+                                                                    })
+                                                                  }
+                                                                </ul>
+                                                              </div>
+                                                            )}
                                                           </div>
                                                         </details>
                                                       </div>
@@ -1152,7 +1445,7 @@ const FitnessKnowledge = () => {
                                                         href={href} 
                                                         target="_blank" 
                                                         rel="noopener noreferrer" 
-                                                        className="text-blue-200 hover:underline"
+                                                        className="text-white/90 hover:text-white hover:underline transition-colors"
                                                       >
                                                         {children}
                                                       </a>
@@ -1422,6 +1715,15 @@ const FitnessKnowledge = () => {
           </div>
         </div>
       </main>
+
+      {/* Mobile backdrop overlay */}
+      {showConversationsList && (
+        <div 
+          className="fixed inset-0 bg-black/20 z-10 md:hidden"
+          onClick={() => setShowConversationsList(false)}
+          aria-hidden="true"
+        />
+      )}
     </div>
   );
 };

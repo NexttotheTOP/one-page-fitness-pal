@@ -90,7 +90,7 @@ export async function queryFitnessCoach(
   let accumulatedMarkdown = '';
 
   try {
-    const response = await fetch('https://web-production-aafa6.up.railway.app/fitness/query', {
+    const response = await fetch('http://localhost:8000/fitness/query', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -153,7 +153,7 @@ export async function queryRagSystem(
   console.log(`queryRagSystem called - userId: ${userId}, threadId: ${threadId}, query length: ${query.length}`);
 
   try {
-    const response = await fetch('https://web-production-aafa6.up.railway.app/ask', {
+    const response = await fetch('http://localhost:8000/ask', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
