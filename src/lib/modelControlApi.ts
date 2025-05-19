@@ -1,14 +1,48 @@
 import { useModelStore } from './modelStore';
 
 export function initModelControlApi(socket: any) {
-  socket.on('model:selectMuscles', (data: { muscleNames: string[], colors?: Record<string, string> }) => {
-    const muscleMap = Object.fromEntries(
-      data.muscleNames.map(name => [name, data.colors?.[name] || '#FFD600'])
-    );
-    useModelStore.getState().setHighlightedMuscles(muscleMap);
+  socket.on('model_event', (data: { type: string, payload: any }) => {
+    switch (data.type) {
+      case 'model:selectMuscles': {
+        const muscleMap = Object.fromEntries(
+          data.payload.muscleNames.map((name: string) => [name, data.payload.colors?.[name] || '#FFD600'])
+        );
+        useModelStore.getState().setHighlightedMuscles(muscleMap);
+        break;
+      }
+      case 'model:toggleMuscle': {
+        useModelStore.getState().toggleHighlightedMuscle(
+          data.payload.muscleName,
+          data.payload.color
+        );
+        break;
+      }
+      case 'model:setCameraView': {
+        if (data.payload && data.payload.position && data.payload.target) {
+          useModelStore.getState().setCameraPosition(data.payload.position);
+          useModelStore.getState().setCameraTarget(data.payload.target);
+        }
+        break;
+      }
+      case 'model:resetCamera': {
+        useModelStore.getState().resetCamera();
+        break;
+      }
+      // ...handle other types as needed
+      case 'model:setAnimationFrame': {
+        useModelStore.getState().setAnimationFrame(data.payload.frame);
+        break;
+      }
+      case 'model:toggleAnimation': {
+        useModelStore.getState().toggleAnimation(data.payload.isPlaying);
+        break;
+      }
+    }
   });
+
+  // Direct listeners for backward compatibility
   socket.on('model:toggleMuscle', (data: { muscleName: string, color?: string }) => {
-    useModelStore.getState().toggleHighlightedMuscle(data.muscleName, data.color || '#FFD600');
+    useModelStore.getState().toggleHighlightedMuscle(data.muscleName, data.color);
   });
   socket.on('model:setAnimationFrame', (data: { frame: number }) => {
     useModelStore.getState().setAnimationFrame(data.frame);
@@ -24,13 +58,5 @@ export function initModelControlApi(socket: any) {
   });
   socket.on('model:setCameraTarget', (data: { target: { x: number; y: number; z: number } }) => {
     useModelStore.getState().setCameraTarget(data.target);
-  });
-  socket.on('model:setCameraView', (data) => {
-    if (data && data.position && data.target) {
-      const { position, target } = data;
-      console.log("Received camera view update:", position, target);
-      useModelStore.getState().setCameraPosition(position);
-      useModelStore.getState().setCameraTarget(target);
-    }
   });
 }

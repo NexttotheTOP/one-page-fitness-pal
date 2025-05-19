@@ -36,7 +36,7 @@ export const useModelStore = create<ModelState>((set) => ({
   setHighlightedMuscles: (muscleColors) => set({ highlightedMuscles: muscleColors }),
   toggleHighlightedMuscle: (muscleName, color = '#FFD600') => set((state) => {
     const newMap = { ...state.highlightedMuscles };
-    if (newMap[muscleName]) {
+    if (newMap[muscleName] || color === null) {
       delete newMap[muscleName];
     } else {
       newMap[muscleName] = color;

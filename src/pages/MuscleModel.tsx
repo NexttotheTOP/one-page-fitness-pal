@@ -179,6 +179,7 @@ function Model({ animationFrame = 0, highlightedMuscles, setHighlightedMuscles, 
         scene.position.set(0, -1.75, 0);
         scene.traverse((object) => {
           if (object.isMesh) {
+            // Only set original color/material/emissive ONCE, ever
             if (!object.userData._originalMaterial) {
               object.userData._originalMaterial = object.material.clone();
               object.material = object.material.clone();
@@ -189,8 +190,14 @@ function Model({ animationFrame = 0, highlightedMuscles, setHighlightedMuscles, 
             if (object.material.emissive && !object.userData._originalEmissive) {
               object.userData._originalEmissive = object.material.emissive.clone();
             }
+          }
+        });
+
+        // Always reset to original before applying highlights
+        scene.traverse((object) => {
+          if (object.isMesh) {
             if (object.userData._originalColor) {
-                object.material.color.copy(object.userData._originalColor);
+              object.material.color.copy(object.userData._originalColor);
             }
             if (object.material.emissive && object.userData._originalEmissive !== undefined) {
               object.material.emissive.set(object.userData._originalEmissive);
@@ -198,7 +205,8 @@ function Model({ animationFrame = 0, highlightedMuscles, setHighlightedMuscles, 
             object.cursor = 'pointer';
           }
         });
-        // Highlight muscles with their assigned color
+
+        // Now apply highlights
         if (highlightedMuscles && Object.keys(highlightedMuscles).length > 0) {
           scene.traverse((object) => {
             if (object.isMesh && highlightedMuscles[object.name]) {
@@ -316,11 +324,12 @@ function getSessionThreadId() {
 // --- Socket.io Chat Hook and ChatTester ---
 // Update useModelChat to accept userId and threadId
 function useModelChat(userId: string | undefined, threadId: string) {
-  const [messages, setMessages] = useState<{role: string; content: string}[]>([]);
+  const [messages, setMessages] = useState<{role: string; content: string; id?: string}[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [streamingMessage, setStreamingMessage] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     const socket = io("http://localhost:8000");
@@ -329,8 +338,7 @@ function useModelChat(userId: string | undefined, threadId: string) {
     // Attach model control event handlers
     initModelControlApi(socket);
 
-    // --- OLD NON-STREAMING LOGIC (for reference) ---
-    // Listen for chat responses
+    // We'll keep the old non-streaming response handler for fallback compatibility
     socket.on("model_response", (data) => {
       if (data.error) {
         setError(data.error);
@@ -341,65 +349,158 @@ function useModelChat(userId: string | undefined, threadId: string) {
       setLoading(false);
     });
 
-    /*
-    // Handler for model_response - STREAMING VERSION
-    const handleModelResponse = (data: any) => {
-      console.log("SOCKET DATA:", data);
-      if (data.error) {
-        setError(data.error);
-        setLoading(false);
-        return;
-      }
-      if (data.stream) {
-        // This is a streaming token/chunk
-        setStreamingMessage((prev) => prev + data.response);
-      } else if (data.done) {
-        // Streaming is done, add the full message to the chat
-        setMessages((msgs) => [
-          ...msgs,
-          { role: "backend", content: streamingMessage }
-        ]);
-        setStreamingMessage(""); // Reset for next message
-        setLoading(false);
-      } else {
-        // Fallback: non-streaming full message (for compatibility)
-        setMessages((msgs) => [
-          ...msgs,
-          { role: "backend", content: data.response }
-        ]);
-        setLoading(false);
-      }
-    };
-
-    socket.on("model_response", handleModelResponse);
-    */
-
     return () => {
+      // Clean up event source if it exists
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
       socket.disconnect();
     };
   }, []);
 
   const sendMessage = (msg: string) => {
     if (!msg.trim() || !socketRef.current || !userId) return;
+    
     setError(null);
     setLoading(true);
-    setMessages((msgs) => [...msgs, { role: "user", content: msg }]);
-    // setStreamingMessage(""); // Not needed in non-streaming mode
-    socketRef.current.emit("model_message", {
+    
+    // Add user message to UI
+    const messageId = crypto.randomUUID();
+    setMessages((msgs) => [...msgs, { role: "user", content: msg, id: messageId }]);
+    
+    // Add empty assistant message that will be filled with streaming content
+    const assistantMsgId = crypto.randomUUID();
+    setMessages((msgs) => [...msgs, { role: "backend", content: "", id: assistantMsgId }]);
+    
+    // First notify via socket that we're starting a conversation
+    socketRef.current.emit("model_start", {
       message: msg,
       thread_id: threadId,
-      user_id: userId,
+      user_id: userId
+    });
+    
+    // Clean up any existing EventSource
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
+    
+    // Create URL with parameters
+    const params = new URLSearchParams({
+      message: msg,
+      thread_id: threadId,
+      user_id: userId
+    });
+    
+    // Create new EventSource for token streaming
+    const eventSource = new EventSource(`http://localhost:8000/model/token-stream?${params}`);
+    eventSourceRef.current = eventSource;
+    
+    let accumulatedText = "";
+    
+    // Handle metadata event
+    eventSource.addEventListener('metadata', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("Received metadata:", data);
+        // Store any metadata if needed
+      } catch (err) {
+        console.error("Error parsing metadata:", err);
+      }
+    });
+    
+    // Handle thinking state
+    eventSource.addEventListener('thinking', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("Model thinking:", data);
+        setIsThinking(true);
+      } catch (err) {
+        console.error("Error parsing thinking event:", err);
+      }
+    });
+    
+    // Handle token streaming
+    eventSource.addEventListener('token', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.content) {
+          setIsThinking(false); // Stop thinking state once tokens start flowing
+          accumulatedText += data.content;
+          // Update UI with accumulated text so far
+          setMessages((msgs) => 
+            msgs.map(m => 
+              m.id === assistantMsgId 
+                ? { ...m, content: accumulatedText } 
+                : m
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Error parsing token:", err);
+      }
+    });
+    
+    // Handle complete message (full response)
+    eventSource.addEventListener('complete', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.response) {
+          setIsThinking(false);
+          // Update with the complete response
+          // This might override individual tokens if both are sent
+          setMessages((msgs) => 
+            msgs.map(m => 
+              m.id === assistantMsgId 
+                ? { ...m, content: data.response } 
+                : m
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Error parsing complete response:", err);
+      }
+    });
+    
+    // Handle model events
+    eventSource.addEventListener('event', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("Received model event via SSE:", data);
+        // Process model events if needed
+        // This could be a redundancy with socket.io events
+      } catch (err) {
+        console.error("Error parsing event:", err);
+      }
+    });
+    
+    // Handle completion
+    eventSource.addEventListener('done', () => {
+      console.log("Stream completed");
+      eventSource.close();
+      eventSourceRef.current = null;
+      setLoading(false);
+      setIsThinking(false);
+    });
+    
+    // Handle errors
+    eventSource.addEventListener('error', (err) => {
+      console.error("EventSource error:", err);
+      eventSource.close();
+      eventSourceRef.current = null;
+      setLoading(false);
+      setIsThinking(false);
+      setError("Connection error. Please try again.");
     });
   };
 
-  return { messages, sendMessage, loading, error };
+  return { messages, sendMessage, loading, isThinking, error };
 }
 
 function ChatTester() {
   const [input, setInput] = useState("");
   const { user } = useAuth();
   const threadId = useMemo(getSessionThreadId, []);
-  const { messages, sendMessage, loading, error } = useModelChat(user?.id, threadId);
+  const { messages, sendMessage, loading, isThinking, error } = useModelChat(user?.id, threadId);
   const messageListRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom on new message
@@ -437,7 +538,7 @@ function ChatTester() {
         ) : (
           messages.map((msg, idx) => (
             <div 
-              key={idx} 
+              key={msg.id || idx} 
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} transition-opacity animate-fadeIn`}
               style={{
                 animationDelay: `${idx * 50}ms`,
@@ -466,20 +567,8 @@ function ChatTester() {
           ))
         )}
         
-        {/* Streaming content rendering is commented out
-        {streamingMessage && (
-          <div className="flex justify-start transition-opacity animate-fadeIn">
-            <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-transparent rounded-tl-none text-gray-800 shadow-none border-0">
-              <div>{streamingMessage}</div>
-              <div className="text-[10px] text-right mt-1 text-gray-400">
-                {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-              </div>
-            </div>
-          </div>
-        )}
-        */}
-        
-        {loading && (
+        {/* Thinking/Loading indicator */}
+        {(loading || isThinking) && (
           <div className="flex justify-start transition-opacity animate-fadeIn">
             <div className="bg-transparent rounded-2xl rounded-tl-none p-3 flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }}></div>
