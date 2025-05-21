@@ -328,6 +328,7 @@ function useModelChat(userId: string | undefined, threadId: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isThinking, setIsThinking] = useState(false);
+  const [hasReceivedToken, setHasReceivedToken] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -363,6 +364,8 @@ function useModelChat(userId: string | undefined, threadId: string) {
     
     setError(null);
     setLoading(true);
+    setIsThinking(false);
+    setHasReceivedToken(false);
     
     // Add user message to UI
     const messageId = crypto.randomUUID();
@@ -424,7 +427,8 @@ function useModelChat(userId: string | undefined, threadId: string) {
       try {
         const data = JSON.parse(event.data);
         if (data.content) {
-          setIsThinking(false); // Stop thinking state once tokens start flowing
+          setIsThinking(false);
+          setHasReceivedToken(true);
           accumulatedText += data.content;
           // Update UI with accumulated text so far
           setMessages((msgs) => 
@@ -493,14 +497,14 @@ function useModelChat(userId: string | undefined, threadId: string) {
     });
   };
 
-  return { messages, sendMessage, loading, isThinking, error };
+  return { messages, sendMessage, loading, isThinking, error, hasReceivedToken };
 }
 
 function ChatTester() {
   const [input, setInput] = useState("");
   const { user } = useAuth();
   const threadId = useMemo(getSessionThreadId, []);
-  const { messages, sendMessage, loading, isThinking, error } = useModelChat(user?.id, threadId);
+  const { messages, sendMessage, loading, isThinking, error, hasReceivedToken } = useModelChat(user?.id, threadId);
   const messageListRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom on new message
@@ -568,7 +572,14 @@ function ChatTester() {
         )}
         
         {/* Thinking/Loading indicator */}
-        {(loading || isThinking) && (
+        {(isThinking && !hasReceivedToken) && (
+          <div className="flex justify-start transition-opacity animate-fadeIn">
+            <div className="bg-transparent rounded-2xl rounded-tl-none p-3 flex items-center space-x-2 text-gray-500 text-sm font-medium">
+              <span>Thinking...</span>
+            </div>
+          </div>
+        )}
+        {(loading && !isThinking && !hasReceivedToken) && (
           <div className="flex justify-start transition-opacity animate-fadeIn">
             <div className="bg-transparent rounded-2xl rounded-tl-none p-3 flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: "0ms" }}></div>
