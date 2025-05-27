@@ -54,7 +54,12 @@ export async function generateProfileOverview(
 ): Promise<void> {
   try {
     console.log('Sending data to /fitness/profile:', JSON.stringify(data, null, 2));
-    const response = await fetch('https://web-production-aafa6.up.railway.app/fitness/profile', {
+    
+    // Add timing and network debugging
+    console.time('Profile Generation API Call');
+    console.log(`[DEBUG API] Making request to /fitness/profile/stream with thread_id: ${data.thread_id}`);
+    
+    const response = await fetch('http://localhost:8000/fitness/profile/stream', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -66,14 +71,73 @@ export async function generateProfileOverview(
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    // Wait for the complete response
-    const responseData = await response.json();
+    console.log(`[DEBUG API] Response received, status: ${response.status}`);
 
-    // Use the content directly from the backend without cleaning
-    const markdown = responseData.content || '';
-    
-    // Call the callback with the raw markdown from the backend
-    onMarkdownUpdate(markdown);
+    // Process the stream instead of waiting for complete response
+    if (!response.body) {
+      throw new Error("Response has no body");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let accumulatedMarkdown = '';
+    let buffer = '';
+    let chunkCount = 0;
+    let messageCount = 0;
+
+    // Make a single initial callback to indicate generation has started
+    onMarkdownUpdate('');
+
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) {
+        console.log(`[DEBUG API] Stream complete. Processed ${chunkCount} chunks, ${messageCount} messages`);
+        break;
+      }
+
+      // Decode the chunk and add to buffer
+      chunkCount++;
+      buffer += decoder.decode(value, { stream: true });
+
+      // Process complete SSE messages
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep the last incomplete line in the buffer
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          messageCount++;
+          const content = line.slice(6); // Remove 'data: ' prefix
+          
+          // Check for completion message
+          if (content === '[DONE]') {
+            console.log(`[DEBUG API] Received [DONE] message`);
+            // Final callback with the complete content
+            onMarkdownUpdate(accumulatedMarkdown);
+            return;
+          }
+
+          try {
+            // Try to parse as JSON
+            const jsonContent = JSON.parse(content);
+            if (jsonContent.content) {
+              accumulatedMarkdown += jsonContent.content;
+              // Update the UI with the accumulated content
+              onMarkdownUpdate(accumulatedMarkdown);
+            }
+          } catch (e) {
+            // If not valid JSON, just add the content directly
+            accumulatedMarkdown += content;
+            // Update the UI with the accumulated content  
+            onMarkdownUpdate(accumulatedMarkdown);
+          }
+        }
+      }
+    }
+
+    // Ensure we send one final update with the complete content
+    onMarkdownUpdate(accumulatedMarkdown);
+    console.timeEnd('Profile Generation API Call');
 
   } catch (error) {
     console.error('Error generating profile overview:', error);
@@ -85,57 +149,57 @@ export async function generateProfileOverview(
 export async function queryFitnessCoach(
   threadId: string,
   query: string,
-  onMarkdownUpdate: (markdown: string) => void
+  onAnswerUpdate: (text: string) => void,
+  userId?: string
 ): Promise<void> {
-  let accumulatedMarkdown = '';
-
+  let accumulatedAnswer = '';
   try {
+    console.log('POSTing to /fitness/query', { user_id: userId, thread_id: threadId, query });
     const response = await fetch('http://localhost:8000/fitness/query', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ thread_id: threadId, query })
+      body: JSON.stringify({ user_id: userId, thread_id: threadId, query: query })
     });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const reader = response.body!.getReader();
+    const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-
-      // Decode the chunk and add to buffer
       buffer += decoder.decode(value, { stream: true });
 
-      // Process complete SSE messages
+      // Split on newlines (SSE)
       const lines = buffer.split('\n');
-      buffer = lines.pop() || ''; // Keep the last incomplete line in the buffer
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
         if (line.startsWith('data: ')) {
-          const content = line.slice(6); // Remove 'data: ' prefix
-          
-          // Check for completion message
-          if (content === '[DONE]') {
-            return;
+          const content = line.slice(6);
+          if (content === '[DONE]') return;
+          try {
+            const json = JSON.parse(content);
+            if (json.type === 'response') {
+              accumulatedAnswer += json.content;
+              onAnswerUpdate(accumulatedAnswer);
+            }
+          } catch {
+            // If not JSON, just append
+            accumulatedAnswer += content;
+            onAnswerUpdate(accumulatedAnswer);
           }
-
-          // Add the content directly (no JSON parsing)
-          accumulatedMarkdown += content;
-          onMarkdownUpdate(accumulatedMarkdown);
         }
       }
     }
-
   } catch (error) {
-    console.error('Error setting up query:', error);
-    onMarkdownUpdate('**Error: Failed to start query**');
+    onAnswerUpdate('**Error: Failed to start query**');
     throw error;
   }
 }

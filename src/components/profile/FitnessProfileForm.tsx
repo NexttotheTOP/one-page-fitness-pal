@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, X, ClipboardList, Save, Loader2, User, Activity, Ruler, Weight, Heart, AlignLeft, Coffee, Utensils, Apple, Moon, Eye, Trash2, LineChart, Info } from "lucide-react";
+import { ChevronDown, ChevronUp, X, ClipboardList, Save, Loader2, User, Activity, Ruler, Weight, Heart, AlignLeft, Coffee, Utensils, Apple, Moon, Eye, Trash2, LineChart, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { generateProfileOverview } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
@@ -21,6 +22,7 @@ import { motion } from "framer-motion";
 import remarkGfm from 'remark-gfm';
 import { saveProfileGeneration, getUserProfileGenerations, deleteProfileGeneration, updateProfileGenerationLabel } from "@/lib/db";
 import { useAuth } from "@/lib/auth-context";
+import ProfileQASection from "./ProfileQASection";
 
 interface FitnessProfileFormProps {
   onSubmit: (data: FitnessProfileData) => void;
@@ -94,6 +96,172 @@ function generateThreadId(): string {
   return crypto.randomUUID();
 }
 
+// Utility to extract h2 headings from markdown and generate slugs
+function extractHeadings(markdown: string) {
+  const headingRegex = /^##\s+(.+)$/gm;
+  const headings: { text: string; id: string }[] = [];
+  let match;
+  while ((match = headingRegex.exec(markdown)) !== null) {
+    const text = match[1].trim();
+    const id = text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-");
+    headings.push({ text, id });
+  }
+  return headings;
+}
+
+// Define markdownComponents once to avoid duplicate object literal keys
+const markdownComponents = {
+  h1: ({ children }: { children: React.ReactNode }) => <h1 className="text-xl font-bold text-fitness-charcoal mt-6 mb-4">{children}</h1>,
+  h2: ({ children }: { children: React.ReactNode }) => {
+    const text = children?.toString() || '';
+    const id = text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-");
+    return (
+      <h2
+        id={id}
+        className="text-lg font-semibold text-fitness-purple mt-5 mb-3 flex items-center gap-2 scroll-mt-24"
+      >
+        {text.includes("Dietary") ? 
+          <Utensils className="h-4 w-4 text-green-600" /> : 
+          text.includes("Body Composition") ? 
+          <Ruler className="h-4 w-4 text-blue-600" /> :
+          text.includes("Fitness") ? 
+          <Activity className="h-4 w-4 text-orange-600" /> :
+          text.includes("Progress") ? 
+          <LineChart className="h-4 w-4 text-indigo-600" /> :
+          text.includes("Profile Assessment") ? 
+          <User className="h-4 w-4 text-purple-600" /> :
+          <Activity className="h-4 w-4 text-blue-600" />}
+        {children}
+      </h2>
+    );
+  },
+  h3: ({ children }: { children: React.ReactNode }) => {
+    const content = children?.toString() || '';
+    // Special formatting for meal-related sections
+    if (content.includes("Meal Plan")) {
+      return (
+        <h3 className="text-md font-medium mt-5 mb-3 bg-green-50 px-3 py-2 rounded-md flex items-center gap-2 border-l-4 border-green-200">
+          <Utensils className="h-4 w-4 text-green-600" />
+          {children}
+        </h3>
+      );
+    }
+    if (content.includes("Breakfast")) {
+      return (
+        <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-amber-700">
+          <Coffee className="h-4 w-4" />
+          {children}
+        </h3>
+      );
+    }
+    if (content.includes("Lunch")) {
+      return (
+        <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-blue-700">
+          <Utensils className="h-4 w-4" />
+          {children}
+        </h3>
+      );
+    }
+    if (content.includes("Dinner")) {
+      return (
+        <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-indigo-700">
+          <Utensils className="h-4 w-4" />
+          {children}
+        </h3>
+      );
+    }
+    if (content.includes("Snacks")) {
+      return (
+        <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-green-700">
+          <Apple className="h-4 w-4" />
+          {children}
+        </h3>
+      );
+    }
+    
+    return <h3 className="text-md font-medium mt-4 mb-2">{children}</h3>;
+  },
+  p: ({ children }: { children: React.ReactNode }) => {
+    // If it's an empty paragraph (just line breaks), render minimal spacing
+    if (children === '' || children === ' ' || children === '\n') {
+      return <div className="h-1"></div>;
+    }
+    return <p className="my-2">{children}</p>;
+  },
+  ul: ({ children }: { children: React.ReactNode }) => <ul className="list-disc pl-6 my-2 space-y-0.5">{children}</ul>,
+  ol: ({ children }: { children: React.ReactNode }) => <ol className="list-decimal pl-6 my-2 space-y-0.5">{children}</ol>,
+  li: ({ children }: { children: React.ReactNode }) => {
+    const content = children?.toString() || '';
+    if (content.trim() === '') {
+      return null; // Skip empty list items
+    }
+    return <li className="pl-1">{children}</li>;
+  },
+  hr: () => <hr className="my-3 border-gray-200" />,
+  blockquote: ({ children }: { children: React.ReactNode }) => <blockquote className="border-l-4 border-gray-200 pl-4 italic my-3">{children}</blockquote>,
+  strong: ({ children }: { children: React.ReactNode }) => {
+    const content = children?.toString() || '';
+    // Special formatting for food items
+    if (content.includes("Scrambled Eggs") || 
+        content.includes("Greek Yogurt") || 
+        content.includes("Grilled Chicken") || 
+        content.includes("Quinoa") || 
+        content.includes("Salmon") || 
+        content.includes("Tofu") || 
+        content.includes("Cottage Cheese") || 
+        content.includes("Almond Butter")) {
+      return (
+        <strong className="font-semibold text-fitness-charcoal block bg-gray-50 px-3 py-1.5 my-2 rounded-md border-l-2 border-fitness-purple/30">
+          {children}
+        </strong>
+      );
+    }
+    // Special formatting for workout sections
+    if (content.includes("Day 1:") || 
+        content.includes("Day 2:") || 
+        content.includes("Day 3:") || 
+        content.includes("Day 4:") || 
+        content.includes("Day 5:") || 
+        content.includes("Day 6:") || 
+        content.includes("Day 7:")) {
+      return (
+        <strong className="font-semibold text-fitness-charcoal block bg-blue-50 px-3 py-1.5 my-2 rounded-md border-l-2 border-blue-300">
+          {children}
+        </strong>
+      );
+    }
+    return <strong className="font-semibold text-fitness-charcoal">{children}</strong>;
+  },
+  pre: ({ children }: { children: React.ReactNode }) => <pre className="bg-gray-50 p-2 rounded my-2 text-sm overflow-x-auto">{children}</pre>,
+  code: ({ children }: { children: React.ReactNode }) => <code className="bg-gray-50 px-1.5 py-0.5 rounded text-pink-600 text-xs">{children}</code>,
+  em: ({ children }: { children: React.ReactNode }) => {
+    const content = children?.toString() || '';
+    // Special formatting for macros
+    if (content.includes("Macros: Approximately")) {
+      return (
+        <div className="mt-1 mb-3 bg-blue-50 rounded-md p-2 text-xs font-medium flex gap-2">
+          <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded">
+            {content.match(/(\d+g protein)/)?.[0] || 'protein'}
+          </span>
+          <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded">
+            {content.match(/(\d+g carbs)/)?.[0] || 'carbs'}
+          </span>
+          <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
+            {content.match(/(\d+g fat)/)?.[0] || 'fat'}
+          </span>
+        </div>
+      );
+    }
+    return <em className="italic">{children}</em>;
+  }
+};
+
 export default function FitnessProfileForm({ 
   onSubmit, 
   className = "", 
@@ -108,7 +276,7 @@ export default function FitnessProfileForm({
   const [isLoadingGenerations, setIsLoadingGenerations] = useState(false);
   const [markdown, setMarkdown] = useState('');
   const [savedGenerations, setSavedGenerations] = useState<SavedGeneration[]>([]);
-  const [showSavedGenerations, setShowSavedGenerations] = useState(true);
+  const [showSavedGenerations, setShowSavedGenerations] = useState(false);
   const [selectedGeneration, setSelectedGeneration] = useState<SavedGeneration | null>(null);
   const [overviewContent, setOverviewContent] = useState<string[]>([]);
   const [age, setAge] = useState(initialData?.age?.toString() || "");
@@ -125,6 +293,44 @@ export default function FitnessProfileForm({
   
   // Reference to the overview section for smooth scrolling
   const overviewSectionRef = useRef<HTMLDivElement>(null);
+  // Reference to the content area for auto-scrolling during generation
+  const contentAreaRef = useRef<HTMLDivElement>(null);
+
+  // Table of Contents headings
+  const tocHeadings = useMemo(() => extractHeadings(markdown), [markdown]);
+
+  // Collapsible TOC state
+  const [tocOpen, setTocOpen] = useState(false);
+  // Active section for highlight
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Intersection Observer for active section
+  useEffect(() => {
+    if (!tocOpen || tocHeadings.length === 0) return;
+    const handleScroll = () => {
+      let found = null;
+      for (const h of tocHeadings) {
+        const el = document.getElementById(h.id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < 120) {
+            found = h.id;
+          }
+        }
+      }
+      setActiveId(found);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [tocHeadings, tocOpen]);
+
+  // Effect to auto-scroll the content area when markdown updates during generation
+  useEffect(() => {
+    if (isGenerating && contentAreaRef.current) {
+      contentAreaRef.current.scrollTop = contentAreaRef.current.scrollHeight;
+    }
+  }, [markdown, isGenerating]);
 
   // Load saved generations from Supabase
   useEffect(() => {
@@ -221,12 +427,23 @@ export default function FitnessProfileForm({
       });
     }, 100);
 
+    // Show a better styled toast when generation begins
+    toast({
+      title: "Generating your fitness profile",
+      description: "Content is being generated in backend. The complete profile will be saved when finished. You can safely leave this page.",
+      className: "bg-blue-50 border border-blue-100 text-blue-800",
+      duration: 10000,
+    });
+
     try {
-      // Use a synchronous callback that sets the markdown and then saves to Supabase
+      // Track the final content
+      let finalContent = '';
+      
+      // Use the streaming callback to update the UI in real-time
       await generateProfileOverview(
         {
-          user_id: user.id, // Include the user ID in every request
-          thread_id: newThreadId, // Use the newly generated thread ID
+          user_id: user.id,
+          thread_id: newThreadId,
           age: parseInt(age),
           gender,
           height,
@@ -238,41 +455,40 @@ export default function FitnessProfileForm({
           // Include imagePaths if available
           ...(imagePaths && { imagePaths }),
         },
-        (finalMarkdown) => {
-          // First set the markdown (synchronous operation)
-          setMarkdown(finalMarkdown);
-          
-          // Then save to Supabase separately (don't use async in the callback)
-          if (user) {
-            const newGeneration = {
-              timestamp: new Date().toISOString(),
-              content: finalMarkdown,
-              label: `Generation ${new Date().toLocaleString()}`
-            };
-            
-            // Save to Supabase after the callback completes
-            saveProfileGeneration(user.id, newGeneration)
-              .then(savedGeneration => {
-                setSavedGenerations(prev => [savedGeneration, ...prev]);
-                
-                toast({
-                  title: "Generation Saved",
-                  description: "Your fitness profile has been generated and saved for future reference.",
-                });
-              })
-              .catch(error => {
-                console.error('Error saving generation:', error);
-                toast({
-                  title: "Warning",
-                  description: "Generated overview was created but couldn't be saved to your account.",
-                  variant: "destructive",
-                });
-              });
-          }
+        (streamedContent) => {
+          // Update the markdown in real-time as tokens are streamed
+          setMarkdown(streamedContent);
+          finalContent = streamedContent;
         }
       );
       
       setIsGenerating(false);
+      
+      // Save the final content to Supabase
+      if (user && finalContent) {
+        const newGeneration = {
+          timestamp: new Date().toISOString(),
+          content: finalContent,
+          label: `Generation ${new Date().toLocaleString()}`
+        };
+        
+        try {
+          const savedGeneration = await saveProfileGeneration(user.id, newGeneration);
+          setSavedGenerations(prev => [savedGeneration, ...prev]);
+          
+          toast({
+            title: "Generation Saved",
+            description: "Your fitness profile has been generated and saved for future reference.",
+          });
+        } catch (error) {
+          console.error('Error saving generation:', error);
+          toast({
+            title: "Warning",
+            description: "Generated overview was created but couldn't be saved to your account.",
+            variant: "destructive",
+          });
+        }
+      }
     } catch (error) {
       console.error('Error generating overview:', error);
       toast({
@@ -689,7 +905,7 @@ export default function FitnessProfileForm({
                 <Button 
                   type="button" 
                   variant="ghost"
-                  className="gap-1 text-muted-foreground hover:text-fitness-charcoal"
+                  className="gap-1 text-fitness-purple hover:text-fitness-purple/80"
                   onClick={() => setShowSavedGenerations(!showSavedGenerations)}
                   disabled={isLoadingGenerations}
                 >
@@ -811,356 +1027,159 @@ export default function FitnessProfileForm({
               )}
 
               {(markdown || isGenerating) && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="p-5 bg-gradient-to-r from-gray-50 to-white rounded-lg shadow-sm border border-gray-100 overflow-hidden"
-                  ref={overviewSectionRef}
-                >
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-md font-semibold flex items-center gap-2 text-fitness-charcoal">
-                      <ClipboardList className="h-4 w-4 text-fitness-purple" />
-                      {selectedGeneration 
-                        ? <span>Viewing: <span className="text-fitness-purple">{selectedGeneration.label}</span></span>
-                        : "Personal Fitness Overview"
-                      }
-                    </h3>
-                    
-                    {selectedGeneration && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-8"
-                        onClick={() => setSelectedGeneration(null)}
-                      >
-                        Return to Latest Generation
-                      </Button>
-                    )}
-                  </div>
-                  
-                  <div className="bg-white p-6 rounded border border-gray-100 max-h-[800px] overflow-y-auto">
-                    {isGenerating ? (
-                      <div className="space-y-6 py-8">
-                        <div className="flex flex-col items-center justify-center mb-4">
-                          <h3 className="text-fitness-purple font-semibold text-lg mb-3">Our AI Coaching Team is Working on Your Plan</h3>
-                          <p className="text-muted-foreground text-center max-w-md">
-                            Our specialized AI coaches are analyzing your profile data to create a personalized fitness and nutrition plan.
-                          </p>
-                        </div>
-                        
-                        {/* Coach Team Progress Steps */}
-                        <div className="space-y-5 max-w-xl mx-auto">
-                          {/* Step 1: Data Retrieval */}
-                          <div className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all">
-                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                              <ClipboardList className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="text-sm font-medium text-fitness-charcoal">Data Analysis Coach</h4>
-                              <p className="text-xs text-muted-foreground mt-1">Retrieving your previous fitness data and current profile information...</p>
-                            </div>
-                            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                          </div>
-                          
-                          {/* Step 2: Profile Assessment */}
-                          <motion.div 
-                            initial={{ opacity: 0.5, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 7, duration: 0.5 }}
-                            className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
+                <div className="relative flex">
+                  {/* Minimalistic, collapsible TOC Sidebar */}
+                  {tocHeadings.length > 0 && (
+                    <div className="hidden md:flex flex-col sticky top-24 self-start mr-2 z-10 min-w-[40px] max-w-[120px]">
+                      {tocOpen ? (
+                        <>
+                          <button
+                            type="button"
+                            aria-label="Collapse TOC"
+                            className="mb-2 ml-auto p-1 rounded hover:bg-fitness-purple/10 text-fitness-purple"
+                            onClick={() => setTocOpen(false)}
                           >
-                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                              <User className="h-5 w-5 text-purple-600" />
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="text-sm font-medium text-fitness-charcoal">Profile Assessment Coach</h4>
-                              <p className="text-xs text-muted-foreground mt-1">Analyzing your body composition, fitness level, and personal goals...</p>
-                            </div>
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: 15, duration: 0.5 }}
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <ul className="space-y-1 border-l border-fitness-purple/20 pl-2">
+                            <li className="text-[11px] font-semibold text-fitness-purple mb-1 tracking-wide uppercase pl-1">Sections</li>
+                            {tocHeadings.map((h) => (
+                              <li key={h.id} className="relative">
+                                {activeId === h.id && (
+                                  <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-4 bg-fitness-purple rounded-r"></span>
+                                )}
+                                <a
+                                  href={`#${h.id}`}
+                                  className={cn(
+                                    "block px-1 py-1 rounded text-gray-500 hover:text-fitness-purple hover:bg-fitness-purple/10 transition-colors text-xs leading-tight",
+                                    activeId === h.id ? "text-fitness-purple font-semibold" : ""
+                                  )}
+                                >
+                                  {h.text}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          aria-label="Expand TOC"
+                          className="p-1 rounded hover:bg-fitness-purple/10 text-fitness-purple"
+                          onClick={() => setTocOpen(true)}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {/* Main Content */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex-1 p-5 bg-gradient-to-r from-gray-50 to-white rounded-lg shadow-sm border border-gray-100 overflow-hidden"
+                    ref={overviewSectionRef}
+                  >
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-md font-semibold flex items-center gap-2 text-fitness-charcoal">
+                        <ClipboardList className="h-4 w-4 text-fitness-purple" />
+                        {selectedGeneration 
+                          ? <span>Viewing: <span className="text-fitness-purple">{selectedGeneration.label}</span></span>
+                          : "Personal Fitness Overview"
+                        }
+                      </h3>
+                      
+                      {/* {selectedGeneration && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-8"
+                          onClick={() => setSelectedGeneration(null)}
+                        >
+                          Return to Latest Generation
+                        </Button>
+                      )} */}
+                    </div>
+                    <hr className="border-t border-gray-200 mb-4" />
+                    <div className="p-6 max-h-[800px] overflow-y-auto" ref={contentAreaRef}>
+                      {isGenerating ? (
+                        <div className="relative">
+                          <div className="prose prose-sm max-w-none text-gray-700">
+                            <Markdown
+                              remarkPlugins={[remarkGfm]}
+                              components={markdownComponents}
                             >
-                              <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
-                            </motion.div>
-                          </motion.div>
-                          
-                          {/* Step 3: Nutrition Planning */}
-                          <motion.div 
-                            initial={{ opacity: 0.5, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 21, duration: 0.5 }}
-                            className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
-                          >
-                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                              <Utensils className="h-5 w-5 text-green-600" />
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="text-sm font-medium text-fitness-charcoal">Nutrition Coach</h4>
-                              <p className="text-xs text-muted-foreground mt-1">Creating meal plans based on your dietary preferences and restrictions...</p>
-                            </div>
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: 33, duration: 0.5 }}
-                            >
-                              <Loader2 className="h-5 w-5 animate-spin text-green-600" />
-                            </motion.div>
-                          </motion.div>
-                          
-                          {/* Step 4: Workout Planning */}
-                          <motion.div 
-                            initial={{ opacity: 0.5, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 45, duration: 0.5 }}
-                            className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
-                          >
-                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                              <Activity className="h-5 w-5 text-amber-600" />
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="text-sm font-medium text-fitness-charcoal">Fitness Coach</h4>
-                              <p className="text-xs text-muted-foreground mt-1">Designing workout routines tailored to your fitness goals and experience level...</p>
-                            </div>
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: 53, duration: 0.5 }}
-                            >
-                              <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
-                            </motion.div>
-                          </motion.div>
-                          
-                          {/* Step 5: Final Optimization */}
-                          <motion.div 
-                            initial={{ opacity: 0.5, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 62, duration: 0.5 }}
-                            className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 transition-all"
-                          >
-                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                              <Eye className="h-5 w-5 text-indigo-600" />
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="text-sm font-medium text-fitness-charcoal">Head Coach</h4>
-                              <p className="text-xs text-muted-foreground mt-1">Reviewing and optimizing your complete plan for maximum results...</p>
-                            </div>
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: 69, duration: 0.5 }}
-                            >
-                              <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
-                            </motion.div>
-                          </motion.div>
-                        </div>
-                        
-                        <div className="flex flex-col items-center justify-center mt-6 pt-4 border-t border-gray-100">
-                          <p className="text-sm text-fitness-purple font-medium">Creating your personalized fitness journey</p>
-                          <p className="text-xs text-muted-foreground mt-1">This may take a moment as our team works to create your perfect plan</p>
-                        </div>
-                        
-                        {/* Information bar about automatic saving */}
-                        <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-lg text-sm">
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5">
-                              <Info className="h-5 w-5 text-blue-500" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-blue-800 mb-1">You don't need to wait here</p>
-                              <p className="text-blue-700 text-xs">
-                                Your fitness plan will be automatically saved to your account once it's ready. 
-                                Feel free to continue using other parts of the app and come back later.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="prose prose-sm max-w-none text-gray-700">
-                        <div>
-                          <Markdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              h1: ({ children }) => <h1 className="text-xl font-bold text-fitness-charcoal mt-6 mb-4">{children}</h1>,
-                              h2: ({ children }) => {
-                                const content = children.toString();
-                                return (
-                                  <>
-                                    <h2 className="text-lg font-semibold text-fitness-purple mt-5 mb-3 flex items-center gap-2">
-                                      {content.includes("Dietary") ? 
-                                        <Utensils className="h-4 w-4 text-green-600" /> : 
-                                        content.includes("Body Composition") ? 
-                                        <Ruler className="h-4 w-4 text-blue-600" /> :
-                                        content.includes("Fitness") ? 
-                                        <Activity className="h-4 w-4 text-orange-600" /> :
-                                        content.includes("Progress") ? 
-                                        <LineChart className="h-4 w-4 text-indigo-600" /> :
-                                        content.includes("Profile Assessment") ? 
-                                        <User className="h-4 w-4 text-purple-600" /> :
-                                        <Activity className="h-4 w-4 text-blue-600" />}
-                                      {children}
-                                    </h2>
-                                    {(content.includes("Dietary Plan") || 
-                                      content.includes("Body Composition Analysis") || 
-                                      content.includes("Fitness Plan") || 
-                                      content.includes("Progress Tracking") ||
-                                      content.includes("Profile Assessment")) && (
-                                      <div className="h-1 bg-gradient-to-r from-fitness-purple/20 to-fitness-purple/5 rounded-full mb-4"></div>
-                                    )}
-                                  </>
-                                );
-                              },
-                              h3: ({ children }) => {
-                                const content = children.toString();
-                                // Special formatting for meal-related sections
-                                if (content.includes("Meal Plan")) {
-                                  return (
-                                    <h3 className="text-md font-medium mt-5 mb-3 bg-green-50 px-3 py-2 rounded-md flex items-center gap-2 border-l-4 border-green-200">
-                                      <Utensils className="h-4 w-4 text-green-600" />
-                                      {children}
-                                    </h3>
-                                  );
-                                }
-                                if (content.includes("Breakfast")) {
-                                  return (
-                                    <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-amber-700">
-                                      <Coffee className="h-4 w-4" />
-                                      {children}
-                                    </h3>
-                                  );
-                                }
-                                if (content.includes("Lunch")) {
-                                  return (
-                                    <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-blue-700">
-                                      <Utensils className="h-4 w-4" />
-                                      {children}
-                                    </h3>
-                                  );
-                                }
-                                if (content.includes("Dinner")) {
-                                  return (
-                                    <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-indigo-700">
-                                      <Utensils className="h-4 w-4" />
-                                      {children}
-                                    </h3>
-                                  );
-                                }
-                                if (content.includes("Snacks")) {
-                                  return (
-                                    <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-green-700">
-                                      <Apple className="h-4 w-4" />
-                                      {children}
-                                    </h3>
-                                  );
-                                }
-                                
-                                return <h3 className="text-md font-medium mt-4 mb-2">{children}</h3>;
-                              },
-                              p: ({ children }) => {
-                                // If it's an empty paragraph (just line breaks), render minimal spacing
-                                if (children === '' || children === ' ' || children === '\n') {
-                                  return <div className="h-1"></div>;
-                                }
-                                return <p className="my-2">{children}</p>;
-                              },
-                              ul: ({ children }) => <ul className="list-disc pl-6 my-2 space-y-0.5">{children}</ul>,
-                              ol: ({ children }) => <ol className="list-decimal pl-6 my-2 space-y-0.5">{children}</ol>,
-                              li: ({ children }) => {
-                                // Check if this list item has content or is empty
-                                const content = children?.toString() || '';
-                                if (content.trim() === '') {
-                                  return null; // Skip empty list items
-                                }
-                                return <li className="pl-1">{children}</li>;
-                              },
-                              hr: () => <hr className="my-3 border-gray-200" />,
-                              blockquote: ({ children }) => <blockquote className="border-l-4 border-gray-200 pl-4 italic my-3">{children}</blockquote>,
-                              strong: ({ children }) => {
-                                const content = children?.toString() || '';
-                                // Special formatting for food items
-                                if (content.includes("Scrambled Eggs") || 
-                                    content.includes("Greek Yogurt") || 
-                                    content.includes("Grilled Chicken") || 
-                                    content.includes("Quinoa") || 
-                                    content.includes("Salmon") || 
-                                    content.includes("Tofu") || 
-                                    content.includes("Cottage Cheese") || 
-                                    content.includes("Almond Butter")) {
-                                  return (
-                                    <strong className="font-semibold text-fitness-charcoal block bg-gray-50 px-3 py-1.5 my-2 rounded-md border-l-2 border-fitness-purple/30">
-                                      {children}
-                                    </strong>
-                                  );
-                                }
-                                // Special formatting for workout sections
-                                if (content.includes("Day 1:") || 
-                                    content.includes("Day 2:") || 
-                                    content.includes("Day 3:") || 
-                                    content.includes("Day 4:") || 
-                                    content.includes("Day 5:") || 
-                                    content.includes("Day 6:") || 
-                                    content.includes("Day 7:")) {
-                                  return (
-                                    <strong className="font-semibold text-fitness-charcoal block bg-blue-50 px-3 py-1.5 my-2 rounded-md border-l-2 border-blue-300">
-                                      {children}
-                                    </strong>
-                                  );
-                                }
-                                return <strong className="font-semibold text-fitness-charcoal">{children}</strong>;
-                              },
-                              pre: ({ children }) => <pre className="bg-gray-50 p-2 rounded my-2 text-sm overflow-x-auto">{children}</pre>,
-                              code: ({ children }) => <code className="bg-gray-50 px-1.5 py-0.5 rounded text-pink-600 text-xs">{children}</code>,
-                              em: ({ children }) => {
-                                const content = children?.toString() || '';
-                                // Special formatting for macros
-                                if (content.includes("Macros: Approximately")) {
-                                  return (
-                                    <div className="mt-1 mb-3 bg-blue-50 rounded-md p-2 text-xs font-medium flex gap-2">
-                                      <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded">
-                                        {content.match(/(\d+g protein)/)?.[0] || 'protein'}
-                                      </span>
-                                      <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded">
-                                        {content.match(/(\d+g carbs)/)?.[0] || 'carbs'}
-                                      </span>
-                                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
-                                        {content.match(/(\d+g fat)/)?.[0] || 'fat'}
-                                      </span>
-                                    </div>
-                                  );
-                                }
-                                return <em className="italic">{children}</em>;
+                              {markdown.replace(/---##/g, '---\n\n##')
+                                // Replace 3 or more consecutive line breaks with just 2
+                                .replace(/\n{3,}/g, '\n\n')
+                                // Remove whitespace only lines between list items
+                                .replace(/^[ \t]*\n/gm, '\n')
+                                // Special formatting for calorie calculations and measurements
+                                .replace(/(BMR =.*calories\/day)/g, '**$1**')
+                                .replace(/(Total Daily Calories =.*calories\/day)/g, '**$1**')
+                                // Special formatting for macronutrient sections
+                                .replace(/(Protein =.*protein)/g, '**$1**')
+                                .replace(/(Fats =.*grams)/g, '**$1**')
+                                .replace(/(Carbohydrates =.*grams)/g, '**$1**')
+                                // Mark meal macros for special formatting
+                                .replace(/(Macros: Approximately.*fat)/g, '_$1_')
                               }
-                            }}
-                          >
-                            {markdown
-                              // Replace 3 or more consecutive line breaks with just 2
-                              .replace(/\n{3,}/g, '\n\n')
-                              // Remove whitespace only lines between list items
-                              .replace(/^[ \t]*\n/gm, '\n')
-                              // Special formatting for calorie calculations and measurements
-                              .replace(/(BMR =.*calories\/day)/g, '**$1**')
-                              .replace(/(Total Daily Calories =.*calories\/day)/g, '**$1**')
-                              // Special formatting for macronutrient sections
-                              .replace(/(Protein =.*protein)/g, '**$1**')
-                              .replace(/(Fats =.*grams)/g, '**$1**')
-                              .replace(/(Carbohydrates =.*grams)/g, '**$1**')
-                              // Mark meal macros for special formatting
-                              .replace(/(Macros: Approximately.*fat)/g, '_$1_')
-                            }
-                          </Markdown>
+                            </Markdown>
+                            <div className="flex items-center justify-center mt-4">
+                              <Loader2 className="h-5 w-5 animate-spin text-fitness-purple/40" />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="prose prose-sm max-w-none text-gray-700">
+                          <div>
+                            <Markdown
+                              remarkPlugins={[remarkGfm]}
+                              components={markdownComponents}
+                            >
+                              {markdown.replace(/---##/g, '---\n\n##')
+                                // Replace 3 or more consecutive line breaks with just 2
+                                .replace(/\n{3,}/g, '\n\n')
+                                // Remove whitespace only lines between list items
+                                .replace(/^[ \t]*\n/gm, '\n')
+                                // Special formatting for calorie calculations and measurements
+                                .replace(/(BMR =.*calories\/day)/g, '**$1**')
+                                .replace(/(Total Daily Calories =.*calories\/day)/g, '**$1**')
+                                // Special formatting for macronutrient sections
+                                .replace(/(Protein =.*protein)/g, '**$1**')
+                                .replace(/(Fats =.*grams)/g, '**$1**')
+                                .replace(/(Carbohydrates =.*grams)/g, '**$1**')
+                                // Mark meal macros for special formatting
+                                .replace(/(Macros: Approximately.*fat)/g, '_$1_')
+                              }
+                            </Markdown>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
                 </div>
-                </motion.div>
               )}
             </form>
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
+      {/* Q&A Section: Place this outside the overview area, in the main card, full width, with spacing */}
+      {markdown && (
+        <div className="w-full mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col gap-3">
+          <h4 className="font-semibold text-fitness-charcoal mb-1 flex items-center gap-2 text-base">
+            <Info className="h-4 w-4 text-fitness-purple" />
+            Ask a question about your profile
+          </h4>
+          <ProfileQASection 
+            userId={user?.id} 
+            threadId={selectedGeneration?.id /* fallback to latest thread id if needed */} 
+            disabled={!user}
+          />
+        </div>
+      )}
     </Card>
   );
 } 

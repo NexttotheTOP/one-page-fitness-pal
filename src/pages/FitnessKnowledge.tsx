@@ -1600,13 +1600,22 @@ const FitnessKnowledge = () => {
                           <Search className="h-6 w-6 text-blue-500" />
                         </div>
                       </div>
-                      <h3 className="text-lg md:text-xl font-semibold text-fitness-charcoal mb-3">
-                        How Our Fitness Knowledge System Works
+                      <h3 className="text-xl md:text-2xl font-bold text-fitness-charcoal mb-3">
+                        Fitness Knowledge AI
                       </h3>
+                      <p className="text-gray-700 mb-4 max-w-lg mx-auto">
+                        Get evidence-based answers from top fitness experts like AthleanX, Jeff Nippard, and Renaissance Periodization.
+                      </p>
+                      <div className="mb-5 flex flex-wrap gap-2 justify-center">
+                        <Badge variant="outline" className="py-1.5 px-3 bg-amber-50 text-amber-700 border-amber-200">
+                          Backed by YouTube's top fitness creators
+                        </Badge>
+                        <Badge variant="outline" className="py-1.5 px-3 bg-blue-50 text-blue-700 border-blue-200">
+                          Reliable information with sources
+                        </Badge>
+                      </div>
+                      
                       <div className="text-gray-700 text-sm md:text-base space-y-3 max-w-2xl mx-auto">
-                        <p>
-                          Our AI-powered fitness assistant combines the knowledge from top fitness experts with advanced search capabilities:
-                        </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                           <div className="bg-white/80 p-3 rounded-lg shadow-sm border border-purple-100">
                             <div className="flex items-center gap-2 mb-1.5">
@@ -1627,44 +1636,19 @@ const FitnessKnowledge = () => {
                             </p>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-500 italic mt-3">
+                        <p className="text-sm text-gray-500 italic mt-3 mb-5">
                           We'll always cite our sources and tell you exactly where the information comes from.
                         </p>
-                      </div>
-                    </motion.div>
-
-                    <motion.div 
-                      className="bg-gradient-to-r from-fitness-purple-light to-purple-50 rounded-xl md:rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 mb-6 transition-all duration-300 hover:shadow-md max-w-2xl mx-auto"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4 }}
-                    >
-                      <div className="h-16 w-16 rounded-full bg-white mx-auto mb-4 flex items-center justify-center shadow-sm">
-                        <Brain className="h-8 w-8 text-fitness-purple" />
-                      </div>
-                      <h3 className="text-xl md:text-2xl font-bold text-fitness-charcoal mb-3">
-                        Fitness Knowledge AI
-                      </h3>
-                      <p className="text-gray-700 mb-4 max-w-lg mx-auto">
-                        Get evidence-based answers from top fitness experts like AthleanX, Jeff Nippard, and Renaissance Periodization.
-                      </p>
-                      <div className="mb-5 flex flex-wrap gap-2 justify-center">
-                        <Badge variant="outline" className="py-1.5 px-3 bg-amber-50 text-amber-700 border-amber-200">
-                          Backed by YouTube's top fitness creators
-                        </Badge>
-                        <Badge variant="outline" className="py-1.5 px-3 bg-blue-50 text-blue-700 border-blue-200">
-                          Reliable information with sources
-                        </Badge>
-                      </div>
-                      <div>
-                        <Button
-                          onClick={startNewChat}
-                          className="bg-gradient-to-r from-fitness-purple to-purple-500 hover:from-fitness-purple/90 hover:to-purple-500/90 transition-colors shadow-sm"
-                          size="lg"
-                        >
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          Start New Chat
-                        </Button>
+                        <div>
+                          <Button
+                            onClick={startNewChat}
+                            className="bg-gradient-to-r from-fitness-purple to-purple-500 hover:from-fitness-purple/90 hover:to-purple-500/90 transition-colors shadow-sm"
+                            size="lg"
+                          >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Start New Chat
+                          </Button>
+                        </div>
                       </div>
                     </motion.div>
                     
