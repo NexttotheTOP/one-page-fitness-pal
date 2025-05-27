@@ -1078,10 +1078,10 @@ export default function FitnessProfileForm({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="flex-1 p-5 bg-gradient-to-r from-gray-50 to-white rounded-lg shadow-sm border border-gray-100 overflow-hidden"
+                    className="flex-1 p-5 bg-gradient-to-r from-gray-50 to-white rounded-lg shadow-sm border border-gray-100 overflow-hidden flex flex-col"
                     ref={overviewSectionRef}
                   >
-                    <div className="flex justify-between items-center mb-3">
+                    <div className="flex justify-between items-center mb-3 sticky top-0 z-20 bg-gradient-to-r from-gray-50 to-white pt-1 pb-2">
                       <h3 className="text-md font-semibold flex items-center gap-2 text-fitness-charcoal">
                         <ClipboardList className="h-4 w-4 text-fitness-purple" />
                         {selectedGeneration 
@@ -1089,75 +1089,76 @@ export default function FitnessProfileForm({
                           : "Personal Fitness Overview"
                         }
                       </h3>
-                      
-                      {/* {selectedGeneration && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="text-xs h-8"
-                          onClick={() => setSelectedGeneration(null)}
-                        >
-                          Return to Latest Generation
-                        </Button>
-                      )} */}
                     </div>
                     <hr className="border-t border-gray-200 mb-4" />
-                    <div className="p-6 max-h-[800px] overflow-y-auto" ref={contentAreaRef}>
-                      {isGenerating ? (
-                        <div className="relative">
-                          <div className="prose prose-sm max-w-none text-gray-700">
-                            <Markdown
-                              remarkPlugins={[remarkGfm]}
-                              components={markdownComponents}
-                            >
-                              {markdown.replace(/---##/g, '---\n\n##')
-                                // Replace 3 or more consecutive line breaks with just 2
-                                .replace(/\n{3,}/g, '\n\n')
-                                // Remove whitespace only lines between list items
-                                .replace(/^[ \t]*\n/gm, '\n')
-                                // Special formatting for calorie calculations and measurements
-                                .replace(/(BMR =.*calories\/day)/g, '**$1**')
-                                .replace(/(Total Daily Calories =.*calories\/day)/g, '**$1**')
-                                // Special formatting for macronutrient sections
-                                .replace(/(Protein =.*protein)/g, '**$1**')
-                                .replace(/(Fats =.*grams)/g, '**$1**')
-                                .replace(/(Carbohydrates =.*grams)/g, '**$1**')
-                                // Mark meal macros for special formatting
-                                .replace(/(Macros: Approximately.*fat)/g, '_$1_')
-                              }
-                            </Markdown>
-                            <div className="flex items-center justify-center mt-4">
-                              <Loader2 className="h-5 w-5 animate-spin text-fitness-purple/40" />
+                    <div className="flex-1 relative">
+                      {/* Scrollable overview content, with bottom padding for sticky bar */}
+                      <div className="p-6 max-h-[800px] overflow-y-auto pb-32" ref={contentAreaRef}>
+                        {isGenerating ? (
+                          <div className="relative">
+                            <div className="prose prose-sm max-w-none text-gray-700">
+                              <Markdown
+                                remarkPlugins={[remarkGfm]}
+                                components={markdownComponents}
+                              >
+                                {markdown.replace(/---##/g, '---\n\n##')
+                                  // Replace 3 or more consecutive line breaks with just 2
+                                  .replace(/\n{3,}/g, '\n\n')
+                                  // Remove whitespace only lines between list items
+                                  .replace(/^[ \t]*\n/gm, '\n')
+                                  // Special formatting for calorie calculations and measurements
+                                  .replace(/(BMR =.*calories\/day)/g, '**$1**')
+                                  .replace(/(Total Daily Calories =.*calories\/day)/g, '**$1**')
+                                  // Special formatting for macronutrient sections
+                                  .replace(/(Protein =.*protein)/g, '**$1**')
+                                  .replace(/(Fats =.*grams)/g, '**$1**')
+                                  .replace(/(Carbohydrates =.*grams)/g, '**$1**')
+                                  // Mark meal macros for special formatting
+                                  .replace(/(Macros: Approximately.*fat)/g, '_$1_')
+                                }
+                              </Markdown>
+                              <div className="flex items-center justify-center mt-4">
+                                <Loader2 className="h-5 w-5 animate-spin text-fitness-purple/40" />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="prose prose-sm max-w-none text-gray-700">
-                          <div>
-                            <Markdown
-                              remarkPlugins={[remarkGfm]}
-                              components={markdownComponents}
-                            >
-                              {markdown.replace(/---##/g, '---\n\n##')
-                                // Replace 3 or more consecutive line breaks with just 2
-                                .replace(/\n{3,}/g, '\n\n')
-                                // Remove whitespace only lines between list items
-                                .replace(/^[ \t]*\n/gm, '\n')
-                                // Special formatting for calorie calculations and measurements
-                                .replace(/(BMR =.*calories\/day)/g, '**$1**')
-                                .replace(/(Total Daily Calories =.*calories\/day)/g, '**$1**')
-                                // Special formatting for macronutrient sections
-                                .replace(/(Protein =.*protein)/g, '**$1**')
-                                .replace(/(Fats =.*grams)/g, '**$1**')
-                                .replace(/(Carbohydrates =.*grams)/g, '**$1**')
-                                // Mark meal macros for special formatting
-                                .replace(/(Macros: Approximately.*fat)/g, '_$1_')
-                              }
-                            </Markdown>
+                        ) : (
+                          <div className="prose prose-sm max-w-none text-gray-700">
+                            <div>
+                              <Markdown
+                                remarkPlugins={[remarkGfm]}
+                                components={markdownComponents}
+                              >
+                                {markdown.replace(/---##/g, '---\n\n##')
+                                  // Replace 3 or more consecutive line breaks with just 2
+                                  .replace(/\n{3,}/g, '\n\n')
+                                  // Remove whitespace only lines between list items
+                                  .replace(/^[ \t]*\n/gm, '\n')
+                                  // Special formatting for calorie calculations and measurements
+                                  .replace(/(BMR =.*calories\/day)/g, '**$1**')
+                                  .replace(/(Total Daily Calories =.*calories\/day)/g, '**$1**')
+                                  // Special formatting for macronutrient sections
+                                  .replace(/(Protein =.*protein)/g, '**$1**')
+                                  .replace(/(Fats =.*grams)/g, '**$1**')
+                                  .replace(/(Carbohydrates =.*grams)/g, '**$1**')
+                                  // Mark meal macros for special formatting
+                                  .replace(/(Macros: Approximately.*fat)/g, '_$1_')
+                                }
+                              </Markdown>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                      {/* Sticky Q&A input bar at the bottom of the overview box */}
+                      <div className="sticky left-0 right-0 bottom-0 z-30 bg-gradient-to-r from-gray-50 to-white border-t border-gray-100 px-6 py-4">
+                        <ProfileQASection 
+                          userId={user?.id} 
+                          threadId={selectedGeneration?.id} 
+                          disabled={!user}
+                          minimal={true}
+                          prominent={true}
+                        />
+                      </div>
                     </div>
                   </motion.div>
                 </div>
@@ -1166,20 +1167,6 @@ export default function FitnessProfileForm({
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
-      {/* Q&A Section: Place this outside the overview area, in the main card, full width, with spacing */}
-      {markdown && (
-        <div className="w-full mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col gap-3">
-          <h4 className="font-semibold text-fitness-charcoal mb-1 flex items-center gap-2 text-base">
-            <Info className="h-4 w-4 text-fitness-purple" />
-            Ask a question about your profile
-          </h4>
-          <ProfileQASection 
-            userId={user?.id} 
-            threadId={selectedGeneration?.id /* fallback to latest thread id if needed */} 
-            disabled={!user}
-          />
-        </div>
-      )}
     </Card>
   );
 } 
