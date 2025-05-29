@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth-context";
 import { LoadingSpinner } from "./components/ui/loading-spinner";
 import Index from "./pages/Index";
-import CalorieTracker from "./pages/CalorieTracker";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import FitnessKnowledge from "./pages/FitnessKnowledge";
@@ -45,7 +44,7 @@ const App = () => {
       (async () => {
         const { io } = await import("socket.io-client");
         // TODO: Replace with your backend URL/port
-        socket = io("http://localhost:8000");
+        socket = io("https://web-production-aafa6.up.railway.app");
         initModelControlApi(socket);
         cleanup = () => socket.disconnect();
       })();
@@ -67,14 +66,6 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <Index />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/calories"
-                element={
-                  <ProtectedRoute>
-                    <CalorieTracker />
                   </ProtectedRoute>
                 }
               />

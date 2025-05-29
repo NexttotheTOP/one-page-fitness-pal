@@ -38,7 +38,10 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Dumbbell className="h-8 w-8 text-fitness-purple" />
-            <h1 className="text-2xl font-bold text-fitness-charcoal">FitnessPal</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-fitness-charcoal">OpenFit-AI</h1>
+              <div className="text-xs text-gray-500 font-medium mt-0.5 ml-0.5">Open-source fitness expertise by AI</div>
+            </div>
           </div>
           
           <nav className="flex items-center space-x-1">
@@ -64,18 +67,6 @@ const Header = () => {
             >
               <User className="h-5 w-5" />
               <span>Overview</span>
-            </Link>
-            
-            <Link
-              to="/calories"
-              className={`flex items-center space-x-1 px-4 py-2 rounded-md text-sm font-medium ${
-                location.pathname === '/calories' 
-                  ? 'bg-fitness-purple-light text-fitness-purple'
-                  : 'text-gray-600 hover:text-fitness-purple hover:bg-gray-100'
-              }`}
-            >
-              <PieChart className="h-5 w-5" />
-              <span>Calories</span>
             </Link>
             
             <Link

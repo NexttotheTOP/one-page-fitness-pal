@@ -1093,7 +1093,7 @@ export default function FitnessProfileForm({
                     <hr className="border-t border-gray-200 mb-4" />
                     <div className="flex-1 relative">
                       {/* Scrollable overview content, with bottom padding for sticky bar */}
-                      <div className="p-6 max-h-[800px] overflow-y-auto pb-32" ref={contentAreaRef}>
+                      <div className="p-6 max-h-[800px] overflow-y-auto pb-8" ref={contentAreaRef}>
                         {isGenerating ? (
                           <div className="relative">
                             <div className="prose prose-sm max-w-none text-gray-700">

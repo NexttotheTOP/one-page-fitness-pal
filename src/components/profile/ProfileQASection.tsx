@@ -20,6 +20,7 @@ const ProfileQASection: React.FC<ProfileQASectionProps> = ({ userId, threadId, d
   const [answer, setAnswer] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [thinking, setThinking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -28,12 +29,15 @@ const ProfileQASection: React.FC<ProfileQASectionProps> = ({ userId, threadId, d
     setAnswer(null);
     if (!question.trim() || !userId || !threadId) return;
     setLoading(true);
+    setThinking(true);
     try {
       await queryFitnessCoach(threadId, question, (answer) => {
         setAnswer(answer);
+        setThinking(false);
       }, userId);
     } catch (err) {
       setError("Failed to get an answer. Please try again.");
+      setThinking(false);
     } finally {
       setLoading(false);
     }
@@ -87,7 +91,13 @@ const ProfileQASection: React.FC<ProfileQASectionProps> = ({ userId, threadId, d
               )}
             </button>
           </div>
-          {loading && (
+          {thinking && !answer && (
+            <div className="text-xs text-muted-foreground mt-1 flex items-center">
+              <Loader2 className="h-3 w-3 animate-spin mr-2" />
+              Thinking...
+            </div>
+          )}
+          {loading && !thinking && (
             <div className="text-xs text-muted-foreground mt-1 flex items-center">
               <Loader2 className="h-3 w-3 animate-spin mr-2" />
               Answering your question...
@@ -95,7 +105,7 @@ const ProfileQASection: React.FC<ProfileQASectionProps> = ({ userId, threadId, d
           )}
           {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
           {answer && (
-            <div className="mt-2 text-fitness-charcoal text-[15px]">
+            <div className="mt-2 bg-gradient-to-br from-fitness-purple/10 to-blue-50 rounded-xl shadow-sm border border-gray-100 p-4 text-fitness-charcoal text-[15px]">
               <ReactMarkdown 
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -132,10 +142,12 @@ const ProfileQASection: React.FC<ProfileQASectionProps> = ({ userId, threadId, d
             </div>
           )}
         </form>
-        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-          <svg className="h-4 w-4 text-fitness-purple" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
-          <span>Ask any question about your fitness profile overview. The AI will answer based on your latest generated plan.</span>
-        </div>
+        {!answer && (
+          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+            <svg className="h-4 w-4 text-fitness-purple" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+            <span>Ask any question about the selected fitness profile overview.</span>
+          </div>
+        )}
       </>
     );
   }
@@ -179,7 +191,7 @@ const ProfileQASection: React.FC<ProfileQASectionProps> = ({ userId, threadId, d
         )}
         {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
         {answer && (
-          <div className="mt-2 text-fitness-charcoal text-[15px]">
+          <div className="mt-2 bg-gradient-to-br from-fitness-purple/10 to-blue-50 rounded-xl shadow-sm border border-gray-100 p-4 text-fitness-charcoal text-[15px]">
             <ReactMarkdown 
               remarkPlugins={[remarkGfm]}
               components={{
@@ -279,8 +291,7 @@ const ProfileQASection: React.FC<ProfileQASectionProps> = ({ userId, threadId, d
         )}
         {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
         {answer && (
-          <div className="mt-2 p-5 bg-transparent border-gray-100 rounded-2xl text-fitness-charcoal text-[15px]">
-            <span className="font-semibold text-fitness-purple">Answer:</span>
+          <div className="mt-2 bg-gradient-to-br from-fitness-purple/10 to-blue-50 rounded-xl shadow-sm border border-gray-100 p-4 text-fitness-charcoal text-[15px]">
             <ReactMarkdown 
               remarkPlugins={[remarkGfm]}
               components={{

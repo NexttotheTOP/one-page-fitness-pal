@@ -216,7 +216,7 @@ const Index = () => {
       console.log('Thread ID:', requestPayload.thread_id);
       console.log('================================');
 
-      const response = await fetch('http://localhost:8000/workout/create', {
+      const response = await fetch('https://web-production-aafa6.up.railway.app/workout/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -59,7 +59,7 @@ export async function generateProfileOverview(
     console.time('Profile Generation API Call');
     console.log(`[DEBUG API] Making request to /fitness/profile/stream with thread_id: ${data.thread_id}`);
     
-    const response = await fetch('http://localhost:8000/fitness/profile/stream', {
+    const response = await fetch('https://web-production-aafa6.up.railway.app/fitness/profile/stream', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -155,7 +155,7 @@ export async function queryFitnessCoach(
   let accumulatedAnswer = '';
   try {
     console.log('POSTing to /fitness/query', { user_id: userId, thread_id: threadId, query });
-    const response = await fetch('http://localhost:8000/fitness/query', {
+    const response = await fetch('https://web-production-aafa6.up.railway.app/fitness/query', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -217,7 +217,7 @@ export async function queryRagSystem(
   console.log(`queryRagSystem called - userId: ${userId}, threadId: ${threadId}, query length: ${query.length}`);
 
   try {
-    const response = await fetch('http://localhost:8000/ask', {
+    const response = await fetch('https://web-production-aafa6.up.railway.app/ask', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
