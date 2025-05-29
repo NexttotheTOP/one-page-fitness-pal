@@ -149,14 +149,20 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
         requestData: workoutData
       }, null, 2));
       console.log('=======================================');
+
+      const payload = {
+        user_id: user.id,
+        original_workout: workoutData,
+        thread_id: '123',  // ==============================================================================
+      };
       
-      const response = await fetch('https://web-production-aafa6.up.railway.app/workout/variation', {
+      const response = await fetch('http://localhost:8000/workout/variations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
         },
-        body: JSON.stringify({ requestData: workoutData }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
