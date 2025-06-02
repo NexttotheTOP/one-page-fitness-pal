@@ -40,6 +40,10 @@ interface MentionedItem {
   type: 'exercise' | 'workout'
 }
 
+function normalize(str: string) {
+  return str.replace(/[\s_]+/g, '').toLowerCase();
+}
+
 const MentionTextarea = ({ value, onChange, placeholder, className, onContextChange, isStreaming, streamingText, onGenerate, isGenerating }: MentionTextareaProps) => {
   const { user } = useAuth()
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -201,13 +205,11 @@ Make each variation focus on a different aspect: strength, endurance, and HIIT.`
         },
         suggestion: {
           items: ({ query }) => {
-            console.log('🔍 Mention search triggered with query:', query)
-            console.log('📊 Available exercises:', exercisesRef.current.length)
-            console.log('📊 Available workouts:', workoutsRef.current.length)
+            const normalizedQuery = normalize(query)
             
             const exerciseSuggestions = exercisesRef.current
               .filter(exercise => 
-                exercise.name.toLowerCase().includes(query.toLowerCase())
+                normalize(exercise.name).includes(normalizedQuery)
               )
               .slice(0, 5)
               .map(exercise => ({
@@ -217,7 +219,7 @@ Make each variation focus on a different aspect: strength, endurance, and HIIT.`
 
             const workoutSuggestions = workoutsRef.current
               .filter(workout => 
-                workout.name.toLowerCase().includes(query.toLowerCase())
+                normalize(workout.name).includes(normalizedQuery)
               )
               .slice(0, 5)
               .map(workout => ({
@@ -225,9 +227,7 @@ Make each variation focus on a different aspect: strength, endurance, and HIIT.`
                 label: `📋 ${workout.name}`,
               }))
             
-            const allSuggestions = [...exerciseSuggestions, ...workoutSuggestions]
-            console.log('💡 Suggestions found:', allSuggestions.length, allSuggestions)
-            return allSuggestions
+            return [...exerciseSuggestions, ...workoutSuggestions]
           },
           render: () => {
             let popup: HTMLElement | null = null

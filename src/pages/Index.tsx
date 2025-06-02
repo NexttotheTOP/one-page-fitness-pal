@@ -301,6 +301,10 @@ const Index = () => {
   const [lastStreamingText, setLastStreamingText] = useState<string>("");
   const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
+  const [progressMessage, setProgressMessage] = useState<string | null>(null);
+  const isCreatingWorkouts = progressMessage === "Creating your workouts now...";
+  const [streamedExercises, setStreamedExercises] = useState<Partial<Exercise>[]>([]);
+  const [generatedExercises, setGeneratedExercises] = useState<Exercise[]>([]);
 
   useEffect(() => {
     setDisplayName(getUserDisplayName(user));
@@ -434,6 +438,7 @@ const Index = () => {
     setIsStreamComplete(false);
     setGeneratedWorkouts([]);
     setWorkoutReasoning(null);
+    setProgressMessage(null);
   };
 
   // Handle input changes without clearing generation
@@ -465,6 +470,7 @@ const Index = () => {
     setWorkoutReasoning(null);
     setAccumulatedTokens('');
     accumulatedTokensRef.current = '';
+    setProgressMessage(null);
 
     try {
       // Check if we have meaningful context to send
@@ -531,55 +537,89 @@ const Index = () => {
                 continue;
               }
               
+              // DEBUG: Log every raw line
+              console.log('🟣 [STREAM] Raw line:', jsonLine);
+              
               const data = JSON.parse(jsonLine);
-              console.log('📦 Received stream data:', data);
+              console.log('📦 [STREAM] Received stream data:', data);
               
               // Handle different types of stream events
               if (data.type === 'token') {
                 // Individual token streaming - accumulate to build complete response
                 setAccumulatedTokens(prev => prev + data.content);
                 accumulatedTokensRef.current += data.content;
-                console.log('🔤 Token:', data.content);
-              } else if (data.type === 'workout') {
-                // Workout data updates
-                setStreamedWorkouts(prev => {
-                  const workoutIndex = data.workoutIndex;
-                  const newWorkouts = [...prev];
-                  newWorkouts[workoutIndex] = {
-                    ...newWorkouts[workoutIndex],
-                    ...data.content
-                  };
-                  return newWorkouts;
-                });
+                console.log('🔤 [STREAM] Token:', data.content);
+              } else if (data.type === 'progress') {
+                setProgressMessage(data.content);
+                console.log('🔄 [STREAM] Progress update:', data.content);
+              } else if (data.type === 'result') {
+                // Parse the stringified JSON       
+                let parsed;
+                try {
+                  parsed = typeof data.content === 'string' ? JSON.parse(data.content) : data.content;
+                  console.log('✅ [STREAM] Parsed result content:', parsed);
+                  console.log('RAW data.content:', data.content);
+                } catch (err) {
+                  console.error('❌ [STREAM] Failed to parse results content:', err, data.content);
+                  return;
+                }
+                // Simple, independent handling of workouts and exercises
+                if (Array.isArray(parsed.workouts)) {
+                  setStreamedWorkouts(parsed.workouts as GeneratedWorkout[]);
+                  setGeneratedWorkouts(parsed.workouts as GeneratedWorkout[]);
+                  console.log('🏋️‍♂️ [STREAM] setStreamedWorkouts & setGeneratedWorkouts called with:', parsed.workouts);
+                }
+                if (Array.isArray(parsed.exercises)) {
+                  setStreamedExercises(parsed.exercises as Exercise[]);
+                  setGeneratedExercises(parsed.exercises as Exercise[]);
+                  console.log('💪 [STREAM] setStreamedExercises & setGeneratedExercises called with:', parsed.exercises);
+                }
+                // DEBUG: Log after set
+                setTimeout(() => {
+                  console.log('🟢 [STREAM] After set - streamedWorkouts:', streamedWorkouts);
+                  console.log('🟢 [STREAM] After set - streamedExercises:', streamedExercises);
+                }, 100);
+              // } else if (data.type === 'workout') {
+              //   // Workout data updates
+              //   setStreamedWorkouts(prev => {
+              //     const workoutIndex = data.workoutIndex;
+              //     const newWorkouts = [...prev];
+              //     newWorkouts[workoutIndex] = {
+              //       ...newWorkouts[workoutIndex],
+              //       ...data.content
+              //     };
+              //     console.log('🔄 [STREAM] Updated streamedWorkouts:', newWorkouts);
+              //     return newWorkouts;
+              //   });
               } else if (data.type === 'reasoning') {
                 // Reasoning updates
                 setStreamedReasoning(data.content);
               } else if (data.type === 'update') {
                 // General updates
-                console.log('🔄 Update received:', data.content);
+                console.log('🔄 [STREAM] Update received:', data.content);
               } else if (data.type === 'complete' || data.type === 'done') {
                 // Stream completion - try to parse accumulated tokens
-                console.log('✅ Stream completed');
+                console.log('✅ [STREAM] Stream completed');
                 setIsStreamComplete(true);
                 
                 // Try to parse accumulated tokens as complete JSON
                 if (accumulatedTokensRef.current.trim()) {
                   try {
-                    console.log('🎯 Attempting to parse accumulated response:', accumulatedTokensRef.current);
+                    console.log('🎯 [STREAM] Attempting to parse accumulated response:', accumulatedTokensRef.current);
                     const completedResponse = JSON.parse(accumulatedTokensRef.current);
                     
                     if (completedResponse.created_workouts) {
                       setGeneratedWorkouts(completedResponse.created_workouts);
-                      console.log('✅ Workouts parsed from tokens:', completedResponse.created_workouts);
+                      console.log('✅ [STREAM] Workouts parsed from tokens:', completedResponse.created_workouts);
                     }
                     
                     if (completedResponse.reasoning) {
                       setWorkoutReasoning(completedResponse.reasoning);
-                      console.log('✅ Reasoning parsed from tokens:', completedResponse.reasoning);
+                      console.log('✅ [STREAM] Reasoning parsed from tokens:', completedResponse.reasoning);
                     }
                   } catch (parseError) {
-                    console.error('❌ Failed to parse accumulated tokens:', parseError);
-                    console.log('📄 Accumulated tokens:', accumulatedTokensRef.current);
+                    console.error('❌ [STREAM] Failed to parse accumulated tokens:', parseError);
+                    console.log('📄 [STREAM] Accumulated tokens:', accumulatedTokensRef.current);
                   }
                 }
                 
@@ -592,11 +632,11 @@ const Index = () => {
                 }
               }
             } catch (e) {
-              console.error('❌ Error parsing stream data:', e);
-              console.error('📄 Raw line:', line);
+              console.error('❌ [STREAM] Error parsing stream data:', e);
+              console.error('📄 [STREAM] Raw line:', line);
               // Only log processed line if it was declared in this scope
               if (line.trim().startsWith('data: ')) {
-                console.error('🔍 Processed line:', line.trim().substring(6));
+                console.error('🔍 [STREAM] Processed line:', line.trim().substring(6));
               }
             }
           }
@@ -900,7 +940,18 @@ const Index = () => {
 
   // Update the generated workouts display section to use streamed data
   const displayWorkouts = isGenerating ? streamedWorkouts : generatedWorkouts;
+  const displayExercises = isGenerating ? streamedExercises : generatedExercises;
   const displayReasoning = isGenerating ? streamedReasoning : workoutReasoning;
+
+  // Debug: log when displayWorkouts or displayExercises updates
+  useEffect(() => {
+    console.log('🔍 [RENDER] displayWorkouts changed. Length:', displayWorkouts?.length || 0, 'Data:', displayWorkouts);
+  }, [displayWorkouts]);
+
+  useEffect(() => {
+    console.log('🔍 [RENDER] displayExercises changed. Length:', displayExercises?.length || 0, 'Data:', displayExercises);
+  }, [displayExercises]);
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -983,10 +1034,36 @@ const Index = () => {
                         <div className="mt-6 border-t border-gray-100 pt-4">
                           <style>{markdownStyles}</style>
                           {isGenerating && (
-                            <div className="flex items-center gap-2 mb-3">
-                              <Loader2 className="h-4 w-4 animate-spin text-fitness-purple/60" />
-                              <span className="text-sm font-medium text-gray-600">AI is analyzing your request...</span>
-                            </div>
+                            <>
+                              {/* Minimalistic agent progress indicator */}
+                              <style>
+                                {`
+                                  @keyframes dotBlink {
+                                    0%, 20% { opacity: 0; }
+                                    50% { opacity: 1; }
+                                    100% { opacity: 0; }
+                                  }
+                                  .ai-dot {
+                                    animation: dotBlink 1.4s infinite;
+                                  }
+                                  .ai-dot:nth-of-type(1) { animation-delay: 0s; }
+                                  .ai-dot:nth-of-type(2) { animation-delay: 0.2s; }
+                                  .ai-dot:nth-of-type(3) { animation-delay: 0.4s; }
+                                `}
+                              </style>
+                              <div className="flex items-center gap-3 mb-3">
+                                {/* Agent avatar/icon */}
+                                <div className="h-7 w-7 rounded-full bg-gradient-to-br from-fitness-purple to-blue-500 flex items-center justify-center shadow-sm">
+                                  <Brain className="h-4 w-4 text-white" />
+                                </div>
+                                <span className="text-sm font-medium text-gray-700 flex items-center">
+                                  {progressMessage || "AI is analyzing your request"}
+                                  <span className="ai-dot">.</span>
+                                  <span className="ai-dot">.</span>
+                                  <span className="ai-dot">.</span>
+                                </span>
+                              </div>
+                            </>
                           )}
                           <ScrollArea 
                             className="h-[400px] w-full rounded-xl overflow-hidden border border-purple-100/50"
@@ -1006,9 +1083,17 @@ const Index = () => {
                           </ScrollArea>
                         </div>
                       )}
+                      {isCreatingWorkouts && (
+                        <div className="flex items-center gap-3 my-4 p-4 bg-blue-50 border border-blue-200 rounded-lg shadow mt-8">
+                          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                          <span className="text-blue-900 font-medium">
+                            Creating your workouts now... Please wait while we generate your personalized exercises and plans!
+                          </span>
+                        </div>
+                      )}
 
-                      {/* Final Generated Workouts */}
-                      {displayWorkouts && displayWorkouts.length > 0 && (
+                      {/* Final Generated Workouts & Exercises */}
+                      {(displayWorkouts && displayWorkouts.length > 0) || (displayExercises && displayExercises.length > 0) ? (
                         <motion.div
                           ref={generatedWorkoutsRef}
                           initial={{ opacity: 0, y: 20 }}
@@ -1016,33 +1101,56 @@ const Index = () => {
                           transition={{ duration: 0.4 }}
                           className="mt-8 pt-6 border-t border-purple-100"
                         >
-                          <h3 className="text-lg font-semibold text-fitness-charcoal mb-4 flex items-center gap-2">
-                            <Dumbbell className="h-5 w-5 text-fitness-purple" />
-                            Generated Workouts
-                          </h3>
                           {displayReasoning && (
                             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                               <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
                                 <LightbulbIcon className="h-5 w-5 text-blue-500" />
-                                Why these workouts?
+                                Why these recommendations?
                               </h4>
                               <p className="text-blue-900">{displayReasoning}</p>
                             </div>
                           )}
-                          <ScrollArea className="h-[400px] w-full rounded-md pr-4">
-                            <div className="space-y-4">
-                              {displayWorkouts.map((workout, index) => (
-                                <WorkoutCard
-                                  key={index}
-                                  workout={workout}
-                                  onSave={handleSaveWorkout}
-                                  isSaved={savedWorkouts.has(workout.name)}
-                                />
-                              ))}
-                            </div>
-                          </ScrollArea>
+
+                          {/* Workouts Section */}
+                          {displayWorkouts && displayWorkouts.length > 0 && (
+                            <>
+                              <h3 className="text-lg font-semibold text-fitness-charcoal mb-4 flex items-center gap-2">
+                                <Dumbbell className="h-5 w-5 text-fitness-purple" />
+                                Generated Workouts
+                              </h3>
+                              <ScrollArea className="max-h-[500px] w-full rounded-md pr-4 mb-6">
+                                <div className="space-y-4">
+                                  {displayWorkouts.map((workout, index) => (
+                                    <WorkoutCard
+                                      key={index}
+                                      workout={workout}
+                                      onSave={handleSaveWorkout}
+                                      isSaved={savedWorkouts.has(workout.name)}
+                                    />
+                                  ))}
+                                </div>
+                              </ScrollArea>
+                            </>
+                          )}
+
+                          {/* Exercises Section */}
+                          {displayExercises && displayExercises.length > 0 && (
+                            <>
+                              <h3 className="text-lg font-semibold text-fitness-charcoal mb-4 flex items-center gap-2">
+                                <Dumbbell className="h-5 w-5 text-fitness-purple" />
+                                Generated Exercises
+                              </h3>
+                              <ScrollArea className="h-[400px] w-full rounded-md pr-4">
+                                <div className="space-y-4">
+                                  {displayExercises.map((exercise, idx) => (
+                                    <ExerciseCard key={idx} exercise={exercise as Exercise} />
+                                  ))}
+                                </div>
+                              </ScrollArea>
+                            </>
+                          )}
                         </motion.div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </motion.div>
@@ -1266,6 +1374,50 @@ const WorkoutCard = ({ workout, onSave, isSaved }: WorkoutCardProps) => (
               </div>
             ))}
           </div>
+        </div>
+      </CardContent>
+    </Card>
+  </motion.div>
+);
+
+interface ExerciseCardProps {
+  exercise: Exercise;
+}
+
+const ExerciseCard = ({ exercise }: ExerciseCardProps) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+  >
+    <Card className="border border-blue-100 hover:border-blue-200 transition-colors shadow-xl shadow-blue-200/40">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2">
+          {exercise.name}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {exercise.details?.muscle_groups?.slice(0, 3).map((muscle, i) => (
+              <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-fitness-purple border-purple-200">
+                {muscle}
+              </Badge>
+            ))}
+            {exercise.details?.difficulty && (
+              <Badge variant="secondary" className={getDifficultyColor(exercise.details.difficulty)}>
+                {exercise.details.difficulty}
+              </Badge>
+            )}
+          </div>
+          {exercise.notes && (
+            <p className="text-sm text-muted-foreground border-l-2 border-blue-200 pl-2">
+              {exercise.notes}
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
