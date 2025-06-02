@@ -37,14 +37,51 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { supabase } from "@/lib/supabase";
 import { ExerciseCategory, DifficultyLevel } from "@/types/workout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import WorkoutGenerationAnimation from '@/components/workout/WorkoutGenerationAnimation';
 import WeekSchema, { WeekSchemaData } from '@/components/WeekSchema';
+import MentionTextarea from '@/components/ui/mention-textarea';
+import ReactMarkdown from 'react-markdown'
+import { cn } from "@/lib/utils";
 
 // Add TypeScript interfaces for API
+interface ContextExercise {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  muscle_groups: string[];
+  difficulty_level: string;
+  equipment_needed: string;
+}
+
+interface ContextWorkout {
+  id: string;
+  name: string;
+  description: string;
+  exercises: Array<{
+    name: string;
+    sets: number;
+    reps: number;
+    notes?: string;
+    exercise_details: {
+      description: string;
+      category: string;
+      muscle_groups: string[];
+      difficulty_level: string;
+      equipment_needed: string;
+    };
+  }>;
+}
+
+interface WorkoutContext {
+  exercises: ContextExercise[];
+  workouts: ContextWorkout[];
+}
+
 interface WorkoutNLQRequest {
   user_id: string;
   prompt: string;
   thread_id?: string;
+  context?: WorkoutContext;
 }
 
 interface ExerciseDetails {
@@ -81,6 +118,155 @@ interface WorkoutResponse {
   reasoning: string;
 }
 
+// Utility function for difficulty colors
+const getDifficultyColor = (difficulty: string) => {
+  switch (difficulty.toLowerCase()) {
+    case 'beginner':
+      return 'bg-green-50 text-green-700 border-green-200';
+    case 'intermediate':
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+    case 'advanced':
+      return 'bg-red-50 text-red-700 border-red-200';
+    default:
+      return 'bg-gray-50 text-gray-700 border-gray-200';
+  }
+};
+
+function tryParseJSON(text: string) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+// Add markdown styles
+const markdownStyles = `
+  .markdown-content {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #374151;
+  }
+
+  .markdown-content h1,
+  .markdown-content h2,
+  .markdown-content h3,
+  .markdown-content h4 {
+    font-weight: 600;
+    line-height: 1.3;
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+  }
+
+  .markdown-content h1 { font-size: 1.5em; color: #111827; }
+  .markdown-content h2 { font-size: 1.3em; color: #1F2937; }
+  .markdown-content h3 { font-size: 1.15em; color: #374151; }
+  .markdown-content h4 { font-size: 1em; color: #4B5563; }
+
+  .markdown-content p {
+    margin-bottom: 1em;
+  }
+
+  .markdown-content ul,
+  .markdown-content ol {
+    margin: 0.5em 0 1em;
+    padding-left: 1.5em;
+  }
+
+  .markdown-content ul { list-style-type: disc; }
+  .markdown-content ol { list-style-type: decimal; }
+  
+  .markdown-content li {
+    margin: 0.3em 0;
+  }
+
+  .markdown-content code {
+    background: #F3F4F6;
+    padding: 0.2em 0.4em;
+    border-radius: 0.25em;
+    font-size: 0.9em;
+    color: #DC2626;
+    font-family: ui-monospace, monospace;
+  }
+
+  .markdown-content pre {
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
+    border-radius: 0.5em;
+    padding: 1em;
+    margin: 1em 0;
+    overflow-x: auto;
+  }
+
+  .markdown-content pre code {
+    background: none;
+    padding: 0;
+    color: #374151;
+    font-size: 0.9em;
+  }
+
+  .markdown-content blockquote {
+    border-left: 3px solid #E5E7EB;
+    padding-left: 1em;
+    margin: 1em 0;
+    color: #6B7280;
+    font-style: italic;
+  }
+
+  .markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+  }
+
+  .markdown-content th,
+  .markdown-content td {
+    border: 1px solid #E5E7EB;
+    padding: 0.5em 1em;
+    text-align: left;
+  }
+
+  .markdown-content th {
+    background: #F9FAFB;
+    font-weight: 600;
+  }
+
+  .markdown-content hr {
+    border: none;
+    border-top: 1px solid #E5E7EB;
+    margin: 2em 0;
+  }
+
+  .markdown-content a {
+    color: #7C3AED;
+    text-decoration: none;
+  }
+
+  .markdown-content a:hover {
+    text-decoration: underline;
+  }
+
+  .markdown-content img {
+    max-width: 100%;
+    border-radius: 0.5em;
+    margin: 1em 0;
+  }
+
+  /* Specific styles for the streaming content */
+  .streaming-markdown {
+    font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+
+  .streaming-markdown .token {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+  }
+
+  .streaming-markdown .token.visible {
+    opacity: 1;
+  }
+`;
+
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -89,7 +275,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [workouts, setWorkouts] = useState<WorkoutPlanWithExercises[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(true);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedWorkouts, setGeneratedWorkouts] = useState<any[]>([]);
@@ -105,6 +291,16 @@ const Index = () => {
   });
   const [savedSchemas, setSavedSchemas] = useState<WeekSchemaData[]>([]);
   const [isSchemasLoading, setIsSchemasLoading] = useState(false);
+  const [streamedWorkouts, setStreamedWorkouts] = useState<Partial<GeneratedWorkout>[]>([]);
+  const [streamedReasoning, setStreamedReasoning] = useState<string>('');
+  const [isStreamComplete, setIsStreamComplete] = useState(false);
+  const [mentionContext, setMentionContext] = useState<WorkoutContext>({ exercises: [], workouts: [] });
+  const [accumulatedTokens, setAccumulatedTokens] = useState<string>('');
+  const accumulatedTokensRef = useRef<string>('');
+  const [showPreview, setShowPreview] = useState(false);
+  const [lastStreamingText, setLastStreamingText] = useState<string>("");
+  const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
+  const markdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setDisplayName(getUserDisplayName(user));
@@ -172,6 +368,47 @@ const Index = () => {
     loadSchemas();
   }, [user, toast]);
 
+  useEffect(() => {
+    if (isGenerating) {
+      setShowPreview(true);
+    }
+  }, [isGenerating]);
+
+  useEffect(() => {
+    if (!isGenerating && showPreview) {
+      // Fade out preview after 1s, then show final
+      const timeout = setTimeout(() => setShowPreview(false), 1000);
+      return () => clearTimeout(timeout);
+    }
+  }, [isGenerating, showPreview]);
+
+  useEffect(() => {
+    if (!isGenerating && accumulatedTokens) {
+      setLastStreamingText(accumulatedTokens);
+    }
+  }, [isGenerating, accumulatedTokens]);
+
+  // Reset lastStreamingText when prompt changes (new generation)
+  useEffect(() => {
+    setLastStreamingText("");
+  }, [prompt]);
+
+  // Auto-scroll effect when new tokens are added
+  useEffect(() => {
+    if (isGenerating && markdownRef.current) {
+      const scrollContainer = markdownRef.current.parentElement?.parentElement;
+      if (scrollContainer) {
+        // Use requestAnimationFrame to ensure the scroll happens after content is rendered
+        requestAnimationFrame(() => {
+          scrollContainer.scrollTo({
+            top: scrollContainer.scrollHeight,
+            behavior: 'smooth'
+          });
+        });
+      }
+    }
+  }, [accumulatedTokens, isGenerating]);
+
   // Filter workouts based on search query
   const filteredWorkouts = workouts.filter(workout => {
     const searchLower = searchQuery.toLowerCase();
@@ -187,6 +424,23 @@ const Index = () => {
     );
   });
 
+  // Function to clear current generation
+  const clearCurrentGeneration = () => {
+    setCurrentGenerationId(null);
+    setAccumulatedTokens('');
+    accumulatedTokensRef.current = '';
+    setStreamedWorkouts([]);
+    setStreamedReasoning('');
+    setIsStreamComplete(false);
+    setGeneratedWorkouts([]);
+    setWorkoutReasoning(null);
+  };
+
+  // Handle input changes without clearing generation
+  const handlePromptChange = (newValue: string) => {
+    setPrompt(newValue);
+  };
+
   const handleGenerateWorkout = async () => {
     if (!user) {
       toast.error("Error", "You must be logged in to create workouts.");
@@ -198,25 +452,40 @@ const Index = () => {
       return;
     }
 
+    // Generate a new ID for this generation
+    const generationId = `gen-${Date.now()}`;
+    setCurrentGenerationId(generationId);
+    
+    // Clear previous generation state
     setIsGenerating(true);
+    setStreamedWorkouts([]);
+    setStreamedReasoning('');
+    setIsStreamComplete(false);
+    setGeneratedWorkouts([]);
+    setWorkoutReasoning(null);
+    setAccumulatedTokens('');
+    accumulatedTokensRef.current = '';
 
     try {
-      // Prepare request payload
+      // Check if we have meaningful context to send
+      const hasContext = (mentionContext.exercises && mentionContext.exercises.length > 0) || 
+                        (mentionContext.workouts && mentionContext.workouts.length > 0);
+
       const requestPayload: WorkoutNLQRequest = {
         user_id: user.id,
         prompt: prompt.trim(),
         thread_id: `workout-${Date.now()}`,
+        context: hasContext ? mentionContext : undefined,
       };
 
-      // Enhanced logging with clear visual separation
-      console.log('🏋️ WORKOUT GENERATION - REQUEST');
-      console.log('================================');
-      console.log('User ID:', requestPayload.user_id);
-      console.log('Prompt:', requestPayload.prompt);
-      console.log('Thread ID:', requestPayload.thread_id);
-      console.log('================================');
+      console.log('🚀 Sending workout request with context:', requestPayload);
+      console.log('📊 Context details:', {
+        hasContext,
+        exerciseCount: mentionContext.exercises?.length || 0,
+        workoutCount: mentionContext.workouts?.length || 0
+      });
 
-      const response = await fetch('https://web-production-aafa6.up.railway.app/workout/create', {
+      const response = await fetch('http://localhost:8000/workout/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -225,39 +494,127 @@ const Index = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        console.error('Workout generation failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData,
-        });
-        throw new Error(
-          errorData?.message || 
-          `Failed to generate workout: ${response.status} ${response.statusText}`
-        );
+        throw new Error(`Failed to generate workout: ${response.status} ${response.statusText}`);
       }
 
-      const data: WorkoutResponse = await response.json();
-      console.log('Received workout response:', data);
-
-      if (!data.created_workouts?.length) {
-        throw new Error('No workouts were generated');
+      if (!response.body) {
+        throw new Error('Response body is null');
       }
 
-      setGeneratedWorkouts(data.created_workouts);
-      setWorkoutReasoning(data.reasoning || null);
+      // Read the stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-      setTimeout(() => {
-        generatedWorkoutsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100); // slight delay to ensure rendering
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process complete lines from the buffer
+        let newlineIndex;
+        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+          const line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+          
+          if (line.trim()) {
+            try {
+              // Handle SSE format - strip "data: " prefix if present
+              let jsonLine = line.trim();
+              if (jsonLine.startsWith('data: ')) {
+                jsonLine = jsonLine.substring(6); // Remove "data: " prefix
+              }
+              
+              // Skip empty lines or lines that aren't JSON
+              if (!jsonLine || jsonLine === '') {
+                continue;
+              }
+              
+              const data = JSON.parse(jsonLine);
+              console.log('📦 Received stream data:', data);
+              
+              // Handle different types of stream events
+              if (data.type === 'token') {
+                // Individual token streaming - accumulate to build complete response
+                setAccumulatedTokens(prev => prev + data.content);
+                accumulatedTokensRef.current += data.content;
+                console.log('🔤 Token:', data.content);
+              } else if (data.type === 'workout') {
+                // Workout data updates
+                setStreamedWorkouts(prev => {
+                  const workoutIndex = data.workoutIndex;
+                  const newWorkouts = [...prev];
+                  newWorkouts[workoutIndex] = {
+                    ...newWorkouts[workoutIndex],
+                    ...data.content
+                  };
+                  return newWorkouts;
+                });
+              } else if (data.type === 'reasoning') {
+                // Reasoning updates
+                setStreamedReasoning(data.content);
+              } else if (data.type === 'update') {
+                // General updates
+                console.log('🔄 Update received:', data.content);
+              } else if (data.type === 'complete' || data.type === 'done') {
+                // Stream completion - try to parse accumulated tokens
+                console.log('✅ Stream completed');
+                setIsStreamComplete(true);
+                
+                // Try to parse accumulated tokens as complete JSON
+                if (accumulatedTokensRef.current.trim()) {
+                  try {
+                    console.log('🎯 Attempting to parse accumulated response:', accumulatedTokensRef.current);
+                    const completedResponse = JSON.parse(accumulatedTokensRef.current);
+                    
+                    if (completedResponse.created_workouts) {
+                      setGeneratedWorkouts(completedResponse.created_workouts);
+                      console.log('✅ Workouts parsed from tokens:', completedResponse.created_workouts);
+                    }
+                    
+                    if (completedResponse.reasoning) {
+                      setWorkoutReasoning(completedResponse.reasoning);
+                      console.log('✅ Reasoning parsed from tokens:', completedResponse.reasoning);
+                    }
+                  } catch (parseError) {
+                    console.error('❌ Failed to parse accumulated tokens:', parseError);
+                    console.log('📄 Accumulated tokens:', accumulatedTokensRef.current);
+                  }
+                }
+                
+                // Fallback to data from completion event
+                if (data.workouts) {
+                  setGeneratedWorkouts(data.workouts);
+                }
+                if (data.reasoning) {
+                  setWorkoutReasoning(data.reasoning);
+                }
+              }
+            } catch (e) {
+              console.error('❌ Error parsing stream data:', e);
+              console.error('📄 Raw line:', line);
+              // Only log processed line if it was declared in this scope
+              if (line.trim().startsWith('data: ')) {
+                console.error('🔍 Processed line:', line.trim().substring(6));
+              }
+            }
+          }
+        }
+      }
 
-      toast.success("Success", `Created ${data.created_workouts.length} personalized workout${data.created_workouts.length > 1 ? 's' : ''}!`);
+      if (!isStreamComplete) {
+        setIsStreamComplete(true);
+        setGeneratedWorkouts(streamedWorkouts as GeneratedWorkout[]);
+        setWorkoutReasoning(streamedReasoning);
+      }
+
+      toast.success("Success", "Your personalized workout has been created!");
     } catch (error) {
       console.error('Error generating workout:', error);
       toast.error("Error", error instanceof Error ? error.message : "Failed to generate workout. Please try again.");
     } finally {
       setIsGenerating(false);
-
     }
   };
 
@@ -402,22 +759,64 @@ const Index = () => {
     }
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case 'beginner':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'intermediate':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'advanced':
-        return 'bg-red-50 text-red-700 border-red-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
   // Handle changes to the active schema
   const handleSchemaChange = (updatedSchema: WeekSchemaData) => {
     setActiveSchema(updatedSchema);
+  };
+
+  // Handle context changes from MentionTextarea
+  const handleMentionContextChange = (context: { exercises: any[], workouts: any[] }) => {
+    console.log('📝 Context changed:', context);
+    
+    try {
+      // Convert exercises to the proper format
+      const contextExercises: ContextExercise[] = context.exercises.map(exercise => ({
+        id: exercise.id,
+        name: exercise.name,
+        description: exercise.description,
+        category: exercise.category,
+        muscle_groups: exercise.muscle_groups,
+        difficulty_level: exercise.difficulty_level,
+        equipment_needed: exercise.equipment_needed,
+      }));
+
+      // Convert workouts to the proper format
+      const contextWorkouts: ContextWorkout[] = context.workouts.map(workout => {
+        console.log('🔍 Processing workout:', workout);
+        
+        return {
+          id: workout.id,
+          name: workout.name,
+          description: workout.description || '',
+          exercises: (workout.exercises || []).map((ex: any) => ({
+            name: ex.name,
+            sets: ex.sets,
+            reps: ex.reps,
+            notes: ex.notes,
+            exercise_details: {
+              description: ex.exercise_details?.description || '',
+              category: ex.exercise_details?.category || '',
+              muscle_groups: ex.exercise_details?.muscle_groups || [],
+              difficulty_level: ex.exercise_details?.difficulty_level || '',
+              equipment_needed: ex.exercise_details?.equipment_needed || '',
+            }
+          }))
+        };
+      });
+
+      setMentionContext({
+        exercises: contextExercises,
+        workouts: contextWorkouts
+      });
+      
+      console.log('✅ Context processed successfully:', {
+        exercises: contextExercises.length,
+        workouts: contextWorkouts.length
+      });
+    } catch (error) {
+      console.error('❌ Error processing context:', error);
+      console.error('Context data:', context);
+    }
   };
 
   // Handle saving the active schema
@@ -499,6 +898,10 @@ const Index = () => {
     }
   };
 
+  // Update the generated workouts display section to use streamed data
+  const displayWorkouts = isGenerating ? streamedWorkouts : generatedWorkouts;
+  const displayReasoning = isGenerating ? streamedReasoning : workoutReasoning;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -553,150 +956,59 @@ const Index = () => {
                   className="overflow-hidden w-full"
                 >
                   <div className="mt-6 bg-white rounded-xl border border-purple-100/50 shadow-2xl shadow-purple-200/30 w-full">
-                    {/* Header Section */}
-                    <div className="p-6 pb-0">
-                      <div className="flex items-center gap-4">
+                    <div className="p-6">
+                      <div className="flex items-center gap-4 mb-6">
                         <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-fitness-purple to-purple-400 flex items-center justify-center shadow-lg shadow-purple-300/40">
                           <Brain className="h-6 w-6 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-fitness-charcoal">AI Workout Coach</h3>
+                          <h3 className="text-lg font-semibold text-fitness-charcoal">AI Workout Creator</h3>
                           <p className="text-sm text-muted-foreground mt-1">
-                            Tell me what kind of workout you want, and I'll create a personalized plan based on your fitness profile and assessment.
+                            Describe your ideal workout and I'll create a personalized plan for you. Use @ to mention specific exercises or workouts.
                           </p>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Main Content Section */}
-                    <div className="p-6">
-                      {/* Profile Data Card */}
-                      <Card className="border border-purple-100 bg-purple-50/50 mb-6 shadow-lg shadow-purple-200/30">
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="h-8 w-8 rounded-full bg-fitness-purple/10 flex items-center justify-center">
-                              <User className="h-4 w-4 text-fitness-purple" />
+                      <MentionTextarea
+                        value={prompt}
+                        onChange={handlePromptChange}
+                        onContextChange={handleMentionContextChange}
+                        className="mb-4"
+                        onGenerate={handleGenerateWorkout}
+                        isGenerating={isGenerating}
+                      />
+
+                      {/* Generation Preview */}
+                      {currentGenerationId && (
+                        <div className="mt-6 border-t border-gray-100 pt-4">
+                          <style>{markdownStyles}</style>
+                          {isGenerating && (
+                            <div className="flex items-center gap-2 mb-3">
+                              <Loader2 className="h-4 w-4 animate-spin text-fitness-purple/60" />
+                              <span className="text-sm font-medium text-gray-600">AI is analyzing your request...</span>
                             </div>
-                            <div className="space-y-1 flex-1">
-                              <h3 className="font-medium text-fitness-charcoal">Using Your Profile Data</h3>
-                              <p className="text-sm text-muted-foreground">
-                                Our AI analyzes your fitness profile, body composition, and training history to create workouts that match your:
-                              </p>
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                <Badge variant="outline" className="bg-white border-purple-200 text-fitness-purple gap-1.5 shadow-md shadow-purple-100/20">
-                                  <Target className="h-3.5 w-3.5" />
-                                  Fitness Goals
-                                </Badge>
-                                <Badge variant="outline" className="bg-white border-purple-200 text-fitness-purple gap-1.5 shadow-md shadow-purple-100/20">
-                                  <Activity className="h-3.5 w-3.5" />
-                                  Activity Level
-                                </Badge>
-                                <Badge variant="outline" className="bg-white border-purple-200 text-fitness-purple gap-1.5 shadow-md shadow-purple-100/20">
-                                  <Scale className="h-3.5 w-3.5" />
-                                  Body Analysis
-                                </Badge>
-                                <Badge variant="outline" className="bg-white border-purple-200 text-fitness-purple gap-1.5 shadow-md shadow-purple-100/20">
-                                  <Dumbbell className="h-3.5 w-3.5" />
-                                  Training Experience
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Workout Description Section */}
-                      <div className="space-y-4 mb-6">
-                        <div>
-                          <h3 className="font-medium text-fitness-charcoal mb-1.5">Describe Your Workout</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Tell us what kind of workout you want. Be as specific as you'd like about:
-                          </p>
-                          <ul className="text-sm text-muted-foreground mt-1 space-y-1">
-                            <li className="flex items-center gap-2">
-                              <Check className="h-3.5 w-3.5 text-green-500" />
-                              Target muscle groups or body parts
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <Check className="h-3.5 w-3.5 text-green-500" />
-                              Preferred difficulty level
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <Check className="h-3.5 w-3.5 text-green-500" />
-                              Workout duration or intensity
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <Check className="h-3.5 w-3.5 text-green-500" />
-                              Available equipment or limitations
-                            </li>
-                          </ul>
-                        </div>
-
-                        <Textarea
-                          placeholder="Example: Create 3-4 personalized intermediate leg workouts focusing on strength and endurance, each about 45-60 minutes long. I have access to a full gym."
-                          value={prompt}
-                          onChange={(e) => setPrompt(e.target.value)}
-                          className="min-h-[120px] bg-white border-gray-200 resize-none focus-visible:ring-fitness-purple/25 rounded-lg w-full shadow-md shadow-purple-100/20"
-                        />
-                      </div>
-
-                      {/* Example Prompts */}
-                      <div className="space-y-3 mb-6">
-                        <h3 className="font-medium text-sm text-muted-foreground">Example Prompts:</h3>
-                        <div className="grid gap-2">
-                          {[
-                            "Create a 30-minute HIIT workout I can do at home with minimal equipment",
-                            "Design an upper body strength workout for an intermediate lifter, focusing on chest and back",
-                            "Make a beginner-friendly full body workout using mainly machines",
-                            "Create an advanced powerlifting workout focusing on deadlift progression"
-                          ].map((example, i) => (
-                            <Button
-                              key={i}
-                              variant="outline"
-                              className="justify-start h-auto whitespace-normal text-left bg-purple-50/50 border-purple-100 hover:bg-purple-100/50 hover:text-fitness-purple hover:border-purple-200 transition-colors shadow-md shadow-purple-100/20"
-                              onClick={() => setPrompt(example)}
-                            >
-                              {example}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center justify-between">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground hover:bg-gray-100 shadow-md shadow-gray-200/30"
-                          onClick={() => setIsCreateOpen(false)}
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleGenerateWorkout}
-                          disabled={isGenerating || !prompt.trim()}
-                          className="bg-fitness-purple hover:bg-fitness-purple/90 text-white shadow-lg shadow-purple-300/40"
-                        >
-                          {isGenerating ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Creating Your Workout...
-                            </>
-                          ) : (
-                            <>
-                              <Brain className="h-4 w-4 mr-2" />
-                              Generate Workout
-                            </>
                           )}
-                        </Button>
-                      </div>
+                          <ScrollArea 
+                            className="h-[400px] w-full rounded-xl overflow-hidden border border-purple-100/50"
+                            scrollHideDelay={75}
+                          >
+                            <div 
+                              ref={markdownRef}
+                              className={cn(
+                                "prose prose-sm max-w-none text-gray-700 p-6",
+                                "markdown-content streaming-markdown",
+                                "bg-gradient-to-br from-white via-purple-100/40 to-blue-100/40",
+                                isGenerating && "animate-pulse"
+                              )}
+                            >
+                              <ReactMarkdown>{accumulatedTokens}</ReactMarkdown>
+                            </div>
+                          </ScrollArea>
+                        </div>
+                      )}
 
-                      {/* Generated Workouts Display */}
-                      {isGenerating ? (
-                        <WorkoutGenerationAnimation />
-                      ) : generatedWorkouts && generatedWorkouts.length > 0 && (
+                      {/* Final Generated Workouts */}
+                      {displayWorkouts && displayWorkouts.length > 0 && (
                         <motion.div
                           ref={generatedWorkoutsRef}
                           initial={{ opacity: 0, y: 20 }}
@@ -708,114 +1020,27 @@ const Index = () => {
                             <Dumbbell className="h-5 w-5 text-fitness-purple" />
                             Generated Workouts
                           </h3>
-                          {workoutReasoning && (
+                          {displayReasoning && (
                             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                               <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
                                 <LightbulbIcon className="h-5 w-5 text-blue-500" />
                                 Why these workouts?
                               </h4>
-                              <p className="text-blue-900">{workoutReasoning}</p>
+                              <p className="text-blue-900">{displayReasoning}</p>
                             </div>
                           )}
-                          <div className="space-y-4">
-                            {generatedWorkouts.map((workout, index) => (
-                              <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3, delay: index * 0.1 }}
-                              >
-                                <Card className="border border-purple-100 hover:border-purple-200 transition-colors shadow-xl shadow-purple-200/40">
-                                  <CardHeader className="pb-3">
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <CardTitle className="text-lg flex items-center gap-2">
-                                          {workout.name}
-                                        </CardTitle>
-                                        <CardDescription>{workout.description}</CardDescription>
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
-                                          onClick={() => handleSaveWorkout(workout)}
-                                          disabled={savedWorkouts.has(workout.name)}
-                                        >
-                                          {savedWorkouts.has(workout.name) ? (
-                                            <>
-                                              <Check className="h-4 w-4 mr-2" />
-                                              Saved
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Check className="h-4 w-4 mr-2" />
-                                              Save workout
-                                            </>
-                                          )}
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <div className="space-y-4">
-                                      <div className="flex flex-wrap gap-2">
-                                        {workout.target_muscle_groups?.map((muscle, i) => (
-                                          <Badge key={i} variant="secondary" className="bg-purple-50 text-fitness-purple border-purple-200">
-                                            {muscle}
-                                          </Badge>
-                                        ))}
-                                        {workout.equipment_required && (
-                                          <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
-                                            Equipment: {workout.equipment_required.join(', ')}
-                                          </Badge>
-                                        )}
-                                        {workout.difficulty_level && (
-                                          <Badge variant="secondary" className={getDifficultyColor(workout.difficulty_level)}>
-                                            {workout.difficulty_level}
-                                          </Badge>
-                                        )}
-                                      </div>
-
-                                      <div className="space-y-3">
-                                        {workout.exercises.map((exercise: any, exerciseIndex: number) => (
-                                          <div
-                                            key={exerciseIndex}
-                                            className="p-3 bg-gray-50 rounded-lg"
-                                          >
-                                            <div className="flex items-center justify-between">
-                                              <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                  <Dumbbell className="h-4 w-4 text-fitness-purple" />
-                                                  <h4 className="font-medium text-fitness-charcoal">{exercise.name}</h4>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                  <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
-                                                </div>
-                                              </div>
-                                              
-                                              <div className="flex flex-wrap gap-1">
-                                                {exercise.details.muscle_groups.slice(0, 2).map((muscle: string, i: number) => (
-                                                  <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-fitness-purple border-purple-200">
-                                                    {muscle}
-                                                  </Badge>
-                                                ))}
-                                              </div>
-                                            </div>
-                                            {exercise.notes && (
-                                              <p className="text-sm text-muted-foreground mt-2 pl-4 border-l-2 border-purple-200">
-                                                {exercise.notes}
-                                              </p>
-                                            )}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              </motion.div>
-                            ))}
-                          </div>
+                          <ScrollArea className="h-[400px] w-full rounded-md pr-4">
+                            <div className="space-y-4">
+                              {displayWorkouts.map((workout, index) => (
+                                <WorkoutCard
+                                  key={index}
+                                  workout={workout}
+                                  onSave={handleSaveWorkout}
+                                  isSaved={savedWorkouts.has(workout.name)}
+                                />
+                              ))}
+                            </div>
+                          </ScrollArea>
                         </motion.div>
                       )}
                     </div>
@@ -944,5 +1169,107 @@ const Index = () => {
     </div>
   );
 };
+
+interface WorkoutCardProps {
+  workout: GeneratedWorkout;
+  onSave: (workout: GeneratedWorkout) => void;
+  isSaved: boolean;
+}
+
+// Separate WorkoutCard component for cleaner code
+const WorkoutCard = ({ workout, onSave, isSaved }: WorkoutCardProps) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+  >
+    <Card className="border border-purple-100 hover:border-purple-200 transition-colors shadow-xl shadow-purple-200/40">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              {workout.name}
+            </CardTitle>
+            <CardDescription>{workout.description}</CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
+              onClick={() => onSave(workout)}
+              disabled={isSaved}
+            >
+              {isSaved ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Save workout
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {workout.target_muscle_groups?.map((muscle, i) => (
+              <Badge key={i} variant="secondary" className="bg-purple-50 text-fitness-purple border-purple-200">
+                {muscle}
+              </Badge>
+            ))}
+            {workout.equipment_required && (
+              <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+                Equipment: {workout.equipment_required.join(', ')}
+              </Badge>
+            )}
+            {workout.difficulty_level && (
+              <Badge variant="secondary" className={getDifficultyColor(workout.difficulty_level)}>
+                {workout.difficulty_level}
+              </Badge>
+            )}
+          </div>
+          <div className="space-y-3">
+            {workout.exercises.map((exercise, exerciseIndex) => (
+              <div
+                key={exerciseIndex}
+                className="p-3 bg-gray-50 rounded-lg"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Dumbbell className="h-4 w-4 text-fitness-purple" />
+                      <h4 className="font-medium text-fitness-charcoal">{exercise.name}</h4>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {exercise.details.muscle_groups.slice(0, 2).map((muscle, i) => (
+                      <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-fitness-purple border-purple-200">
+                        {muscle}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                {exercise.notes && (
+                  <p className="text-sm text-muted-foreground mt-2 pl-4 border-l-2 border-purple-200">
+                    {exercise.notes}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  </motion.div>
+);
 
 export default Index;
