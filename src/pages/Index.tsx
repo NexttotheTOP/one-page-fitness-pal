@@ -305,6 +305,7 @@ const Index = () => {
   const isCreatingWorkouts = progressMessage === "Creating your workouts now...";
   const [streamedExercises, setStreamedExercises] = useState<Partial<Exercise>[]>([]);
   const [generatedExercises, setGeneratedExercises] = useState<Exercise[]>([]);
+  const generatedSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setDisplayName(getUserDisplayName(user));
@@ -412,6 +413,15 @@ const Index = () => {
       }
     }
   }, [accumulatedTokens, isGenerating]);
+
+  // Smooth scroll to generated section when loading is done and results appear
+  useEffect(() => {
+    if (!isGenerating && (streamedWorkouts.length > 0 || generatedWorkouts.length > 0 || streamedExercises.length > 0 || generatedExercises.length > 0)) {
+      generatedSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    // Only trigger when loading finishes and results appear
+    // eslint-disable-next-line
+  }, [isGenerating, streamedWorkouts.length, generatedWorkouts.length, streamedExercises.length, generatedExercises.length]);
 
   // Filter workouts based on search query
   const filteredWorkouts = workouts.filter(workout => {
@@ -943,16 +953,7 @@ const Index = () => {
   const displayExercises = isGenerating ? streamedExercises : generatedExercises;
   const displayReasoning = isGenerating ? streamedReasoning : workoutReasoning;
 
-  // Debug: log when displayWorkouts or displayExercises updates
-  useEffect(() => {
-    console.log('🔍 [RENDER] displayWorkouts changed. Length:', displayWorkouts?.length || 0, 'Data:', displayWorkouts);
-  }, [displayWorkouts]);
-
-  useEffect(() => {
-    console.log('🔍 [RENDER] displayExercises changed. Length:', displayExercises?.length || 0, 'Data:', displayExercises);
-  }, [displayExercises]);
-
-
+  // Always show current streamed/generated workouts and exercises for debugging
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -1092,35 +1093,19 @@ const Index = () => {
                         </div>
                       )}
 
-                      {/* Final Generated Workouts & Exercises */}
-                      {(displayWorkouts && displayWorkouts.length > 0) || (displayExercises && displayExercises.length > 0) ? (
-                        <motion.div
-                          ref={generatedWorkoutsRef}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.4 }}
-                          className="mt-8 pt-6 border-t border-purple-100"
-                        >
-                          {displayReasoning && (
-                            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                              <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                                <LightbulbIcon className="h-5 w-5 text-blue-500" />
-                                Why these recommendations?
-                              </h4>
-                              <p className="text-blue-900">{displayReasoning}</p>
-                            </div>
-                          )}
-
+                      {/* Final Generated Workouts & Exercises - always show if non-empty */}
+                      {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0 || streamedExercises.length > 0 || generatedExercises.length > 0) && (
+                        <div ref={generatedSectionRef} className="mt-8 pt-6 border-t border-purple-100">
                           {/* Workouts Section */}
-                          {displayWorkouts && displayWorkouts.length > 0 && (
+                          {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0) && (
                             <>
                               <h3 className="text-lg font-semibold text-fitness-charcoal mb-4 flex items-center gap-2">
                                 <Dumbbell className="h-5 w-5 text-fitness-purple" />
                                 Generated Workouts
                               </h3>
-                              <ScrollArea className="max-h-[500px] w-full rounded-md pr-4 mb-6">
+                              <ScrollArea className="w-full rounded-md pr-4 mb-6">
                                 <div className="space-y-4">
-                                  {displayWorkouts.map((workout, index) => (
+                                  {(streamedWorkouts.length > 0 ? streamedWorkouts : generatedWorkouts).map((workout, index) => (
                                     <WorkoutCard
                                       key={index}
                                       workout={workout}
@@ -1132,9 +1117,8 @@ const Index = () => {
                               </ScrollArea>
                             </>
                           )}
-
                           {/* Exercises Section */}
-                          {displayExercises && displayExercises.length > 0 && (
+                          {(streamedExercises.length > 0 || generatedExercises.length > 0) && (
                             <>
                               <h3 className="text-lg font-semibold text-fitness-charcoal mb-4 flex items-center gap-2">
                                 <Dumbbell className="h-5 w-5 text-fitness-purple" />
@@ -1142,15 +1126,15 @@ const Index = () => {
                               </h3>
                               <ScrollArea className="h-[400px] w-full rounded-md pr-4">
                                 <div className="space-y-4">
-                                  {displayExercises.map((exercise, idx) => (
+                                  {(streamedExercises.length > 0 ? streamedExercises : generatedExercises).map((exercise, idx) => (
                                     <ExerciseCard key={idx} exercise={exercise as Exercise} />
                                   ))}
                                 </div>
                               </ScrollArea>
                             </>
                           )}
-                        </motion.div>
-                      ) : null}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -1291,91 +1275,96 @@ const WorkoutCard = ({ workout, onSave, isSaved }: WorkoutCardProps) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card className="border border-purple-100 hover:border-purple-200 transition-colors shadow-xl shadow-purple-200/40">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              {workout.name}
-            </CardTitle>
-            <CardDescription>{workout.description}</CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
-              onClick={() => onSave(workout)}
-              disabled={isSaved}
-            >
-              {isSaved ? (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Saved
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Save workout
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {workout.target_muscle_groups?.map((muscle, i) => (
-              <Badge key={i} variant="secondary" className="bg-purple-50 text-fitness-purple border-purple-200">
-                {muscle}
-              </Badge>
-            ))}
-            {workout.equipment_required && (
-              <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
-                Equipment: {workout.equipment_required.join(', ')}
-              </Badge>
-            )}
-            {workout.difficulty_level && (
-              <Badge variant="secondary" className={getDifficultyColor(workout.difficulty_level)}>
-                {workout.difficulty_level}
-              </Badge>
-            )}
-          </div>
-          <div className="space-y-3">
-            {workout.exercises.map((exercise, exerciseIndex) => (
-              <div
-                key={exerciseIndex}
-                className="p-3 bg-gray-50 rounded-lg"
+    <Card className="border-0 bg-white rounded-xl shadow-xl shadow-purple-200/40 p-[2px]" style={{
+      background: 'linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%)',
+      borderRadius: '1rem',
+    }}>
+      <div className="bg-white rounded-[0.95rem] p-0.5">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                {workout.name}
+              </CardTitle>
+              <CardDescription>{workout.description}</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
+                onClick={() => onSave(workout)}
+                disabled={isSaved}
               >
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Dumbbell className="h-4 w-4 text-fitness-purple" />
-                      <h4 className="font-medium text-fitness-charcoal">{exercise.name}</h4>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {exercise.details.muscle_groups.slice(0, 2).map((muscle, i) => (
-                      <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-fitness-purple border-purple-200">
-                        {muscle}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                {exercise.notes && (
-                  <p className="text-sm text-muted-foreground mt-2 pl-4 border-l-2 border-purple-200">
-                    {exercise.notes}
-                  </p>
+                {isSaved ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Saved
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Save workout
+                  </>
                 )}
-              </div>
-            ))}
+              </Button>
+            </div>
           </div>
-        </div>
-      </CardContent>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {workout.target_muscle_groups?.map((muscle, i) => (
+                <Badge key={i} variant="secondary" className="bg-purple-50 text-fitness-purple border-purple-200">
+                  {muscle}
+                </Badge>
+              ))}
+              {workout.equipment_required && (
+                <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+                  Equipment: {workout.equipment_required.join(', ')}
+                </Badge>
+              )}
+              {workout.difficulty_level && (
+                <Badge variant="secondary" className={getDifficultyColor(workout.difficulty_level)}>
+                  {workout.difficulty_level}
+                </Badge>
+              )}
+            </div>
+            <div className="space-y-3">
+              {workout.exercises.map((exercise, exerciseIndex) => (
+                <div
+                  key={exerciseIndex}
+                  className="p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Dumbbell className="h-4 w-4 text-fitness-purple" />
+                        <h4 className="font-medium text-fitness-charcoal">{exercise.name}</h4>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {exercise.details.muscle_groups.slice(0, 2).map((muscle, i) => (
+                        <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-fitness-purple border-purple-200">
+                          {muscle}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  {exercise.notes && (
+                    <p className="text-sm text-muted-foreground mt-2 pl-4 border-l-2 border-purple-200">
+                      {exercise.notes}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </div>
     </Card>
   </motion.div>
 );
@@ -1390,36 +1379,41 @@ const ExerciseCard = ({ exercise }: ExerciseCardProps) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card className="border border-blue-100 hover:border-blue-200 transition-colors shadow-xl shadow-blue-200/40">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          {exercise.name}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {exercise.details?.muscle_groups?.slice(0, 3).map((muscle, i) => (
-              <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-fitness-purple border-purple-200">
-                {muscle}
-              </Badge>
-            ))}
-            {exercise.details?.difficulty && (
-              <Badge variant="secondary" className={getDifficultyColor(exercise.details.difficulty)}>
-                {exercise.details.difficulty}
-              </Badge>
+    <Card className="border-0 bg-white rounded-xl shadow-xl shadow-blue-200/40 p-[2px]" style={{
+      background: 'linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%)',
+      borderRadius: '1rem',
+    }}>
+      <div className="bg-white rounded-[0.95rem] p-0.5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            {exercise.name}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {exercise.details?.muscle_groups?.slice(0, 3).map((muscle, i) => (
+                <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-fitness-purple border-purple-200">
+                  {muscle}
+                </Badge>
+              ))}
+              {exercise.details?.difficulty && (
+                <Badge variant="secondary" className={getDifficultyColor(exercise.details.difficulty)}>
+                  {exercise.details.difficulty}
+                </Badge>
+              )}
+            </div>
+            {exercise.notes && (
+              <p className="text-sm text-muted-foreground border-l-2 border-blue-200 pl-2">
+                {exercise.notes}
+              </p>
             )}
           </div>
-          {exercise.notes && (
-            <p className="text-sm text-muted-foreground border-l-2 border-blue-200 pl-2">
-              {exercise.notes}
-            </p>
-          )}
-        </div>
-      </CardContent>
+        </CardContent>
+      </div>
     </Card>
   </motion.div>
 );
