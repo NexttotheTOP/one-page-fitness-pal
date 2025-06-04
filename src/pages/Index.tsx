@@ -19,7 +19,8 @@ import {
   Check,
   X,
   Info,
-  LightbulbIcon
+  LightbulbIcon,
+  Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -41,6 +42,7 @@ import WeekSchema, { WeekSchemaData } from '@/components/WeekSchema';
 import MentionTextarea from '@/components/ui/mention-textarea';
 import ReactMarkdown from 'react-markdown'
 import { cn } from "@/lib/utils";
+import { v4 as uuidv4 } from 'uuid';
 
 // Add TypeScript interfaces for API
 interface ContextExercise {
@@ -306,6 +308,9 @@ const Index = () => {
   const [streamedExercises, setStreamedExercises] = useState<Partial<Exercise>[]>([]);
   const [generatedExercises, setGeneratedExercises] = useState<Exercise[]>([]);
   const generatedSectionRef = useRef<HTMLDivElement | null>(null);
+  const [awaitingUserFeedback, setAwaitingUserFeedback] = useState(false);
+  const [userFeedbackComment, setUserFeedbackComment] = useState("");
+  const feedbackRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setDisplayName(getUserDisplayName(user));
@@ -467,8 +472,12 @@ const Index = () => {
       return;
     }
 
-    // Generate a new ID for this generation
-    const generationId = `gen-${Date.now()}`;
+    // Clear feedback UI state on new generation
+    setAwaitingUserFeedback(false);
+    setUserFeedbackComment("");
+
+    // Generate a robust unique thread ID for this generation
+    const generationId = uuidv4();
     setCurrentGenerationId(generationId);
     
     // Clear previous generation state
@@ -490,7 +499,7 @@ const Index = () => {
       const requestPayload: WorkoutNLQRequest = {
         user_id: user.id,
         prompt: prompt.trim(),
-        thread_id: `workout-${Date.now()}`,
+        thread_id: generationId, // Use the same robust thread id
         context: hasContext ? mentionContext : undefined,
       };
 
@@ -589,18 +598,6 @@ const Index = () => {
                   console.log('🟢 [STREAM] After set - streamedWorkouts:', streamedWorkouts);
                   console.log('🟢 [STREAM] After set - streamedExercises:', streamedExercises);
                 }, 100);
-              // } else if (data.type === 'workout') {
-              //   // Workout data updates
-              //   setStreamedWorkouts(prev => {
-              //     const workoutIndex = data.workoutIndex;
-              //     const newWorkouts = [...prev];
-              //     newWorkouts[workoutIndex] = {
-              //       ...newWorkouts[workoutIndex],
-              //       ...data.content
-              //     };
-              //     console.log('🔄 [STREAM] Updated streamedWorkouts:', newWorkouts);
-              //     return newWorkouts;
-              //   });
               } else if (data.type === 'reasoning') {
                 // Reasoning updates
                 setStreamedReasoning(data.content);
@@ -640,6 +637,8 @@ const Index = () => {
                 if (data.reasoning) {
                   setWorkoutReasoning(data.reasoning);
                 }
+              } else if (data.type === 'await_user_feedback') {
+                setAwaitingUserFeedback(true);
               }
             } catch (e) {
               console.error('❌ [STREAM] Error parsing stream data:', e);
@@ -816,7 +815,7 @@ const Index = () => {
 
   // Handle context changes from MentionTextarea
   const handleMentionContextChange = (context: { exercises: any[], workouts: any[] }) => {
-    console.log('📝 Context changed:', context);
+    //console.log('📝 Context changed:', context);
     
     try {
       // Convert exercises to the proper format
@@ -859,10 +858,10 @@ const Index = () => {
         workouts: contextWorkouts
       });
       
-      console.log('✅ Context processed successfully:', {
-        exercises: contextExercises.length,
-        workouts: contextWorkouts.length
-      });
+      //console.log('✅ Context processed successfully:', {
+      //  exercises: contextExercises.length,
+      //  workouts: contextWorkouts.length
+      //});
     } catch (error) {
       console.error('❌ Error processing context:', error);
       console.error('Context data:', context);
@@ -952,6 +951,56 @@ const Index = () => {
   const displayWorkouts = isGenerating ? streamedWorkouts : generatedWorkouts;
   const displayExercises = isGenerating ? streamedExercises : generatedExercises;
   const displayReasoning = isGenerating ? streamedReasoning : workoutReasoning;
+
+  useEffect(() => {
+    if (awaitingUserFeedback && feedbackRef.current) {
+      feedbackRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [awaitingUserFeedback]);
+
+  // Feedback UI action handlers
+  const handleClearFeedback = () => {
+    setAwaitingUserFeedback(false);
+    setUserFeedbackComment("");
+  };
+  const handleAgree = () => {
+    sendWorkoutFeedback("agree");
+    handleClearFeedback();
+  };
+  const handleDeny = () => {
+    sendWorkoutFeedback("deny");
+    handleClearFeedback();
+  };
+  const handleSubmitComment = () => {
+    if (userFeedbackComment.trim()) {
+      sendWorkoutFeedback(userFeedbackComment.trim());
+    }
+    handleClearFeedback();
+  };
+
+  const sendWorkoutFeedback = async (feedback: string) => {
+    if (!currentGenerationId) {
+      toast.error("Error", "No active workout session to send feedback for.");
+      return;
+    }
+    try {
+      const response = await fetch('http://localhost:8000/workout/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          thread_id: currentGenerationId,
+          feedback,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to send feedback: ${response.status} ${response.statusText}`);
+      }
+      toast.success("Feedback sent", "Thank you for your feedback!");
+    } catch (error) {
+      console.error('Error sending feedback:', error);
+      toast.error("Error", error instanceof Error ? error.message : "Failed to send feedback.");
+    }
+  };
 
   // Always show current streamed/generated workouts and exercises for debugging
   return (
@@ -1067,7 +1116,7 @@ const Index = () => {
                             </>
                           )}
                           <ScrollArea 
-                            className="h-[400px] w-full rounded-xl overflow-hidden border border-purple-100/50"
+                            className="h-[500px] w-full rounded-xl overflow-hidden border border-purple-100/50"
                             scrollHideDelay={75}
                           >
                             <div 
@@ -1080,58 +1129,85 @@ const Index = () => {
                               )}
                             >
                               <ReactMarkdown>{accumulatedTokens}</ReactMarkdown>
+                              {awaitingUserFeedback && (
+                                <div
+                                  ref={feedbackRef}
+                                  className="mt-4 pt-4 border-t border-gray-200 transition-opacity duration-500 animate-fadeIn flex flex-col gap-3"
+                                  style={{ background: 'transparent', boxShadow: 'none', borderRadius: 0 }}
+                                >
+                                  <div className="flex gap-2 mt-2">
+                                    <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50" onClick={handleAgree}>
+                                      <Check className="h-4 w-4 mr-1" /> Agree
+                                    </Button>
+                                    <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50" onClick={handleDeny}>
+                                      <X className="h-4 w-4 mr-1" /> Deny
+                                    </Button>
+                                  </div>
+                                  <div className="flex flex-col gap-2 mt-2">
+                                    <Textarea
+                                      placeholder="Answer or add a comment (optional)"
+                                      value={userFeedbackComment}
+                                      onChange={e => setUserFeedbackComment(e.target.value)}
+                                      className="min-h-[60px]"
+                                    />
+                                    <Button variant="secondary" className="self-end" onClick={handleSubmitComment}>
+                                      <Send className="h-4 w-4 mr-1" /> Submit Comment
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </ScrollArea>
-                        </div>
-                      )}
-                      {isCreatingWorkouts && (
-                        <div className="flex items-center gap-3 my-4 p-4 bg-blue-50 border border-blue-200 rounded-lg shadow mt-8">
-                          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                          <span className="text-blue-900 font-medium">
-                            Creating your workouts now... Please wait while we generate your personalized exercises and plans!
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Final Generated Workouts & Exercises - always show if non-empty */}
-                      {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0 || streamedExercises.length > 0 || generatedExercises.length > 0) && (
-                        <div ref={generatedSectionRef} className="mt-8 pt-6 border-t border-purple-100">
-                          {/* Workouts Section */}
-                          {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0) && (
-                            <>
-                              <h3 className="text-lg font-semibold text-fitness-charcoal mb-4 flex items-center gap-2">
-                                <Dumbbell className="h-5 w-5 text-fitness-purple" />
-                                Generated Workouts
-                              </h3>
-                              <ScrollArea className="w-full rounded-md pr-4 mb-6">
-                                <div className="space-y-4">
-                                  {(streamedWorkouts.length > 0 ? streamedWorkouts : generatedWorkouts).map((workout, index) => (
-                                    <WorkoutCard
-                                      key={index}
-                                      workout={workout}
-                                      onSave={handleSaveWorkout}
-                                      isSaved={savedWorkouts.has(workout.name)}
-                                    />
-                                  ))}
-                                </div>
-                              </ScrollArea>
-                            </>
+                          {isCreatingWorkouts && (
+                            <div className="flex items-center gap-3 my-4 p-4 bg-blue-50 border border-blue-200 rounded-lg shadow mt-8">
+                              <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                              <span className="text-blue-900 font-medium">
+                                Creating your workouts now... Please wait while we generate your personalized exercises and plans!
+                              </span>
+                            </div>
                           )}
-                          {/* Exercises Section */}
-                          {(streamedExercises.length > 0 || generatedExercises.length > 0) && (
-                            <>
-                              <h3 className="text-lg font-semibold text-fitness-charcoal mb-4 flex items-center gap-2">
-                                <Dumbbell className="h-5 w-5 text-fitness-purple" />
-                                Generated Exercises
-                              </h3>
-                              <ScrollArea className="h-[400px] w-full rounded-md pr-4">
-                                <div className="space-y-4">
-                                  {(streamedExercises.length > 0 ? streamedExercises : generatedExercises).map((exercise, idx) => (
-                                    <ExerciseCard key={idx} exercise={exercise as Exercise} />
-                                  ))}
-                                </div>
-                              </ScrollArea>
-                            </>
+
+                          {/* Final Generated Workouts & Exercises - always show if non-empty */}
+                          {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0 || streamedExercises.length > 0 || generatedExercises.length > 0) && (
+                            <div ref={generatedSectionRef} className="mt-8 pt-6 border-t border-purple-100">
+                              {/* Workouts Section */}
+                              {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0) && (
+                                <>
+                                  <h3 className="text-lg font-semibold text-fitness-charcoal mb-4 flex items-center gap-2">
+                                    <Dumbbell className="h-5 w-5 text-fitness-purple" />
+                                    Generated Workouts
+                                  </h3>
+                                  <ScrollArea className="w-full rounded-md pr-4 mb-6">
+                                    <div className="space-y-4">
+                                      {(streamedWorkouts.length > 0 ? streamedWorkouts : generatedWorkouts).map((workout, index) => (
+                                        <WorkoutCard
+                                          key={index}
+                                          workout={workout}
+                                          onSave={handleSaveWorkout}
+                                          isSaved={savedWorkouts.has(workout.name)}
+                                        />
+                                      ))}
+                                    </div>
+                                  </ScrollArea>
+                                </>
+                              )}
+                              {/* Exercises Section */}
+                              {(streamedExercises.length > 0 || generatedExercises.length > 0) && (
+                                <>
+                                  <h3 className="text-lg font-semibold text-fitness-charcoal mb-4 flex items-center gap-2">
+                                    <Dumbbell className="h-5 w-5 text-fitness-purple" />
+                                    Generated Exercises
+                                  </h3>
+                                  <ScrollArea className="h-[400px] w-full rounded-md pr-4">
+                                    <div className="space-y-4">
+                                      {(streamedExercises.length > 0 ? streamedExercises : generatedExercises).map((exercise, idx) => (
+                                        <ExerciseCard key={idx} exercise={exercise as Exercise} />
+                                      ))}
+                                    </div>
+                                  </ScrollArea>
+                                </>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
@@ -1275,7 +1351,7 @@ const WorkoutCard = ({ workout, onSave, isSaved }: WorkoutCardProps) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card className="border-0 bg-white rounded-xl shadow-xl shadow-purple-200/40 p-[2px]" style={{
+    <Card className="border-0 bg-white rounded-xl shadow-xl shadow-purple-200/40 p-[1px]" style={{
       background: 'linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%)',
       borderRadius: '1rem',
     }}>
@@ -1379,7 +1455,7 @@ const ExerciseCard = ({ exercise }: ExerciseCardProps) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card className="border-0 bg-white rounded-xl shadow-xl shadow-blue-200/40 p-[2px]" style={{
+    <Card className="border-0 bg-white rounded-xl shadow-xl shadow-blue-200/40 p-[1px]" style={{
       background: 'linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%)',
       borderRadius: '1rem',
     }}>
