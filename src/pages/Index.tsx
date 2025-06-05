@@ -20,7 +20,9 @@ import {
   X,
   Info,
   LightbulbIcon,
-  Send
+  Send,
+  LayoutGrid,
+  Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -406,7 +408,7 @@ const Index = () => {
   // Auto-scroll effect when new tokens are added
   useEffect(() => {
     if (isGenerating && markdownRef.current) {
-      const scrollContainer = markdownRef.current.parentElement?.parentElement;
+      const scrollContainer = markdownRef.current.parentElement;
       if (scrollContainer) {
         // Use requestAnimationFrame to ensure the scroll happens after content is rendered
         requestAnimationFrame(() => {
@@ -454,6 +456,8 @@ const Index = () => {
     setGeneratedWorkouts([]);
     setWorkoutReasoning(null);
     setProgressMessage(null);
+    setStreamedExercises([]);
+    setGeneratedExercises([]);
   };
 
   // Handle input changes without clearing generation
@@ -1007,133 +1011,142 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <main className="fitness-container py-8">
-        {/* Title Section with Hero-like Design */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-8 mb-10 shadow-xl shadow-purple-200/30">
-          <div>
-            <h1 className="text-3xl font-bold text-fitness-charcoal flex items-center gap-2">
-              <Dumbbell className="h-7 w-7 text-fitness-purple" />
-              Welcome to Your Workouts, {displayName}
-            </h1>
-            <p className="text-muted-foreground mt-2 text-lg">
-              Create, manage and track your personal workout plans
-            </p>
+      <main className="container mx-auto px-6 sm:px-10 lg:px-16 xl:px-20 w-full max-w-none">
+        <div>
+          {/* Top Stats Dashboard */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 mt-6">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+                <Dumbbell className="h-6 w-6 text-fitness-purple" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Total Workouts</div>
+                <div className="text-2xl font-bold text-fitness-charcoal">{filteredWorkouts.length}</div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <Activity className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Exercise Library</div>
+                <div className="text-2xl font-bold text-fitness-charcoal">{workouts.flatMap(w => w.exercises).length}</div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                <Target className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Week Plans</div>
+                <div className="text-2xl font-bold text-fitness-charcoal">{savedSchemas.length}</div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
+                <CalendarDays className="h-6 w-6 text-amber-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Active Plan</div>
+                <div className="text-2xl font-bold text-fitness-charcoal">{activeSchema?.name ? 1 : 0}</div>
+              </div>
+            </div>
+          </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 mt-6 w-full">
+          {/* Welcome Section */}
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 mb-6 shadow-sm border border-purple-100/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-fitness-charcoal flex items-center gap-2">
+                Welcome back, {displayName}
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Track your fitness journey and create custom workout plans
+              </p>
+            </div>
+            <div className="flex gap-3">
               <Button 
                 onClick={() => setIsCreateOpen(!isCreateOpen)}
-                className="bg-fitness-purple hover:bg-fitness-purple/90 transition-all shadow-lg shadow-purple-300/40"
-                size="lg"
+                className="bg-fitness-purple hover:bg-fitness-purple/90 transition-all shadow-md"
               >
                 <Brain className="h-5 w-5 mr-2" />
-                Create New Workout
-                {isCreateOpen ? (
-                  <ChevronUp className="h-4 w-4 ml-2" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                )}
+                {isCreateOpen ? "Hide Creator" : "Create Workout"}
               </Button>
-              
-              <div className="relative flex-1 max-w-sm">
+              <div className="relative w-full md:w-auto">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search your workouts..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-11 bg-white border-gray-200 w-full transition-all focus-visible:ring-fitness-purple/25 shadow-md shadow-purple-100/20"
+                  className="pl-9 h-10 bg-white border-gray-200 w-full md:w-[200px] transition-all focus-visible:ring-fitness-purple/25 shadow-sm"
                 />
               </div>
             </div>
-
-            {/* Expandable Workout Creation Section */}
-            <AnimatePresence>
-              {isCreateOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="overflow-hidden w-full"
-                >
-                  <div className="mt-6 bg-white rounded-xl border border-purple-100/50 shadow-2xl shadow-purple-200/30 w-full">
-                    <div className="p-6">
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-fitness-purple to-purple-400 flex items-center justify-center shadow-lg shadow-purple-300/40">
-                          <Brain className="h-6 w-6 text-white" />
+          </div>
+          
+          {/* Expandable Workout Creation Section - centered initially */}
+          <AnimatePresence>
+            {isCreateOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden w-full mb-8"
+              >
+                <div className="bg-white rounded-xl border border-gray-200 shadow-md w-full">
+                  <div className={`flex flex-col ${currentGenerationId ? 'lg:flex-row' : 'items-center'} overflow-hidden`}>
+                    {/* Left side - AI input - centered initially */}
+                    <div className={`p-6 ${currentGenerationId ? 'lg:w-[45%]' : 'w-full'}`}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-fitness-purple to-purple-400 flex items-center justify-center shadow-md">
+                          <Brain className="h-5 w-5 text-white" />
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-fitness-charcoal">AI Workout Creator</h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Describe your ideal workout and I'll create a personalized plan for you. Use @ to mention specific exercises or workouts.
+                          <p className="text-sm text-muted-foreground">
+                            Describe your ideal workout and I'll create a personalized plan for you
                           </p>
                         </div>
                       </div>
+                      
+                      <div className="mb-4 flex flex-col space-y-4">
+                        {/* AI Chat Input Section */}
+                        <div className="relative">
+                          <MentionTextarea
+                            value={prompt}
+                            onChange={handlePromptChange}
+                            onContextChange={handleMentionContextChange}
+                            className="mb-4"
+                            onGenerate={handleGenerateWorkout}
+                            isGenerating={isGenerating}
+                          />
+                        </div>
+                      </div>
+                    </div>
 
-                      <MentionTextarea
-                        value={prompt}
-                        onChange={handlePromptChange}
-                        onContextChange={handleMentionContextChange}
-                        className="mb-4"
-                        onGenerate={handleGenerateWorkout}
-                        isGenerating={isGenerating}
-                      />
-
-                      {/* Generation Preview */}
-                      {currentGenerationId && (
-                        <div className="mt-6 border-t border-gray-100 pt-4">
+                    {/* Right side - preview of generation (when active) */}
+                    {currentGenerationId && (
+                      <div className="lg:w-[55%] bg-white py-4 px-6 lg:px-8 lg:py-5 relative flex overflow-hidden">
+                        <div className="w-full">
                           <style>{markdownStyles}</style>
-                          {isGenerating && (
-                            <>
-                              {/* Minimalistic agent progress indicator */}
-                              <style>
-                                {`
-                                  @keyframes dotBlink {
-                                    0%, 20% { opacity: 0; }
-                                    50% { opacity: 1; }
-                                    100% { opacity: 0; }
-                                  }
-                                  .ai-dot {
-                                    animation: dotBlink 1.4s infinite;
-                                  }
-                                  .ai-dot:nth-of-type(1) { animation-delay: 0s; }
-                                  .ai-dot:nth-of-type(2) { animation-delay: 0.2s; }
-                                  .ai-dot:nth-of-type(3) { animation-delay: 0.4s; }
-                                `}
-                              </style>
-                              <div className="flex items-center gap-3 mb-3">
-                                {/* Agent avatar/icon */}
-                                <div className="h-7 w-7 rounded-full bg-gradient-to-br from-fitness-purple to-blue-500 flex items-center justify-center shadow-sm">
-                                  <Brain className="h-4 w-4 text-white" />
-                                </div>
-                                <span className="text-sm font-medium text-gray-700 flex items-center">
-                                  {progressMessage || "AI is analyzing your request"}
-                                  <span className="ai-dot">.</span>
-                                  <span className="ai-dot">.</span>
-                                  <span className="ai-dot">.</span>
-                                </span>
-                              </div>
-                            </>
-                          )}
-                          <ScrollArea 
-                            className="h-[500px] w-full rounded-xl overflow-hidden border border-purple-100/50"
-                            scrollHideDelay={75}
-                          >
+                          <div className="h-[500px] w-full overflow-auto">
                             <div 
                               ref={markdownRef}
                               className={cn(
-                                "prose prose-sm max-w-none text-gray-700 p-6",
+                                "prose prose-sm max-w-none text-gray-700 relative pl-5 py-3 my-2 border-l-[3px] bg-gray-50/50 rounded-r-sm",
                                 "markdown-content streaming-markdown",
-                                "bg-gradient-to-br from-white via-purple-100/40 to-blue-100/40",
                                 isGenerating && "animate-pulse"
                               )}
+                              style={{
+                                borderImage: 'linear-gradient(to bottom, #a855f7, #3b82f6) 1 100%'
+                              }}
                             >
                               <ReactMarkdown>{accumulatedTokens}</ReactMarkdown>
                               {awaitingUserFeedback && (
                                 <div
                                   ref={feedbackRef}
                                   className="mt-4 pt-4 border-t border-gray-200 transition-opacity duration-500 animate-fadeIn flex flex-col gap-3"
-                                  style={{ background: 'transparent', boxShadow: 'none', borderRadius: 0 }}
                                 >
                                   <div className="flex gap-2 mt-2">
                                     <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50" onClick={handleAgree}>
@@ -1157,181 +1170,243 @@ const Index = () => {
                                 </div>
                               )}
                             </div>
-                          </ScrollArea>
-                          {isCreatingWorkouts && (
-                            <div className="flex items-center gap-3 my-4 p-4 bg-blue-50 border border-blue-200 rounded-lg shadow mt-8">
-                              <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                              <span className="text-blue-900 font-medium">
-                                Creating your workouts now... Please wait while we generate your personalized exercises and plans!
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Final Generated Workouts & Exercises - always show if non-empty */}
-                          {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0 || streamedExercises.length > 0 || generatedExercises.length > 0) && (
-                            <div ref={generatedSectionRef} className="mt-8 pt-6 border-t border-purple-100">
-                              {/* Workouts Section */}
-                              {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0) && (
-                                <>
-                                  <h3 className="text-lg font-semibold text-fitness-charcoal mb-4 flex items-center gap-2">
-                                    <Dumbbell className="h-5 w-5 text-fitness-purple" />
-                                    Generated Workouts
-                                  </h3>
-                                  <ScrollArea className="w-full rounded-md pr-4 mb-6">
-                                    <div className="space-y-4">
-                                      {(streamedWorkouts.length > 0 ? streamedWorkouts : generatedWorkouts).map((workout, index) => (
-                                        <WorkoutCard
-                                          key={index}
-                                          workout={workout}
-                                          onSave={handleSaveWorkout}
-                                          isSaved={savedWorkouts.has(workout.name)}
-                                        />
-                                      ))}
-                                    </div>
-                                  </ScrollArea>
-                                </>
-                              )}
-                              {/* Exercises Section */}
-                              {(streamedExercises.length > 0 || generatedExercises.length > 0) && (
-                                <>
-                                  <h3 className="text-lg font-semibold text-fitness-charcoal mb-4 flex items-center gap-2">
-                                    <Dumbbell className="h-5 w-5 text-fitness-purple" />
-                                    Generated Exercises
-                                  </h3>
-                                  <ScrollArea className="h-[400px] w-full rounded-md pr-4">
-                                    <div className="space-y-4">
-                                      {(streamedExercises.length > 0 ? streamedExercises : generatedExercises).map((exercise, idx) => (
-                                        <ExerciseCard key={idx} exercise={exercise as Exercise} />
-                                      ))}
-                                    </div>
-                                  </ScrollArea>
-                                </>
-                              )}
-                            </div>
-                          )}
+                          </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-        
-        {/* Workouts Section */}
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-fitness-charcoal">Your Workout Plans</h2>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="bg-white">
-                {filteredWorkouts.length} {filteredWorkouts.length === 1 ? 'workout' : 'workouts'}
-              </Badge>
-              <Button
-                variant={deleteMode ? "destructive" : "outline"}
-                onClick={() => {
-                  setDeleteMode(!deleteMode);
-                  setSelectedWorkouts(new Set());
-                }}
-                className="ml-2"
-              >
-                {deleteMode ? "Cancel Delete" : "Delete Workouts"}
-              </Button>
-            </div>
-          </div>
-          {deleteMode && selectedWorkouts.size > 0 && (
-            <Button
-              variant="destructive"
-              onClick={handleBulkDelete}
-              className="mb-4"
-            >
-              Delete Selected ({selectedWorkouts.size})
-            </Button>
-          )}
-          <Tabs value={viewMode} onValueChange={v => setViewMode(v as 'single' | 'week')} className="mb-6">
-            <div className="flex justify-center">
-              <TabsList className="bg-gray-100 rounded-lg p-1 flex gap-2">
-                <TabsTrigger value="single" className="px-4 py-2 rounded-lg data-[state=active]:bg-fitness-purple data-[state=active]:text-white">Workouts</TabsTrigger>
-                <TabsTrigger value="week" className="px-4 py-2 rounded-lg data-[state=active]:bg-fitness-purple data-[state=active]:text-white">Week Schema</TabsTrigger>
-              </TabsList>
-            </div>
-          </Tabs>
-          {viewMode === 'single' ? (
-            isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-12 w-12 animate-spin" />
-              </div>
-            ) : filteredWorkouts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-gray-50">
-                {filteredWorkouts.map((workout, index) => (
-                  <motion.div
-                    key={workout.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className={`shadow-xl shadow-purple-200/40 h-full flex flex-col cursor-pointer transition-all
-                      ${deleteMode ? "hover:scale-[1.02]" : ""}
-                      ${deleteMode && selectedWorkouts.has(workout.id) ? "border-2 border-red-500 bg-red-50" : ""}
-                    `}
-                    onClick={() => {
-                      if (!deleteMode) return;
-                      setSelectedWorkouts(prev => {
-                        const newSet = new Set(prev);
-                        if (newSet.has(workout.id)) newSet.delete(workout.id);
-                        else newSet.add(workout.id);
-                        return newSet;
-                      });
-                    }}
-                    style={{ pointerEvents: deleteMode ? "auto" : "auto" }}
-                  >
-                    <WorkoutPlan
-                      id={workout.id}
-                      name={workout.name}
-                      description={workout.description || ''}
-                      exercises={workout.exercises.map(ex => ({
-                        ...ex,
-                        exercise_details: {
-                          ...ex.exercise_details,
-                          difficulty: ex.exercise_details.difficulty_level
-                        }
-                      }))}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="bg-white rounded-full h-12 w-12 flex items-center justify-center mx-auto mb-4">
-                  <Dumbbell className="h-6 w-6 text-muted-foreground" />
+
+                  {/* Final Generated Workouts & Exercises - always show if non-empty */}
+                  {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0 || streamedExercises.length > 0 || generatedExercises.length > 0) && (
+                    <div ref={generatedSectionRef} className="p-6 pt-4 border-t border-gray-200 bg-white">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-fitness-charcoal flex items-center gap-2">
+                          <Dumbbell className="h-5 w-5 text-fitness-purple" />
+                          Generated Content
+                        </h3>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={clearCurrentGeneration}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <X className="h-4 w-4 mr-1" /> Clear
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        {/* Workouts Section */}
+                        {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0) && (
+                          <div className={`space-y-4 ${(streamedExercises.length > 0 || generatedExercises.length > 0) ? 
+                            (streamedWorkouts.length <= 1 || generatedWorkouts.length <= 1) ? 'lg:col-span-6' : 'lg:col-span-8' 
+                            : 'lg:col-span-12'}`}>
+                            <h4 className="font-medium text-gray-700 text-sm uppercase tracking-wide">Workouts</h4>
+                            <div className="max-h-[700px] overflow-auto pr-2">
+                              <div className={`grid ${(streamedWorkouts.length <= 1 || generatedWorkouts.length <= 1) && (streamedExercises.length > 0 || generatedExercises.length > 0) ? 
+                                'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-5 p-2`}>
+                                {(streamedWorkouts.length > 0 ? streamedWorkouts : generatedWorkouts).map((workout, index) => (
+                                  <WorkoutCard
+                                    key={index}
+                                    workout={workout}
+                                    onSave={handleSaveWorkout}
+                                    isSaved={savedWorkouts.has(workout.name)}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Exercises Section */}
+                        {(streamedExercises.length > 0 || generatedExercises.length > 0) && (
+                          <div className={`space-y-4 ${(streamedWorkouts.length > 0 || generatedWorkouts.length > 0) ? 
+                            (streamedWorkouts.length <= 1 || generatedWorkouts.length <= 1) ? 'lg:col-span-6' : 'lg:col-span-4' 
+                            : 'lg:col-span-12'}`}>
+                            <h4 className="font-medium text-gray-700 text-sm uppercase tracking-wide">Exercises</h4>
+                            <div className="max-h-[600px] overflow-auto pr-2 space-y-4">
+                              {(streamedExercises.length > 0 ? streamedExercises : generatedExercises).map((exercise, idx) => (
+                                <ExerciseCard key={idx} exercise={exercise as Exercise} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <h3 className="text-lg font-medium text-fitness-charcoal mb-2">No workouts found</h3>
-                <p className="text-muted-foreground mb-6">
-                  {searchQuery
-                    ? "No workouts match your search criteria"
-                    : "Start by creating your first workout plan"}
-                </p>
-                {!searchQuery && (
-                  <Button
-                    onClick={() => setIsCreateOpen(true)}
-                    className="bg-fitness-purple hover:bg-fitness-purple/90"
-                  >
-                    <Brain className="h-4 w-4 mr-2" />
-                    Create Your First Workout
-                  </Button>
-                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Progress indicator in the white space between sections */}
+          {isGenerating && (
+            <div className="flex justify-center my-8">
+              <div className="bg-white rounded-xl shadow-md border border-gray-200 px-6 py-4 flex items-center gap-3 max-w-md">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-fitness-purple to-blue-500 flex items-center justify-center shadow">
+                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                </div>
+                <div>
+                  <style>
+                    {`
+                      @keyframes dotBlink {
+                        0%, 20% { opacity: 0; }
+                        50% { opacity: 1; }
+                        100% { opacity: 0; }
+                      }
+                      .ai-dot {
+                        animation: dotBlink 1.4s infinite;
+                      }
+                      .ai-dot:nth-of-type(1) { animation-delay: 0s; }
+                      .ai-dot:nth-of-type(2) { animation-delay: 0.2s; }
+                      .ai-dot:nth-of-type(3) { animation-delay: 0.4s; }
+                    `}
+                  </style>
+                  <h3 className="font-medium text-fitness-charcoal">
+                    {progressMessage || "Creating your workouts"}
+                    <span className="ai-dot">.</span>
+                    <span className="ai-dot">.</span>
+                    <span className="ai-dot">.</span>
+                  </h3>
+                  {progressMessage && (
+                    <p className="text-sm text-muted-foreground">
+                      {progressMessage === "Creating your workouts" || progressMessage === "Generating your workouts" 
+                        ? "This might take a few seconds"
+                        : ""}
+                    </p>
+                  )}
+                </div>
               </div>
-            )
-          ) : (
-            <WeekSchema 
-              workouts={workouts} 
-              activeSchema={activeSchema}
-              savedSchemas={savedSchemas}
-              onSchemaChange={handleSchemaChange}
-              onSaveSchema={handleSaveSchema}
-              onCreateNewSchema={handleCreateNewSchema}
-              onDeleteSchema={handleDeleteSchema}
-            />
+            </div>
           )}
+          
+          {/* Workouts Section */}
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-fitness-charcoal flex items-center gap-2">
+                <Dumbbell className="h-5 w-5 text-fitness-purple" />
+                Your Workout Collection
+              </h2>
+              <div className="flex gap-2">
+                <Badge variant="outline" className="bg-white">
+                  {filteredWorkouts.length} {filteredWorkouts.length === 1 ? 'workout' : 'workouts'}
+                </Badge>
+                <Button
+                  variant={deleteMode ? "destructive" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setDeleteMode(!deleteMode);
+                    setSelectedWorkouts(new Set());
+                  }}
+                  className="ml-2"
+                >
+                  {deleteMode ? "Cancel" : "Manage"}
+                </Button>
+              </div>
+            </div>
+            {deleteMode && selectedWorkouts.size > 0 && (
+              <div className="bg-red-50 p-3 rounded-lg border border-red-200 mb-4 flex items-center justify-between">
+                <span className="text-red-700 text-sm font-medium">
+                  {selectedWorkouts.size} {selectedWorkouts.size === 1 ? 'workout' : 'workouts'} selected
+                </span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                >
+                  <X className="h-4 w-4 mr-1" /> Delete Selected
+                </Button>
+              </div>
+            )}
+            <Tabs value={viewMode} onValueChange={v => setViewMode(v as 'single' | 'week')} className="mb-6">
+              <div className="flex justify-center">
+                <TabsList className="bg-gray-100 rounded-lg p-1 flex gap-2">
+                  <TabsTrigger value="single" className="px-4 py-2 rounded-lg data-[state=active]:bg-fitness-purple data-[state=active]:text-white">Workouts</TabsTrigger>
+                  <TabsTrigger value="week" className="px-4 py-2 rounded-lg data-[state=active]:bg-fitness-purple data-[state=active]:text-white">Week Schema</TabsTrigger>
+                </TabsList>
+              </div>
+            </Tabs>
+
+            {/* View Content Wrapper with Background */}
+            <div className="rounded-xl shadow-sm">
+              {viewMode === 'single' ? (
+                isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-12 w-12 animate-spin text-fitness-purple" />
+                  </div>
+                ) : filteredWorkouts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 p-2">
+                    {filteredWorkouts.map((workout, index) => (
+                      <motion.div
+                        key={workout.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className={`
+                          ${deleteMode && selectedWorkouts.has(workout.id) ? "border-2 border-red-500 bg-red-50 scale-[1.01]" : ""}
+                        `}
+                        onClick={() => {
+                          if (!deleteMode) return;
+                          setSelectedWorkouts(prev => {
+                            const newSet = new Set(prev);
+                            if (newSet.has(workout.id)) newSet.delete(workout.id);
+                            else newSet.add(workout.id);
+                            return newSet;
+                          });
+                        }}
+                        style={{ pointerEvents: deleteMode ? "auto" : "auto" }}
+                      >
+                        <WorkoutPlan
+                          id={workout.id}
+                          name={workout.name}
+                          description={workout.description || ''}
+                          exercises={workout.exercises.map(ex => ({
+                            ...ex,
+                            exercise_details: {
+                              ...ex.exercise_details,
+                              difficulty: ex.exercise_details.difficulty_level
+                            }
+                          }))}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="bg-gray-50 rounded-full h-12 w-12 flex items-center justify-center mx-auto mb-4">
+                      <Dumbbell className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium text-fitness-charcoal mb-2">No workouts found</h3>
+                    <p className="text-muted-foreground mb-6">
+                      {searchQuery
+                        ? "No workouts match your search criteria"
+                        : "Start by creating your first workout plan"}
+                    </p>
+                    {!searchQuery && (
+                      <Button
+                        onClick={() => setIsCreateOpen(true)}
+                        className="bg-fitness-purple hover:bg-fitness-purple/90"
+                      >
+                        <Brain className="h-4 w-4 mr-2" />
+                        Create Your First Workout
+                      </Button>
+                    )}
+                  </div>
+                )
+              ) : (
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                  <WeekSchema 
+                    workouts={workouts} 
+                    activeSchema={activeSchema}
+                    savedSchemas={savedSchemas}
+                    onSchemaChange={handleSchemaChange}
+                    onSaveSchema={handleSaveSchema}
+                    onCreateNewSchema={handleCreateNewSchema}
+                    onDeleteSchema={handleDeleteSchema}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </main>
     </div>
@@ -1351,96 +1426,105 @@ const WorkoutCard = ({ workout, onSave, isSaved }: WorkoutCardProps) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card className="border-0 bg-white rounded-xl shadow-xl shadow-purple-200/40 p-[1px]" style={{
-      background: 'linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%)',
-      borderRadius: '1rem',
-    }}>
-      <div className="bg-white rounded-[0.95rem] p-0.5">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                {workout.name}
-              </CardTitle>
-              <CardDescription>{workout.description}</CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
-                onClick={() => onSave(workout)}
-                disabled={isSaved}
-              >
-                {isSaved ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Saved
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Save workout
-                  </>
-                )}
-              </Button>
-            </div>
+    <Card className="overflow-hidden border border-gray-100 hover:border-purple-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 bg-white">
+      <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 h-2" />
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              {workout.name}
+            </CardTitle>
+            <CardDescription className="line-clamp-2">{workout.description}</CardDescription>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {workout.target_muscle_groups?.map((muscle, i) => (
-                <Badge key={i} variant="secondary" className="bg-purple-50 text-fitness-purple border-purple-200">
-                  {muscle}
-                </Badge>
-              ))}
-              {workout.equipment_required && (
-                <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
-                  Equipment: {workout.equipment_required.join(', ')}
-                </Badge>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "transition-colors",
+                isSaved 
+                  ? "bg-green-50 text-green-600 border-green-200" 
+                  : "border-purple-200 text-purple-600 hover:bg-purple-50"
               )}
-              {workout.difficulty_level && (
-                <Badge variant="secondary" className={getDifficultyColor(workout.difficulty_level)}>
-                  {workout.difficulty_level}
-                </Badge>
+              onClick={() => onSave(workout)}
+              disabled={isSaved}
+            >
+              {isSaved ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Save
+                </>
               )}
-            </div>
-            <div className="space-y-3">
-              {workout.exercises.map((exercise, exerciseIndex) => (
-                <div
-                  key={exerciseIndex}
-                  className="p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Dumbbell className="h-4 w-4 text-fitness-purple" />
-                        <h4 className="font-medium text-fitness-charcoal">{exercise.name}</h4>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
-                      </div>
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {workout.target_muscle_groups?.map((muscle, i) => (
+              <Badge key={i} variant="secondary" className="bg-purple-50 text-fitness-purple border-purple-200">
+                {muscle}
+              </Badge>
+            ))}
+            {workout.difficulty_level && (
+              <Badge variant="secondary" className={getDifficultyColor(workout.difficulty_level)}>
+                {workout.difficulty_level}
+              </Badge>
+            )}
+          </div>
+          <div className="space-y-2 max-h-[450px] overflow-y-auto pr-2">
+            {workout.exercises.map((exercise, exerciseIndex) => (
+              <div
+                key={exerciseIndex}
+                className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Dumbbell className="h-4 w-4 text-fitness-purple" />
+                      <h4 className="font-medium text-fitness-charcoal group-hover:text-fitness-purple transition-colors">{exercise.name}</h4>
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {exercise.details.muscle_groups.slice(0, 2).map((muscle, i) => (
-                        <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-fitness-purple border-purple-200">
-                          {muscle}
-                        </Badge>
-                      ))}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
                     </div>
                   </div>
-                  {exercise.notes && (
-                    <p className="text-sm text-muted-foreground mt-2 pl-4 border-l-2 border-purple-200">
-                      {exercise.notes}
-                    </p>
-                  )}
+                  <div className="flex flex-wrap gap-1">
+                    {exercise.details.muscle_groups.slice(0, 2).map((muscle, i) => (
+                      <Badge key={i} variant="outline" className="text-xs bg-purple-50/50 text-fitness-purple border-purple-200/70">
+                        {muscle}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
+                {exercise.notes && (
+                  <p className="text-sm text-muted-foreground mt-2 pl-4 border-l-2 border-purple-200">
+                    {exercise.notes}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
-        </CardContent>
-      </div>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between bg-gray-50/50 pt-3 pb-3 border-t border-gray-100">
+        <div className="flex items-center text-sm text-gray-500">
+          <Dumbbell className="h-4 w-4 mr-1 text-fitness-purple/70" />
+          {workout.exercises.length} {workout.exercises.length === 1 ? 'exercise' : 'exercises'}
+        </div>
+        {workout.equipment_required && (
+          <Badge variant="outline" className="bg-blue-50/50 text-blue-700 border-blue-200/70">
+            {workout.equipment_required.length > 2 
+              ? `${workout.equipment_required.slice(0, 2).join(', ')}...` 
+              : workout.equipment_required.join(', ')}
+          </Badge>
+        )}
+      </CardFooter>
     </Card>
   </motion.div>
 );
@@ -1455,41 +1539,51 @@ const ExerciseCard = ({ exercise }: ExerciseCardProps) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3 }}
   >
-    <Card className="border-0 bg-white rounded-xl shadow-xl shadow-blue-200/40 p-[1px]" style={{
-      background: 'linear-gradient(135deg, #a78bfa 0%, #38bdf8 100%)',
-      borderRadius: '1rem',
-    }}>
-      <div className="bg-white rounded-[0.95rem] p-0.5">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            {exercise.name}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {exercise.details?.muscle_groups?.slice(0, 3).map((muscle, i) => (
-                <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-fitness-purple border-purple-200">
-                  {muscle}
-                </Badge>
-              ))}
-              {exercise.details?.difficulty && (
-                <Badge variant="secondary" className={getDifficultyColor(exercise.details.difficulty)}>
-                  {exercise.details.difficulty}
-                </Badge>
-              )}
-            </div>
-            {exercise.notes && (
-              <p className="text-sm text-muted-foreground border-l-2 border-blue-200 pl-2">
-                {exercise.notes}
-              </p>
+    <Card className="overflow-hidden border border-gray-100 hover:border-blue-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 bg-white">
+      <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 h-2" />
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Dumbbell className="h-5 w-5 text-blue-500" />
+          {exercise.name}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Badge variant="outline" className="bg-blue-50/50 border-blue-200/70">
+              {exercise.sets} sets × {exercise.reps} reps
+            </Badge>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {exercise.details?.muscle_groups?.slice(0, 3).map((muscle, i) => (
+              <Badge key={i} variant="outline" className="text-xs bg-purple-50/50 text-fitness-purple border-purple-200/70">
+                {muscle}
+              </Badge>
+            ))}
+            {exercise.details?.difficulty && (
+              <Badge variant="secondary" className={getDifficultyColor(exercise.details.difficulty)}>
+                {exercise.details.difficulty}
+              </Badge>
             )}
           </div>
-        </CardContent>
-      </div>
+          {exercise.notes && (
+            <p className="text-sm text-muted-foreground mt-2 border-l-2 border-blue-200 pl-3 py-1 bg-blue-50/30 rounded-r-md">
+              {exercise.notes}
+            </p>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between bg-gray-50/50 pt-3 pb-3 border-t border-gray-100">
+        <div className="flex items-center text-sm text-gray-500">
+          {exercise.details?.equipment_needed ? (
+            <div className="text-xs text-gray-600">
+              <span className="font-medium">Equipment:</span> {exercise.details.equipment_needed}
+            </div>
+          ) : (
+            <div className="text-xs text-gray-600">No equipment needed</div>
+          )}
+        </div>
+      </CardFooter>
     </Card>
   </motion.div>
 );

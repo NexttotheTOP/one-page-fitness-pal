@@ -489,6 +489,22 @@ Make each variation focus on a different aspect: strength, endurance, and HIIT.`
           font-weight: 600;
           color: #374151;
         }
+
+        /* Modern Mention Suggestions UI */
+        .mention-suggestions {
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          border: 1px solid #e5e7eb;
+        }
+
+        .mention-suggestion-item {
+          transition: all 0.2s;
+        }
+
+        .mention-suggestion-item:hover {
+          background-color: #f5f3ff;
+        }
       `}</style>
       
       {/* Auto-included Profile Context */}
@@ -522,8 +538,9 @@ Make each variation focus on a different aspect: strength, endurance, and HIIT.`
             <span>Progress Data</span>
           </Badge>
         </div>
-        <div className="text-xs text-green-600 mt-2">
-          💡 Your personal fitness profile helps create more targeted workouts
+        <div className="text-xs text-green-600 mt-2 flex items-center gap-1">
+          <Info className="h-3 w-3" />
+          Your personal fitness profile helps create more targeted workouts
         </div>
       </div>
       
@@ -531,7 +548,8 @@ Make each variation focus on a different aspect: strength, endurance, and HIIT.`
       {mentionedItems.length > 0 && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
-            <div className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+            <div className="text-xs font-medium text-gray-600 uppercase tracking-wide flex items-center gap-1">
+              <FolderPlus className="h-3 w-3" />
               Referenced in your prompt ({mentionedItems.length}/5)
             </div>
           </div>
@@ -571,35 +589,37 @@ Make each variation focus on a different aspect: strength, endurance, and HIIT.`
       )}
 
       <div className="relative">
-        <EditorContent editor={editor} />
-        
-        {/* @ Reference Info Badge - appears when text is empty or minimal */}
-        {(!value || value.trim().length < 10) && (
-          <div className="absolute top-2 right-2 z-10">
-            <Badge
-              variant="secondary"
-              className="bg-blue-50 text-blue-700 border-blue-200 shadow-sm animate-in fade-in-0 duration-300"
-            >
-              <Info className="h-3 w-3 mr-1" />
-              <span className="text-xs">
-                Type @ to reference exercises & workouts
-              </span>
-            </Badge>
-          </div>
-        )}
-        
-        {/* Example usage tooltip - shows on hover of info badge */}
-        {(!value || value.trim().length < 10) && (
-          <div className="absolute top-10 right-2 z-20 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-            <div className="bg-blue-900 text-white text-xs rounded-lg p-2 shadow-lg max-w-xs">
-              <div className="font-medium mb-1">Examples:</div>
-              <div className="space-y-1 text-blue-100">
-                <div>• <span className="text-blue-300">@Squats</span> (exercise)</div>
-                <div>• <span className="text-purple-300">@Full Body Workout</span> (workout)</div>
+        <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-purple-200 focus-within:border-purple-400 transition-all">
+          <EditorContent editor={editor} />
+          
+          {/* @ Reference Info Badge - appears when text is empty or minimal */}
+          {(!value || value.trim().length < 10) && (
+            <div className="absolute top-2 right-2 z-10">
+              <Badge
+                variant="secondary"
+                className="bg-blue-50 text-blue-700 border-blue-200 shadow-sm animate-in fade-in-0 duration-300"
+              >
+                <Info className="h-3 w-3 mr-1" />
+                <span className="text-xs">
+                  Type @ to reference exercises & workouts
+                </span>
+              </Badge>
+            </div>
+          )}
+          
+          {/* Example usage tooltip - shows on hover of info badge */}
+          {(!value || value.trim().length < 10) && (
+            <div className="absolute top-10 right-2 z-20 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+              <div className="bg-blue-900 text-white text-xs rounded-lg p-2 shadow-lg max-w-xs">
+                <div className="font-medium mb-1">Examples:</div>
+                <div className="space-y-1 text-blue-100">
+                  <div>• <span className="text-blue-300">@Squats</span> (exercise)</div>
+                  <div>• <span className="text-purple-300">@Full Body Workout</span> (workout)</div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
       
       {/* Streaming preview with markdown support */}
@@ -619,13 +639,13 @@ Make each variation focus on a different aspect: strength, endurance, and HIIT.`
       <div className="mt-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="bg-purple-50 text-purple-700 border-purple-200">
-              <Dumbbell className="h-3 w-3 mr-1" />
-              {exercises.length} Exercises
+            <Badge variant="secondary" className="bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1">
+              <Dumbbell className="h-3 w-3" />
+              <span>{exercises.length} Exercises</span>
             </Badge>
-            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
-              <FolderPlus className="h-3 w-3 mr-1" />
-              {workouts.length} Workouts
+            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
+              <FolderPlus className="h-3 w-3" />
+              <span>{workouts.length} Workouts</span>
             </Badge>
           </div>
           {isLoading && (
@@ -640,12 +660,17 @@ Make each variation focus on a different aspect: strength, endurance, and HIIT.`
           <Button
             onClick={onGenerate}
             disabled={isGenerating || !value.trim()}
-            className="bg-fitness-purple hover:bg-fitness-purple/90 text-white shadow-lg shadow-purple-300/40"
+            className={cn(
+              "shadow-md transition-all",
+              isGenerating 
+                ? "bg-gray-100 text-gray-500" 
+                : "bg-fitness-purple hover:bg-fitness-purple/90 text-white"
+            )}
           >
             {isGenerating ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating Your Workout...
+                Creating Workout...
               </>
             ) : (
               <>

@@ -2,9 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Dumbbell, MoreVertical, CalendarDays, Target, Eye } from "lucide-react";
+import { Eye, Dumbbell } from "lucide-react";
 import WorkoutDetailDialog from "./WorkoutDetailDialog";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -32,11 +31,7 @@ interface WorkoutPlanProps {
 }
 
 export default function WorkoutPlan({ id, name, description, exercises }: WorkoutPlanProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-
-  const displayedExercises = isExpanded ? exercises : exercises.slice(0, 3);
-  const hasMoreExercises = exercises.length > 3;
   
   // Get primary muscle groups for display
   const allMuscleGroups = exercises.flatMap(ex => ex.exercise_details.muscle_groups);
@@ -68,19 +63,20 @@ export default function WorkoutPlan({ id, name, description, exercises }: Workou
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty.toLowerCase()) {
       case 'beginner':
-        return 'bg-green-100 text-green-700 border-green-200';
+        return 'bg-green-50 text-green-700 border-green-200';
       case 'intermediate':
-        return 'bg-amber-100 text-amber-700 border-amber-200';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'advanced':
-        return 'bg-red-100 text-red-700 border-red-200';
+        return 'bg-red-50 text-red-700 border-red-200';
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+        return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
   return (
-    <Card className="overflow-hidden border-0 shadow-xl shadow-purple-200/40 hover:shadow-2xl transition-all duration-300 h-full flex flex-col bg-white">
-      <CardHeader className="p-4 pb-0 space-y-0">
+    <Card className="overflow-hidden border border-gray-100 hover:border-purple-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 bg-white h-full flex flex-col">
+      <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 h-2" />
+      <CardHeader className="p-4 pb-2 space-y-0">
         <div className="flex items-start justify-between mb-2">
           <div>
             <h3 className="text-lg font-semibold text-fitness-charcoal">{name}</h3>
@@ -108,41 +104,26 @@ export default function WorkoutPlan({ id, name, description, exercises }: Workou
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 pt-4 flex-1 flex flex-col">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="h-px bg-gray-200 flex-grow"></div>
-          <span className="text-xs font-medium text-muted-foreground">
-            {exercises.length} {exercises.length === 1 ? 'exercise' : 'exercises'}
-          </span>
-          <div className="h-px bg-gray-200 flex-grow"></div>
-      </div>
-
-      <div className="space-y-3">
-          {displayedExercises.map((exercise, index) => (
+      <CardContent className="p-4 pt-2 flex-1 flex flex-col">
+        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+          {exercises.map((exercise, index) => (
             <motion.div 
               key={`${id}-${exercise.id}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: index * 0.05 }}
-              className={cn(
-                "p-3 rounded-lg transition-colors",
-                index % 2 === 0 ? "bg-gray-50" : "bg-white"
-              )}
+              className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
             >
-            <div className="flex items-center justify-between">
-                <div className="flex items-start gap-2">
-                  <div className="mt-0.5">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
                     <Dumbbell className="h-4 w-4 text-fitness-purple" />
+                    <h4 className="font-medium text-fitness-charcoal group-hover:text-fitness-purple transition-colors">{exercise.name}</h4>
                   </div>
-              <div>
-                    <p className="font-medium text-sm text-fitness-charcoal">{exercise.name}</p>
-                    <div className="flex items-center text-xs text-muted-foreground mt-1">
-                      <span className="font-medium">{exercise.sets} sets</span>
-                      <span className="mx-1">×</span>
-                      <span className="font-medium">{exercise.reps} reps</span>
-                    </div>
-              </div>
-            </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="font-medium">{exercise.sets} sets × {exercise.reps} reps</span>
+                  </div>
+                </div>
                 <Badge 
                   variant="outline" 
                   className={cn("text-xs", getDifficultyColor(exercise.exercise_details.difficulty))}
@@ -150,38 +131,30 @@ export default function WorkoutPlan({ id, name, description, exercises }: Workou
                   {exercise.exercise_details.difficulty}
                 </Badge>
               </div>
+              {exercise.notes && (
+                <p className="text-sm text-muted-foreground mt-2 pl-4 border-l-2 border-purple-200">
+                  {exercise.notes}
+                </p>
+              )}
             </motion.div>
-        ))}
-      </div>
+          ))}
+        </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0 flex flex-col gap-2 mt-auto">
-      {hasMoreExercises && (
+      <CardFooter className="flex bg-gray-50/50 pt-3 pb-3 border-t border-gray-100 mt-auto">
+        <div className="flex items-center text-sm text-gray-500 mr-auto">
+          <Dumbbell className="h-4 w-4 mr-1 text-fitness-purple/70" />
+          {exercises.length} {exercises.length === 1 ? 'exercise' : 'exercises'}
+        </div>
+        
         <Button
-          variant="ghost"
-            size="sm"
-            className="w-full text-muted-foreground hover:text-foreground hover:bg-gray-100"
-          onClick={() => setIsExpanded(!isExpanded)}
+          className="bg-fitness-purple hover:bg-fitness-purple/90 text-white transition-colors"
+          onClick={() => setIsDetailOpen(true)}
+          size="sm"
         >
-          {isExpanded ? (
-            <>
-              Show Less <ChevronUp className="ml-2 h-4 w-4" />
-            </>
-          ) : (
-            <>
-              Show {exercises.length - 3} More <ChevronDown className="ml-2 h-4 w-4" />
-            </>
-          )}
-        </Button>
-      )}
-
-      <Button
-          className="w-full bg-fitness-purple hover:bg-fitness-purple/90 text-white transition-colors"
-        onClick={() => setIsDetailOpen(true)}
-      >
           <Eye className="h-4 w-4 mr-2" />
-        View Workout
-      </Button>
+          View Workout
+        </Button>
       </CardFooter>
 
       <WorkoutDetailDialog
