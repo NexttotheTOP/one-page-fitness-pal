@@ -447,12 +447,12 @@ const Index = () => {
 
   // Function to clear current generation
   const clearCurrentGeneration = () => {
-    setCurrentGenerationId(null);
-    setAccumulatedTokens('');
-    accumulatedTokensRef.current = '';
+    // setCurrentGenerationId(null);
+    // setAccumulatedTokens('');
+    // accumulatedTokensRef.current = '';
     setStreamedWorkouts([]);
-    setStreamedReasoning('');
-    setIsStreamComplete(false);
+    //setStreamedReasoning('');
+    //setIsStreamComplete(false);
     setGeneratedWorkouts([]);
     setWorkoutReasoning(null);
     setProgressMessage(null);
@@ -465,210 +465,147 @@ const Index = () => {
     setPrompt(newValue);
   };
 
-  const handleGenerateWorkout = async () => {
-    if (!user) {
-      toast.error("Error", "You must be logged in to create workouts.");
-      return;
+  // Insert the new reusable stream handler function
+  async function handleWorkoutStream({
+    endpoint,
+    payload,
+    clearState = false,
+  }: {
+    endpoint: string;
+    payload: any;
+    clearState?: boolean;
+  }) {
+    if (clearState) {
+      setCurrentGenerationId(payload.thread_id);
+      setAccumulatedTokens('');
+      accumulatedTokensRef.current = '';
+      setStreamedWorkouts([]);
+      setStreamedReasoning('');
+      setIsStreamComplete(false);
+      setGeneratedWorkouts([]);
+      setWorkoutReasoning(null);
+      setProgressMessage(null);
+      setStreamedExercises([]);
+      setGeneratedExercises([]);
     }
-
-    if (!prompt.trim()) {
-      toast.error("Error", "Please describe the workout you want to create.");
-      return;
-    }
-
-    // Clear feedback UI state on new generation
-    setAwaitingUserFeedback(false);
-    setUserFeedbackComment("");
-
-    // Generate a robust unique thread ID for this generation
-    const generationId = uuidv4();
-    setCurrentGenerationId(generationId);
-    
-    // Clear previous generation state
     setIsGenerating(true);
-    setStreamedWorkouts([]);
-    setStreamedReasoning('');
-    setIsStreamComplete(false);
-    setGeneratedWorkouts([]);
-    setWorkoutReasoning(null);
-    setAccumulatedTokens('');
-    accumulatedTokensRef.current = '';
-    setProgressMessage(null);
-
     try {
-      // Check if we have meaningful context to send
-      const hasContext = (mentionContext.exercises && mentionContext.exercises.length > 0) || 
-                        (mentionContext.workouts && mentionContext.workouts.length > 0);
-
-      const requestPayload: WorkoutNLQRequest = {
-        user_id: user.id,
-        prompt: prompt.trim(),
-        thread_id: generationId, // Use the same robust thread id
-        context: hasContext ? mentionContext : undefined,
-      };
-
-      console.log('🚀 Sending workout request with context:', requestPayload);
-      console.log('📊 Context details:', {
-        hasContext,
-        exerciseCount: mentionContext.exercises?.length || 0,
-        workoutCount: mentionContext.workouts?.length || 0
-      });
-
-      const response = await fetch('http://localhost:8000/workout/create', {
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestPayload),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate workout: ${response.status} ${response.statusText}`);
-      }
-
-      if (!response.body) {
-        throw new Error('Response body is null');
-      }
-
-      // Read the stream
+      if (!response.ok) throw new Error(`Failed: ${response.status} ${response.statusText}`);
+      if (!response.body) throw new Error('Response body is null');
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        
         buffer += decoder.decode(value, { stream: true });
-        
-        // Process complete lines from the buffer
         let newlineIndex;
         while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
           const line = buffer.slice(0, newlineIndex);
           buffer = buffer.slice(newlineIndex + 1);
-          
           if (line.trim()) {
+            let jsonLine = line.trim();
+            if (jsonLine.startsWith('data: ')) jsonLine = jsonLine.substring(6);
+            if (!jsonLine) continue;
             try {
-              // Handle SSE format - strip "data: " prefix if present
-              let jsonLine = line.trim();
-              if (jsonLine.startsWith('data: ')) {
-                jsonLine = jsonLine.substring(6); // Remove "data: " prefix
-              }
-              
-              // Skip empty lines or lines that aren't JSON
-              if (!jsonLine || jsonLine === '') {
-                continue;
-              }
-              
-              // DEBUG: Log every raw line
-              console.log('🟣 [STREAM] Raw line:', jsonLine);
-              
               const data = JSON.parse(jsonLine);
-              console.log('📦 [STREAM] Received stream data:', data);
-              
-              // Handle different types of stream events
               if (data.type === 'token') {
-                // Individual token streaming - accumulate to build complete response
                 setAccumulatedTokens(prev => prev + data.content);
                 accumulatedTokensRef.current += data.content;
-                console.log('🔤 [STREAM] Token:', data.content);
               } else if (data.type === 'progress') {
                 setProgressMessage(data.content);
-                console.log('🔄 [STREAM] Progress update:', data.content);
               } else if (data.type === 'result') {
-                // Parse the stringified JSON       
                 let parsed;
                 try {
                   parsed = typeof data.content === 'string' ? JSON.parse(data.content) : data.content;
-                  console.log('✅ [STREAM] Parsed result content:', parsed);
-                  console.log('RAW data.content:', data.content);
                 } catch (err) {
-                  console.error('❌ [STREAM] Failed to parse results content:', err, data.content);
-                  return;
+                  continue;
                 }
-                // Simple, independent handling of workouts and exercises
                 if (Array.isArray(parsed.workouts)) {
                   setStreamedWorkouts(parsed.workouts as GeneratedWorkout[]);
                   setGeneratedWorkouts(parsed.workouts as GeneratedWorkout[]);
-                  console.log('🏋️‍♂️ [STREAM] setStreamedWorkouts & setGeneratedWorkouts called with:', parsed.workouts);
                 }
                 if (Array.isArray(parsed.exercises)) {
                   setStreamedExercises(parsed.exercises as Exercise[]);
                   setGeneratedExercises(parsed.exercises as Exercise[]);
-                  console.log('💪 [STREAM] setStreamedExercises & setGeneratedExercises called with:', parsed.exercises);
                 }
-                // DEBUG: Log after set
-                setTimeout(() => {
-                  console.log('🟢 [STREAM] After set - streamedWorkouts:', streamedWorkouts);
-                  console.log('🟢 [STREAM] After set - streamedExercises:', streamedExercises);
-                }, 100);
               } else if (data.type === 'reasoning') {
-                // Reasoning updates
                 setStreamedReasoning(data.content);
+              } else if (data.type === 'await_user_feedback') {
+                setAwaitingUserFeedback(true);
+                setIsGenerating(false);
+                return; // Pause stream, wait for user
               } else if (data.type === 'update') {
-                // General updates
-                console.log('🔄 [STREAM] Update received:', data.content);
+                // Optionally handle update events
               } else if (data.type === 'complete' || data.type === 'done') {
-                // Stream completion - try to parse accumulated tokens
-                console.log('✅ [STREAM] Stream completed');
                 setIsStreamComplete(true);
-                
-                // Try to parse accumulated tokens as complete JSON
                 if (accumulatedTokensRef.current.trim()) {
                   try {
-                    console.log('🎯 [STREAM] Attempting to parse accumulated response:', accumulatedTokensRef.current);
                     const completedResponse = JSON.parse(accumulatedTokensRef.current);
-                    
                     if (completedResponse.created_workouts) {
                       setGeneratedWorkouts(completedResponse.created_workouts);
-                      console.log('✅ [STREAM] Workouts parsed from tokens:', completedResponse.created_workouts);
                     }
-                    
                     if (completedResponse.reasoning) {
                       setWorkoutReasoning(completedResponse.reasoning);
-                      console.log('✅ [STREAM] Reasoning parsed from tokens:', completedResponse.reasoning);
                     }
                   } catch (parseError) {
-                    console.error('❌ [STREAM] Failed to parse accumulated tokens:', parseError);
-                    console.log('📄 [STREAM] Accumulated tokens:', accumulatedTokensRef.current);
+                    // Ignore parse error
                   }
                 }
-                
-                // Fallback to data from completion event
                 if (data.workouts) {
                   setGeneratedWorkouts(data.workouts);
                 }
                 if (data.reasoning) {
                   setWorkoutReasoning(data.reasoning);
                 }
-              } else if (data.type === 'await_user_feedback') {
-                setAwaitingUserFeedback(true);
               }
             } catch (e) {
-              console.error('❌ [STREAM] Error parsing stream data:', e);
-              console.error('📄 [STREAM] Raw line:', line);
-              // Only log processed line if it was declared in this scope
-              if (line.trim().startsWith('data: ')) {
-                console.error('🔍 [STREAM] Processed line:', line.trim().substring(6));
-              }
+              // Ignore parse errors for non-JSON lines
             }
           }
         }
       }
-
-      if (!isStreamComplete) {
-        setIsStreamComplete(true);
-        setGeneratedWorkouts(streamedWorkouts as GeneratedWorkout[]);
-        setWorkoutReasoning(streamedReasoning);
-      }
-
+      setIsStreamComplete(true);
+      setIsGenerating(false);
       toast.success("Success", "Your personalized workout has been created!");
     } catch (error) {
-      console.error('Error generating workout:', error);
-      toast.error("Error", error instanceof Error ? error.message : "Failed to generate workout. Please try again.");
-    } finally {
       setIsGenerating(false);
+      toast.error("Error", error instanceof Error ? error.message : "Failed to generate workout. Please try again.");
     }
+  }
+
+  // Update handleGenerateWorkout to use the new stream handler
+  const handleGenerateWorkout = async () => {
+    if (!user) {
+      toast.error("Error", "You must be logged in to create workouts.");
+      return;
+    }
+    if (!prompt.trim()) {
+      toast.error("Error", "Please describe the workout you want to create.");
+      return;
+    }
+    setAwaitingUserFeedback(false);
+    setUserFeedbackComment("");
+    const generationId = uuidv4();
+    setCurrentGenerationId(generationId);
+    const hasContext = (mentionContext.exercises && mentionContext.exercises.length > 0) ||
+      (mentionContext.workouts && mentionContext.workouts.length > 0);
+    const requestPayload: WorkoutNLQRequest = {
+      user_id: user.id,
+      prompt: prompt.trim(),
+      thread_id: generationId,
+      context: hasContext ? mentionContext : undefined,
+    };
+    await handleWorkoutStream({
+      endpoint: 'http://localhost:8000/workout/create',
+      payload: requestPayload,
+      clearState: true,
+    });
   };
 
   const handleSaveWorkout = async (workout: any) => {
@@ -974,6 +911,7 @@ const Index = () => {
   const handleDeny = () => {
     sendWorkoutFeedback("deny");
     handleClearFeedback();
+    setAccumulatedTokens('');
   };
   const handleSubmitComment = () => {
     if (userFeedbackComment.trim()) {
@@ -982,26 +920,24 @@ const Index = () => {
     handleClearFeedback();
   };
 
+  // Update sendWorkoutFeedback to use the new stream handler and not clear state
   const sendWorkoutFeedback = async (feedback: string) => {
     if (!currentGenerationId) {
       toast.error("Error", "No active workout session to send feedback for.");
       return;
     }
     try {
-      const response = await fetch('http://localhost:8000/workout/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      setAwaitingUserFeedback(false);
+      setUserFeedbackComment("");
+      await handleWorkoutStream({
+        endpoint: 'http://localhost:8000/workout/feedback',
+        payload: {
           thread_id: currentGenerationId,
           feedback,
-        }),
+        },
+        clearState: false, // Do NOT clear state when continuing after feedback
       });
-      if (!response.ok) {
-        throw new Error(`Failed to send feedback: ${response.status} ${response.statusText}`);
-      }
-      toast.success("Feedback sent", "Thank you for your feedback!");
     } catch (error) {
-      console.error('Error sending feedback:', error);
       toast.error("Error", error instanceof Error ? error.message : "Failed to send feedback.");
     }
   };
@@ -1148,12 +1084,14 @@ const Index = () => {
                                   ref={feedbackRef}
                                   className="mt-4 pt-4 border-t border-gray-200 transition-opacity duration-500 animate-fadeIn flex flex-col gap-3"
                                 >
+                                  {/* New feedback question */}
+                                  <div className="text-base font-semibold text-fitness-charcoal mb-1">What do you think?</div>
                                   <div className="flex gap-2 mt-2">
                                     <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50" onClick={handleAgree}>
-                                      <Check className="h-4 w-4 mr-1" /> Agree
+                                      <Check className="h-4 w-4 mr-1" /> Continue
                                     </Button>
                                     <Button variant="outline" className="border-red-300 text-red-700 hover:bg-red-50" onClick={handleDeny}>
-                                      <X className="h-4 w-4 mr-1" /> Deny
+                                      <X className="h-4 w-4 mr-1" /> Redo
                                     </Button>
                                   </div>
                                   <div className="flex flex-col gap-2 mt-2">
@@ -1163,8 +1101,13 @@ const Index = () => {
                                       onChange={e => setUserFeedbackComment(e.target.value)}
                                       className="min-h-[60px]"
                                     />
-                                    <Button variant="secondary" className="self-end" onClick={handleSubmitComment}>
-                                      <Send className="h-4 w-4 mr-1" /> Submit Comment
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="self-end border-fitness-purple text-fitness-purple hover:bg-fitness-purple/10 font-semibold"
+                                      onClick={handleSubmitComment}
+                                    >
+                                      <Send className="h-4 w-4 mr-1" /> Send Feedback
                                     </Button>
                                   </div>
                                 </div>
@@ -1223,7 +1166,7 @@ const Index = () => {
                             (streamedWorkouts.length <= 1 || generatedWorkouts.length <= 1) ? 'lg:col-span-6' : 'lg:col-span-4' 
                             : 'lg:col-span-12'}`}>
                             <h4 className="font-medium text-gray-700 text-sm uppercase tracking-wide">Exercises</h4>
-                            <div className="max-h-[600px] overflow-auto pr-2 space-y-4">
+                            <div className="max-h-[700px] overflow-auto pr-2 space-y-4">
                               {(streamedExercises.length > 0 ? streamedExercises : generatedExercises).map((exercise, idx) => (
                                 <ExerciseCard key={idx} exercise={exercise as Exercise} />
                               ))}
@@ -1269,7 +1212,7 @@ const Index = () => {
                   </h3>
                   {progressMessage && (
                     <p className="text-sm text-muted-foreground">
-                      {progressMessage === "Creating your workouts" || progressMessage === "Generating your workouts" 
+                      {progressMessage === "Creating your workouts now..." || progressMessage === "Generating your workouts now" 
                         ? "This might take a few seconds"
                         : ""}
                     </p>
