@@ -1,148 +1,116 @@
-# One Page Fitness Pal
+OpenFit-AI 🌟
 
-A modern fitness application for generating personalized fitness and dietary plans.
+Open-source AI-driven fitness platform tailored for enthusiasts seeking deeper understanding.
 
-## Markdown Formatting Guide for AI-Generated Content
+🔗 Live App: https://web-production-aafa6.up.railway.app/
 
-To ensure consistent rendering of AI-generated fitness plans, follow these formatting guidelines. Our frontend formats markdown in specific ways to create a visually engaging user experience.
+---
 
-### Heading Structure
+🌟 About OpenFit-AI
 
+Most fitness apps today focus on tracking your workouts, logging sets, reps, and providing standard exercise plans. These apps are fantastic for monitoring progress and maintaining routine. However, at OpenFit-AI, we wanted to explore something different—an app designed specifically for fitness enthusiasts who crave understanding, insight, and highly personalized guidance.
 
+OpenFit-AI is built around the idea of empowering users with in-depth knowledge and reasoning behind every recommendation. It's ideal for those who don't just want to follow a workout blindly, but rather understand the "why" behind every move, how to optimize their fitness journey, and safely accommodate personal limitations or injuries.
 
-#### Section Headings (H2)
-```markdown
-## Dietary Plan
-## Body Composition Analysis
-## Fitness Plan
-## Progress Comparison
-## Profile Assessment
-```
-These are rendered with:
-- Purple text
-- Unique icons for each section type:
-  - Dietary Plan: Utensils icon in green
-  - Body Composition Analysis: Ruler icon in blue
-  - Fitness Plan: Activity icon in orange
-  - Progress Comparison: Line Chart icon in indigo
-  - Profile Assessment: User icon in purple
-- Purple gradient underline for all major sections
+---
 
-#### Subsection Headings (H3)
+🚀 What You Can Expect
 
-Different subsections get special treatment:
+<div style="
+  background-color: #e8f4fd;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  color: #000;
+">
 
-**Meal Plan Sections:**
-```markdown
-### Meal Plan
-```
-Rendered with green background, left border, and utensils icon.
+### 🧬 Interactive 3D Muscle Model
 
-**Meal Time Sections:**
-```markdown
-### Breakfast
-### Lunch
-### Dinner
-### Snacks
-```
-Each has a distinct color and icon:
-- Breakfast: Amber with coffee icon
-- Lunch: Blue with utensils icon
-- Dinner: Indigo with utensils icon
-- Snacks: Green with apple icon
+Explore the human body like never before with a real-time 3D muscle model. Interact directly with muscle groups, understand their function, and get precise explanations on training specifics. Guided by advanced AI agents, the model intuitively responds to your queries, providing visually engaging and informative experiences.
 
-### Text Formatting
+</div>
 
-#### Food Items
-Enclose food items in bold:
-```markdown
-**Scrambled Eggs with Spinach**
-**Greek Yogurt with Berries**
-**Grilled Chicken with Vegetables**
-```
-These are rendered with a gray background and purple left border.
+<div style="
+  background-color: #fdf1e8;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  color: #000;
+">
 
-#### Workout Days
-Format workout days in bold:
-```markdown
-**Day 1: Upper Body**
-**Day 2: Lower Body**
-**Day 3: Rest**
-```
-These are rendered with a blue background and blue left border.
+### 📚 Personalized Fitness Knowledge Assistant
 
-#### Measurements & Calculations
-Format calculations consistently using bold:
-```markdown
-**BMR = 1500 calories/day**
-**Total Daily Calories = 2000 calories/day**
-**Protein = 150g protein**
-**Fats = 60g grams**
-**Carbohydrates = 200g grams**
-```
+Imagine having your own expert fitness coach available anytime. Our AI-driven assistant taps into a carefully curated knowledge base, drawing from trusted fitness professionals like Jeff Nippard, AthleanX, and Renaissance Periodization. Ask anything—from exercise form to dietary advice—and get immediate, sourced answers in real-time, complete with relevant video references.
 
-#### Macronutrients
-Format macro breakdowns using italics with this exact pattern:
-```markdown
-_Macros: Approximately 30g protein, 45g carbs, 15g fat_
-```
-These are rendered as distinct colored pills for each macro.
+</div>
 
-### Lists
-Use standard markdown lists:
-```markdown
-- Item one
-- Item two
-- Item three
+<div style="
+  background-color: #e8fdf4;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  color: #000;
+">
 
-1. First step
-2. Second step
-3. Third step
-```
-Keep lists clean with single line breaks between items.
+### 💪 Your Comprehensive Fitness Profile
 
-### Spacing & Structure
-- Separate major sections with horizontal rules (`---`)
-- Avoid using more than two consecutive line breaks
-- Keep paragraphs concise
+No more generic routines. Upload images of your body (front, side, and back views), input your personal details such as fitness goals, dietary preferences, and injury history, and OpenFit-AI generates an extensive, personalized fitness profile. This includes detailed body composition analysis, tailored dietary recommendations, and a fitness plan uniquely suited to your body and goals. Additionally, track your progress seamlessly with clear updates and ongoing AI-supported guidance.
 
-### Example Fitness Plan Structure
+</div>
+
+<div style="
+  background-color: #f8e8fd;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  color: #000;
+">
+
+### 🏋️ Tailored Workout Generation
+
+Our advanced workout planner is a step above traditional systems. Engage directly with conversational AI agents who actively ask questions to deeply understand your preferences and limitations. Create workouts dynamically, including your personal favorite exercises, by simply tagging them with an "@". Every workout is precisely crafted considering your comprehensive fitness profile, ensuring optimal personalization and effectiveness.
+
+</div>
+---
+
+🔍 How It Works (Tech Overview)
+
+Behind the scenes, OpenFit-AI utilizes a robust yet cost-efficient multi-agent framework built on LangGraph. Communication is seamless and instantaneous via WebSockets (client.io), providing smooth real-time interaction. Our system efficiently retrieves relevant information from Supabase, ensuring quick, accurate responses. Each interaction costs under $0.002, making this powerful personalization highly accessible and sustainable.
+
+💡 Why OpenFit-AI?
+
+Traditional fitness apps cover routine well—but OpenFit-AI is for the curious, the enthusiasts, those who value knowledge as much as results. If you've ever wondered about the reasoning behind your workout routines, questioned how certain exercises specifically benefit your goals, or needed personalized plans to safely work around injuries, OpenFit-AI is built for you.
+
+---
+
+📈 The Future is Open
+
+OpenFit-AI is currently open-source, freely available, and community-driven. While in open beta, usage is completely free, but we've set a fair usage policy of 50 interactions per user per day, regardless of which part of the app is used. This ensures the system remains accessible and performant for everyone.
+
+It’s created by me (a self-taught AI practitioner passionate about fitness and technology). For now, it’s a solo effort, but the goal is to grow this into a collaborative, community-driven project. If you're passionate about fitness, AI, or just like building cool and useful things—you're warmly invited to join and contribute.
+
+Your feedback and ideas are crucial to evolving the platform. We’re here to learn together, experiment, and push boundaries—making fitness not just about doing, but about truly understanding.
+
+Let’s build the future of intelligent fitness guidance—together at OpenFit-AI!
 
 
-## Body Composition Analysis
-Your current BMI is 24.2, which is within the normal range.
-**BMR = 1550 calories/day**
-**Total Daily Calories = 2100 calories/day**
+<div style="
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 2px solid #ffcc00;
+  color: #000;
+  font-weight: bold;
+">
 
-## Dietary Plan
+⚠️ **Important:** OpenFit-AI is currently a work in progress. Your feedback, suggestions, or any encountered issues are invaluable.
 
-### Meal Plan
-Your optimal macronutrient distribution:
-**Protein = 150g protein**
-**Fats = 70g grams**
-**Carbohydrates = 210g grams**
+Please feel free to reach out:
 
-### Breakfast
-**Scrambled Eggs with Avocado**
-Two eggs scrambled with 1/4 avocado and a slice of whole grain toast.
-_Macros: Approximately 20g protein, 15g carbs, 15g fat_
+- 📩 **Email:** [woutvp@icloud.com](mailto:woutvp@icloud.com)  
+- 💼 **LinkedIn:** [Wout Van Parys](https://www.linkedin.com/in/wout-van-parys-a9a28420a/)
 
-### Lunch
-**Grilled Chicken Salad**
-4oz chicken breast on mixed greens with olive oil dressing.
-_Macros: Approximately 35g protein, 10g carbs, 12g fat_
+Thanks for helping us improve!
 
-## Fitness Plan
-
-**Day 1: Upper Body Strength**
-- Bench Press: 3 sets of 8-10 reps
-- Dumbbell Rows: 3 sets of 10-12 reps
-- Shoulder Press: 3 sets of 8-10 reps
-
-**Day 2: Lower Body Power**
-- Squats: 3 sets of 8-10 reps
-- Romanian Deadlifts: 3 sets of 10-12 reps
-- Lunges: 3 sets of 10 per leg
-```
-
-Following these formatting guidelines will ensure that your AI-generated content renders beautifully with all the special styling in the fitness application interface.
+</div>

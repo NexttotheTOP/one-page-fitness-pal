@@ -45,6 +45,8 @@ import MentionTextarea from '@/components/ui/mention-textarea';
 import ReactMarkdown from 'react-markdown'
 import { cn } from "@/lib/utils";
 import { v4 as uuidv4 } from 'uuid';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 // Add TypeScript interfaces for API
 interface ContextExercise {
@@ -86,6 +88,7 @@ interface WorkoutNLQRequest {
   prompt: string;
   thread_id?: string;
   context?: WorkoutContext;
+  has_gym_access?: boolean;
 }
 
 interface ExerciseDetails {
@@ -313,6 +316,7 @@ const Index = () => {
   const [awaitingUserFeedback, setAwaitingUserFeedback] = useState(false);
   const [userFeedbackComment, setUserFeedbackComment] = useState("");
   const feedbackRef = useRef<HTMLDivElement | null>(null);
+  const [hasGymAccess, setHasGymAccess] = useState(true);
 
   useEffect(() => {
     setDisplayName(getUserDisplayName(user));
@@ -600,6 +604,7 @@ const Index = () => {
       prompt: prompt.trim(),
       thread_id: generationId,
       context: hasContext ? mentionContext : undefined,
+      has_gym_access: hasGymAccess,
     };
     await handleWorkoutStream({
       endpoint: 'http://localhost:8000/workout/create',
@@ -1030,10 +1035,24 @@ const Index = () => {
                 transition={{ duration: 0.3 }}
                 className="overflow-hidden w-full mb-8"
               >
-                <div className="bg-white rounded-xl border border-gray-200 shadow-md w-full">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-md w-full relative">
+                  {/* Gym Access Toggle - Top Right (initial) */}
+                  {!currentGenerationId && (
+                    <div className="absolute right-6 top-6 z-20 flex items-center gap-2 bg-white/80 rounded-lg px-3 py-2">
+                      <Switch
+                        id="gym-access-toggle"
+                        checked={hasGymAccess}
+                        onCheckedChange={setHasGymAccess}
+                      />
+                      <div className="flex flex-col">
+                        <Label htmlFor="gym-access-toggle">Gym Access</Label>
+                        <span className="text-xs text-gray-500">Do you have access to a gym?</span>
+                      </div>
+                    </div>
+                  )}
                   <div className={`flex flex-col ${currentGenerationId ? 'lg:flex-row' : 'items-center'} overflow-hidden`}>
                     {/* Left side - AI input - centered initially */}
-                    <div className={`p-6 ${currentGenerationId ? 'lg:w-[45%]' : 'w-full'}`}>
+                    <div className={`p-6 ${currentGenerationId ? 'lg:w-[45%] relative' : 'w-full'}`}>
                       <div className="flex items-center gap-3 mb-5">
                         <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-fitness-purple to-purple-400 flex items-center justify-center shadow-md">
                           <Brain className="h-5 w-5 text-white" />
@@ -1041,11 +1060,23 @@ const Index = () => {
                         <div>
                           <h3 className="text-lg font-semibold text-fitness-charcoal">AI Workout Creator</h3>
                           <p className="text-sm text-muted-foreground">
-                            Describe your ideal workout and I'll create a personalized plan for you
+                            What workout you need today?
                           </p>
                         </div>
                       </div>
-                      
+                      {/* Gym Access Toggle - Bottom Left (streaming) */}
+                      {currentGenerationId && (
+                        <div className="absolute left-0 bottom-0 z-20 flex items-center gap-2 bg-white/90 rounded-tr-lg px-3 py-2 m-4">
+                          <Switch
+                            id="gym-access-toggle"
+                            checked={hasGymAccess}
+                            onCheckedChange={setHasGymAccess}
+                          />
+                          <div className="flex flex-col">
+                            <Label htmlFor="gym-access-toggle">Gym Access</Label>
+                          </div>
+                        </div>
+                      )}
                       <div className="mb-4 flex flex-col space-y-4">
                         {/* AI Chat Input Section */}
                         <div className="relative">
@@ -1099,7 +1130,7 @@ const Index = () => {
                                       placeholder="Answer or add a comment (optional)"
                                       value={userFeedbackComment}
                                       onChange={e => setUserFeedbackComment(e.target.value)}
-                                      className="min-h-[60px]"
+                                      className="min-h-[80px]"
                                     />
                                     <Button 
                                       variant="outline" 

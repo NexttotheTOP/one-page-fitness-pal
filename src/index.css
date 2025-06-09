@@ -98,7 +98,7 @@
 
 @layer components {
   .fitness-container {
-    @apply container mx-auto px-2 py-6 lg:px-4 xl:px-6 w-full max-w-none;
+    @apply container mx-auto px-4 py-6 lg:px-12 xl:px-32 w-full max-w-none;
   }
 
   .fitness-card {

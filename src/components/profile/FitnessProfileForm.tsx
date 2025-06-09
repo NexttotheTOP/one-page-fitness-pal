@@ -45,6 +45,7 @@ export interface FitnessProfileData {
   fitness_goals: string[];
   dietary_preferences: string[];
   health_restrictions: string[];
+  body_issues?: string;
 }
 
 // Add SavedGeneration type to track saved generations
@@ -124,7 +125,7 @@ const markdownComponents = {
     return (
       <h2
         id={id}
-        className="text-lg font-semibold text-fitness-purple mt-5 mb-3 flex items-center gap-2 scroll-mt-24"
+        className="text-xl font-semibold text-fitness-purple mt-5 mb-3 flex items-center gap-2 scroll-mt-24 bg-fitness-purple/10 px-4 py-2 rounded-md"
       >
         {text.includes("Dietary") ? 
           <Utensils className="h-4 w-4 text-green-600" /> : 
@@ -144,48 +145,16 @@ const markdownComponents = {
   h3: ({ children }: { children: React.ReactNode }) => {
     const content = children?.toString() || '';
     // Special formatting for meal-related sections
-    if (content.includes("Meal Plan")) {
+    if (content.includes("Meal Library")) {
       return (
-        <h3 className="text-md font-medium mt-5 mb-3 bg-green-50 px-3 py-2 rounded-md flex items-center gap-2 border-l-4 border-green-200">
+        <h3 className="text-lg font-medium mt-5 mb-3 bg-green-50 px-3 py-2 rounded-md flex items-center gap-2 border-l-4 border-green-200">
           <Utensils className="h-4 w-4 text-green-600" />
           {children}
         </h3>
       );
     }
-    if (content.includes("Breakfast")) {
-      return (
-        <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-amber-700">
-          <Coffee className="h-4 w-4" />
-          {children}
-        </h3>
-      );
-    }
-    if (content.includes("Lunch")) {
-      return (
-        <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-blue-700">
-          <Utensils className="h-4 w-4" />
-          {children}
-        </h3>
-      );
-    }
-    if (content.includes("Dinner")) {
-      return (
-        <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-indigo-700">
-          <Utensils className="h-4 w-4" />
-          {children}
-        </h3>
-      );
-    }
-    if (content.includes("Snacks")) {
-      return (
-        <h3 className="text-md font-medium mt-4 mb-2 flex items-center gap-1.5 text-green-700">
-          <Apple className="h-4 w-4" />
-          {children}
-        </h3>
-      );
-    }
     
-    return <h3 className="text-md font-medium mt-4 mb-2">{children}</h3>;
+    return <h3 className="text-lg font-medium mt-4 mb-2">{children}</h3>;
   },
   p: ({ children }: { children: React.ReactNode }) => {
     // If it's an empty paragraph (just line breaks), render minimal spacing
@@ -203,25 +172,10 @@ const markdownComponents = {
     }
     return <li className="pl-1">{children}</li>;
   },
-  hr: () => <hr className="my-3 border-gray-200" />,
+  hr: () => <hr className="my-4 border-t-2 border-gray-300" />,
   blockquote: ({ children }: { children: React.ReactNode }) => <blockquote className="border-l-4 border-gray-200 pl-4 italic my-3">{children}</blockquote>,
   strong: ({ children }: { children: React.ReactNode }) => {
     const content = children?.toString() || '';
-    // Special formatting for food items
-    if (content.includes("Scrambled Eggs") || 
-        content.includes("Greek Yogurt") || 
-        content.includes("Grilled Chicken") || 
-        content.includes("Quinoa") || 
-        content.includes("Salmon") || 
-        content.includes("Tofu") || 
-        content.includes("Cottage Cheese") || 
-        content.includes("Almond Butter")) {
-      return (
-        <strong className="font-semibold text-fitness-charcoal block bg-gray-50 px-3 py-1.5 my-2 rounded-md border-l-2 border-fitness-purple/30">
-          {children}
-        </strong>
-      );
-    }
     // Special formatting for workout sections
     if (content.includes("Day 1:") || 
         content.includes("Day 2:") || 
@@ -238,28 +192,55 @@ const markdownComponents = {
     }
     return <strong className="font-semibold text-fitness-charcoal">{children}</strong>;
   },
-  pre: ({ children }: { children: React.ReactNode }) => <pre className="bg-gray-50 p-2 rounded my-2 text-sm overflow-x-auto">{children}</pre>,
-  code: ({ children }: { children: React.ReactNode }) => <code className="bg-gray-50 px-1.5 py-0.5 rounded text-pink-600 text-xs">{children}</code>,
+  pre: ({ children }: { children: React.ReactNode }) => <pre className="bg-white p-2 rounded my-2 text-sm overflow-x-auto">{children}</pre>,
+  code: ({ children }: { children: React.ReactNode }) => <code className="bg-white px-1.5 py-0.5 rounded text-black text-xs">{children}</code>,
   em: ({ children }: { children: React.ReactNode }) => {
     const content = children?.toString() || '';
-    // Special formatting for macros
-    if (content.includes("Macros: Approximately")) {
+    // Special formatting for macros (inline badges, no blue box)
+    if (/Macros:/i.test(content)) {
+      // Try to extract macros in both formats
+      const regex1 = /Protein\s*=\s*([\d.]+)\s*g[, ]+Carbs?\s*=\s*([\d.]+)\s*g[, ]+Fat\s*=\s*([\d.]+)\s*g/i;
+      const regex2 = /~?\s*([\d.]+)\s*g\s*P[, ]+([\d.]+)\s*g\s*C[, ]+([\d.]+)\s*g\s*F/i;
+      let protein, carbs, fat;
+      let match = content.match(regex1);
+      if (match) {
+        protein = match[1] + 'g';
+        carbs = match[2] + 'g';
+        fat = match[3] + 'g';
+      } else {
+        match = content.match(regex2);
+        if (match) {
+          protein = match[1] + 'g';
+          carbs = match[2] + 'g';
+          fat = match[3] + 'g';
+        }
+      }
       return (
-        <div className="mt-1 mb-3 bg-blue-50 rounded-md p-2 text-xs font-medium flex gap-2">
-          <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded">
-            {content.match(/(\d+g protein)/)?.[0] || 'protein'}
+        <span className="text-xs font-medium inline-flex items-center gap-2">
+          <span className="font-semibold text-fitness-charcoal mr-1">Macros:</span>
+          <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded inline-block">
+            {protein || '—'} Protein
           </span>
-          <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded">
-            {content.match(/(\d+g carbs)/)?.[0] || 'carbs'}
+          <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded inline-block">
+            {carbs || '—'} Carbs
           </span>
-          <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
-            {content.match(/(\d+g fat)/)?.[0] || 'fat'}
+          <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded inline-block">
+            {fat || '—'} Fat
           </span>
-        </div>
+        </span>
       );
     }
     return <em className="italic">{children}</em>;
-  }
+  },
+  table: ({ children }: { children: React.ReactNode }) => (
+    <table className="min-w-full border border-gray-200 my-4 rounded overflow-hidden">{children}</table>
+  ),
+  th: ({ children }: { children: React.ReactNode }) => (
+    <th className="bg-gray-100 border border-gray-200 px-3 py-2 text-left font-semibold">{children}</th>
+  ),
+  td: ({ children }: { children: React.ReactNode }) => (
+    <td className="border border-gray-200 px-3 py-2">{children}</td>
+  ),
 };
 
 export default function FitnessProfileForm({ 
@@ -290,6 +271,7 @@ export default function FitnessProfileForm({
   const [customGoal, setCustomGoal] = useState("");
   const [customDiet, setCustomDiet] = useState("");
   const [customRestriction, setCustomRestriction] = useState("");
+  const [bodyIssues, setBodyIssues] = useState(initialData?.body_issues || "");
   
   // Reference to the overview section for smooth scrolling
   const overviewSectionRef = useRef<HTMLDivElement>(null);
@@ -367,6 +349,7 @@ export default function FitnessProfileForm({
       fitness_goals: fitnessGoals,
       dietary_preferences: dietaryPreferences,
       health_restrictions: healthRestrictions,
+      body_issues: bodyIssues,
     });
     setIsOpen(false);
   };
@@ -452,6 +435,7 @@ export default function FitnessProfileForm({
           fitness_goals: fitnessGoals,
           dietary_preferences: dietaryPreferences,
           health_restrictions: healthRestrictions,
+          body_issues: bodyIssues,
           // Include imagePaths if available
           ...(imagePaths && { imagePaths }),
         },
@@ -688,6 +672,21 @@ export default function FitnessProfileForm({
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* New: Body Problems/Injuries/Movement Difficulties */}
+                <div className="space-y-2">
+                  <Label htmlFor="body-issues" className="flex items-center gap-1.5">
+                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    Body Problems, Injuries, or Movement Difficulties
+                  </Label>
+                  <textarea
+                    id="body-issues"
+                    value={bodyIssues}
+                    onChange={(e) => setBodyIssues(e.target.value)}
+                    placeholder="Describe any injuries, chronic pain, movement limitations, or other relevant issues..."
+                    className="w-full min-h-[60px] max-h-40 rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-fitness-purple transition-all resize-vertical"
+                  />
                 </div>
                 </div>
 
