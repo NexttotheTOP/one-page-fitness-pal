@@ -127,11 +127,11 @@ const markdownComponents = {
         id={id}
         className="text-xl font-semibold text-fitness-purple mt-5 mb-3 flex items-center gap-2 scroll-mt-24 bg-fitness-purple/10 px-4 py-2 rounded-md"
       >
-        {text.includes("Dietary") ? 
+        {text.includes("Dietary plan") ? 
           <Utensils className="h-4 w-4 text-green-600" /> : 
           text.includes("Body Composition") ? 
           <Ruler className="h-4 w-4 text-blue-600" /> :
-          text.includes("Fitness") ? 
+          text.includes("Fitness plan") ? 
           <Activity className="h-4 w-4 text-orange-600" /> :
           text.includes("Progress") ? 
           <LineChart className="h-4 w-4 text-indigo-600" /> :
@@ -260,6 +260,7 @@ export default function FitnessProfileForm({
   const [showSavedGenerations, setShowSavedGenerations] = useState(false);
   const [selectedGeneration, setSelectedGeneration] = useState<SavedGeneration | null>(null);
   const [overviewContent, setOverviewContent] = useState<string[]>([]);
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [age, setAge] = useState(initialData?.age?.toString() || "");
   const [gender, setGender] = useState(initialData?.gender || "");
   const [height, setHeight] = useState(initialData?.height || "");
@@ -401,6 +402,7 @@ export default function FitnessProfileForm({
 
     // Generate a new thread_id for this specific overview
     const newThreadId = generateThreadId();
+    setCurrentThreadId(newThreadId);
     
     // Scroll to the overview section with smooth behavior
     setTimeout(() => {
@@ -487,6 +489,7 @@ export default function FitnessProfileForm({
   const loadGeneration = (generation: SavedGeneration) => {
     setSelectedGeneration(generation);
     setMarkdown(generation.content);
+    setCurrentThreadId(generation.id);
   };
   
   const deleteGeneration = async (id: string) => {
@@ -1152,8 +1155,8 @@ export default function FitnessProfileForm({
                       <div className="sticky left-0 right-0 bottom-0 z-30 bg-gradient-to-r from-gray-50 to-white border-t border-gray-100 px-6 py-4">
                         <ProfileQASection 
                           userId={user?.id} 
-                          threadId={selectedGeneration?.id} 
-                          disabled={!user}
+                          threadId={currentThreadId} 
+                          disabled={isGenerating || !user}
                           minimal={true}
                           prominent={true}
                         />

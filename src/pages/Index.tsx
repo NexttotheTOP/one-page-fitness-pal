@@ -910,11 +910,11 @@ const Index = () => {
     setUserFeedbackComment("");
   };
   const handleAgree = () => {
-    sendWorkoutFeedback("agree");
+    sendWorkoutFeedback("proceed to proposal generation");
     handleClearFeedback();
   };
   const handleDeny = () => {
-    sendWorkoutFeedback("deny");
+    sendWorkoutFeedback("No, I don't like this. Please try again. Take my profile data into consideration.");
     handleClearFeedback();
     setAccumulatedTokens('');
   };
