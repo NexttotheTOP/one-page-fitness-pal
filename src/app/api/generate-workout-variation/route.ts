@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     console.log('=====================================');
 
     // Call the Langgraph agent at the correct endpoint
-    const response = await fetch('http://localhost:8000/workout/variation', {
+    const response = await fetch('https://web-production-aafa6.up.railway.app/workout/variation', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

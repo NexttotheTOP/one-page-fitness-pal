@@ -335,7 +335,7 @@ function useModelChat(userId: string | undefined, threadId: string) {
   const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    const socket = io("http://localhost:8000");
+    const socket = io("https://web-production-aafa6.up.railway.app");
     socketRef.current = socket;
 
     // Attach model control event handlers
@@ -397,7 +397,7 @@ function useModelChat(userId: string | undefined, threadId: string) {
     });
     
     // Create new EventSource for token streaming
-    const eventSource = new EventSource(`http://localhost:8000/model/token-stream?${params}`);
+    const eventSource = new EventSource(`https://web-production-aafa6.up.railway.app/model/token-stream?${params}`);
     eventSourceRef.current = eventSource;
     
     let accumulatedText = "";

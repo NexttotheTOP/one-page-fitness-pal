@@ -607,7 +607,7 @@ const Index = () => {
       has_gym_access: hasGymAccess,
     };
     await handleWorkoutStream({
-      endpoint: 'http://localhost:8000/workout/create',
+      endpoint: 'https://web-production-aafa6.up.railway.app/workout/create',
       payload: requestPayload,
       clearState: true,
     });
@@ -935,7 +935,7 @@ const Index = () => {
       setAwaitingUserFeedback(false);
       setUserFeedbackComment("");
       await handleWorkoutStream({
-        endpoint: 'http://localhost:8000/workout/feedback',
+        endpoint: 'https://web-production-aafa6.up.railway.app/workout/feedback',
         payload: {
           thread_id: currentGenerationId,
           feedback,

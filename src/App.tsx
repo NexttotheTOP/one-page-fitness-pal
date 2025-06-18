@@ -39,11 +39,10 @@ const App = () => {
   useEffect(() => {
     let socket: any;
     let cleanup = () => {};
-    // Only run on client
+    // client only
     if (typeof window !== "undefined") {
       (async () => {
         const { io } = await import("socket.io-client");
-        // TODO: Replace with your backend URL/port
         socket = io("https://web-production-aafa6.up.railway.app");
         initModelControlApi(socket);
         cleanup = () => socket.disconnect();

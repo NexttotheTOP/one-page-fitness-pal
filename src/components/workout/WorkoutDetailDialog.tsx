@@ -156,7 +156,7 @@ export default function WorkoutDetailDialog({ isOpen, onClose, workout }: Workou
         thread_id: '123',  // ==============================================================================
       };
       
-      const response = await fetch('http://localhost:8000/workout/variations', {
+      const response = await fetch('https://web-production-aafa6.up.railway.app/workout/variations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
