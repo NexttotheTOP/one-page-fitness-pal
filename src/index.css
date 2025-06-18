@@ -83,6 +83,13 @@
   .animate-fadeIn {
     animation: fadeIn 0.3s ease-in-out;
   }
+
+  /* Reduce global scale on medium (≥768px) and larger screens to mimic a ~90% browser zoom */
+  @media (min-width: 768px) {
+    html {
+      font-size: 80%; /* 14.4px instead of default 16px → ~10% smaller */
+    }
+  }
 }
 
 @layer base {

@@ -12,7 +12,13 @@ import type { AuthError } from "@supabase/supabase-js";
 import { motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 
-export default function SignUpForm() {
+// Add props type for callbacks
+interface SignUpFormProps {
+  onProfileSetupStart?: () => void;
+  onProfileSetupComplete?: () => void;
+}
+
+export default function SignUpForm({ onProfileSetupStart, onProfileSetupComplete }: SignUpFormProps) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -132,6 +138,11 @@ export default function SignUpForm() {
       setIsSettingUpProfile(true);
       setSetupProgress(10);
 
+      // Notify parent that profile setup has started
+      if (onProfileSetupStart) {
+        onProfileSetupStart();
+      }
+
       toast({
         title: "Account Created!",
         description: "Setting up your profile and workouts...",
@@ -164,6 +175,11 @@ export default function SignUpForm() {
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         setIsSettingUpProfile(false);
+
+        // Notify parent that profile setup is complete
+        if (onProfileSetupComplete) {
+          onProfileSetupComplete();
+        }
         navigate("/");
         
       } catch (workoutError) {
@@ -176,6 +192,9 @@ export default function SignUpForm() {
         });
         // Still redirect after a delay, even if workout creation failed
         setTimeout(() => {
+          if (onProfileSetupComplete) {
+            onProfileSetupComplete();
+          }
           navigate("/");
         }, 2000);
       }
@@ -189,6 +208,10 @@ export default function SignUpForm() {
         description: error instanceof Error ? getErrorMessage(error as AuthError) : "An unexpected error occurred",
         variant: "destructive",
       });
+
+      if (onProfileSetupComplete) {
+        onProfileSetupComplete();
+      }
     }
   };
 

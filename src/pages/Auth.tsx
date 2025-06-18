@@ -12,6 +12,7 @@ import FeatureShowcase from "@/components/auth/FeatureShowcase";
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
+  const [isProfileSetupInProgress, setIsProfileSetupInProgress] = useState(false);
   const { user } = useAuth();
 
   // Set page title
@@ -22,8 +23,8 @@ export default function Auth() {
     };
   }, [activeTab]);
 
-  // Redirect if user is already logged in
-  if (user) {
+  // Redirect if user is already logged in and profile setup is not in progress
+  if (user && !isProfileSetupInProgress) {
     return <Navigate to="/" replace />;
   }
 
@@ -77,7 +78,10 @@ export default function Auth() {
                     <SignInForm />
                   </TabsContent>
                   <TabsContent value="signup">
-                    <SignUpForm />
+                    <SignUpForm 
+                      onProfileSetupStart={() => setIsProfileSetupInProgress(true)}
+                      onProfileSetupComplete={() => setIsProfileSetupInProgress(false)}
+                    />
                   </TabsContent>
                 </Tabs>
               </CardContent>

@@ -43,6 +43,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const Header = () => {
   const location = useLocation();
@@ -57,6 +58,7 @@ const Header = () => {
   
   const [guideOpen, setGuideOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("features");
+  const [featureView, setFeatureView] = useState<"user" | "developer">("user");
 
   const handleSignOut = async () => {
     try {
@@ -72,50 +74,82 @@ const Header = () => {
       icon: <Crosshair className="h-5 w-5 text-blue-500" />,
       description: "Interactive 3D model of the human muscular system. Click, rotate, and learn about muscle groups.",
       benefits: [
-        "Real-time muscle visualization",
-        "Interactive learning experience",
-        "Detailed muscle information",
-        "Exercise impact visualization"
+        "Real-time muscle visualization trough an interactive AI-powered learning experience",
       ],
+      developer: {
+        description: "Linear agent graph with conditional routing: planner-agent decides whether to route directly to responder-agent or flow through muscle and camera control agents first.",
+        details: [
+          "planner-agent → [muscle-control-agent → camera-control-agent] → responder-agent",
+          "Conditional routing based on query and conv history",
+          "Real-time muscle highlighting and camera positioning (emitted trough live websocket connection, using a writer)",
+          "Streamed responses while model/camera updates"
+        ]
+      },
       color: "bg-blue-500/10",
       path: "/muscle-model"
     },
     {
-      title: "AI Knowledge Assistant",
+      title: "Knowledge Assistant",
       icon: <Brain className="h-5 w-5 text-purple-500" />,
-      description: "Your personal fitness coach powered by advanced AI. Get expert advice and answers instantly.",
+      description: "Your personal, brutally honest, all-knowing go-to source of truth for all fitness questions.",
       benefits: [
-        "Expert-backed knowledge",
-        "Real-time answers",
-        "Video references",
-        "Personalized guidance"
+        "Expert-backed knowledge base consisting out of science-based fitness youtubers data with source citations",
+        "Personal fitness profile generation in context"
       ],
+      developer: {
+        description: "Linear agent graph with conditional routing: router-agent analyzes the query and chat history to answer directly or trigger retrieval. Uses custom RAG vector DB and web search, with graders for relevance and hallucination. Step updates and persistent memory (like ChatGPT) are sent to the frontend.",
+        details: [
+          "router-agent → [retrieval-agent → graders] → generation-agent",
+          "Retriever agent generates 3 optimized queries for DB and web search",
+          "Retrieval, hallucination, and answer graders filter results",
+          "Web search triggered if DB results are off-topic or insufficient",
+        ]
+      },
       color: "bg-purple-500/10",
       path: "/knowledge"
     },
     {
       title: "Smart Workout Generator",
       icon: <Sparkles className="h-5 w-5 text-orange-500" />,
-      description: "Create custom workouts tailored to your goals, experience, and preferences.",
+      description: "Create custom workouts and exercises tailored to your profile, goals, and preferences.",
       benefits: [
-        "AI-powered customization",
-        "Progressive overload",
-        "Exercise variations",
+        "Personal fitness profile in context",
+        "Ability to include any existing exercises or workouts of yours",
+        "AI-powered exercise selection",
         "Real-time adjustments"
       ],
+      developer: {
+        description: "Human-in-the-Loop (HITL): planning/convo agent, HITL node (LangGraph Interrupt), router, proposal agent, and creation agent. After feedback, router can send flow back to planning or forward to proposal; feedback is always injected into conversation history.",
+        details: [
+          "planning-agent → HITL (Interrupt) → router → [planning-agent | proposal-agent] → creation-agent",
+          "Router decides next step based on feedback",
+          "Feedback always injected into conversation history",
+          "Proposal agent uses context, profile, and convo history",
+          "Creation agent finalizes and saves workouts"
+        ]
+      },
       color: "bg-orange-500/10",
       path: "/"
     },
     {
       title: "Fitness Profile",
       icon: <Target className="h-5 w-5 text-green-500" />,
-      description: "Comprehensive fitness tracking and analysis for data-driven progress.",
+      description: "Comprehensive fitness profile analysis and generation based on your input data and body images.",
       benefits: [
         "Body composition analysis",
-        "Progress tracking",
-        "Goal setting",
-        "Performance metrics"
+        "Profile Assessment",
+        "Dietary recommendations",
+        "Fitness Plan",
+        "Progress tracking"
       ],
+      developer: {
+        description: "Five specialized agents, each dedicated to a specific task. Each agent uses outputs from previous agents (e.g., dietary agent uses profile assessment and body composition).",
+        details: [
+          "body-composition-agent → profile-assessment-agent → dietary-agent → fitness-agent → progress-tracking-agent",
+          "Each agent specializes in their own task",
+          "Agents use outputs from previous steps",
+        ]
+      },
       color: "bg-green-500/10",
       path: "/profile"
     }
@@ -124,30 +158,25 @@ const Header = () => {
   const quickTips = [
     {
       icon: <Zap className="h-5 w-5 text-yellow-500" />,
-      title: "Quick Start",
-      tip: "Begin with the Workout Generator to create your first personalized workout plan."
+      title: "Start personalized",
+      tip: "Start by creating your personal fitness profile. We will always use your personal profile in context for our workout generator and our knowledge assistant."
     },
     {
       icon: <Lightbulb className="h-5 w-5 text-blue-500" />,
       title: "Pro Tip",
-      tip: "Use the '@' symbol to tag your favorite exercises when creating workouts."
+      tip: "In the workout generator, use the '@' symbol to reference any of your own exercises/workouts."
     },
     {
       icon: <Ruler className="h-5 w-5 text-purple-500" />,
       title: "Best Practice",
-      tip: "Complete your fitness profile for more accurate and personalized recommendations."
-    },
-    {
-      icon: <Flame className="h-5 w-5 text-red-500" />,
-      title: "Remember",
-      tip: "Explore the 3D Muscle Model to understand exercise impact on specific muscle groups."
+      tip: "Complete your fitness profile as much as possible for more accurate and personalized recommendations."
     }
   ];
 
   return (
     <>
       <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-0">
           <DialogHeader className="px-6 pt-6 pb-4 bg-gradient-to-br from-fitness-purple/5 via-purple-50 to-blue-50">
             <div className="flex items-center gap-3">
               <div className="bg-fitness-purple p-2 rounded-xl shadow-sm">
@@ -191,6 +220,26 @@ const Header = () => {
 
             <div className="overflow-y-auto px-6 pb-6" style={{ height: 'calc(90vh - 180px)' }}>
               <TabsContent value="features" className="mt-6 space-y-6">
+                <ToggleGroup
+                  type="single"
+                  value={featureView}
+                  onValueChange={(val) => val && setFeatureView(val as "user" | "developer")}
+                  className="mb-4"
+                >
+                  <ToggleGroupItem value="user" aria-label="User view">
+                    User
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="developer" aria-label="Developer view">
+                    Developer
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                {featureView === "developer" && (
+                  <Card className="border-dashed border-2 border-fitness-purple/30 bg-fitness-purple/5 mb-4">
+                    <CardContent className="p-3 text-sm text-center text-gray-700">
+                      OpenFit-AI runs on LangGraph multi-agent graphs with real-time token streaming across every page.
+                    </CardContent>
+                  </Card>
+                )}
                 <div className="grid md:grid-cols-2 gap-4">
                   {features.map((feature, idx) => (
                     <Card key={idx} className="relative group overflow-hidden border border-gray-200/50 shadow-sm">
@@ -202,17 +251,17 @@ const Header = () => {
                           <div>
                             <CardTitle className="text-lg">{feature.title}</CardTitle>
                             <CardDescription className="text-sm mt-1">
-                              {feature.description}
+                              {featureView === "user" ? feature.description : feature.developer.description}
                             </CardDescription>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent>
                         <ul className="space-y-2">
-                          {feature.benefits.map((benefit, benefitIdx) => (
+                          {(featureView === "user" ? feature.benefits : feature.developer.details).map((item, benefitIdx) => (
                             <li key={benefitIdx} className="flex items-center gap-2 text-sm text-gray-600">
                               <div className="h-1 w-1 rounded-full bg-gray-400" />
-                              {benefit}
+                              {item}
                             </li>
                           ))}
                         </ul>
@@ -273,7 +322,7 @@ const Header = () => {
                         </div>
                         <div className="flex items-center gap-4">
                           <Badge className="h-6 w-6 rounded-full flex items-center justify-center text-xs bg-fitness-purple">4</Badge>
-                          <p className="text-sm">Use the AI assistant for form tips and exercise guidance</p>
+                          <p className="text-sm">Get expert-backed answers to your fitness questions through our knowledge assistant</p>
                         </div>
                       </div>
                     </CardContent>
