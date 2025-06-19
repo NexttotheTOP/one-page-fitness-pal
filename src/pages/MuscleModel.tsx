@@ -1348,54 +1348,51 @@ export default function MuscleModelPage() {
       
       <div className="container max-w-[1600px] mx-auto py-6 space-y-6 px-6">
         {/* Modern Hero Section */}
-        <div className="bg-gradient-to-r from-fitness-purple/5 to-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="bg-fitness-purple/10 p-2 rounded-lg">
-                  <RefreshCw className="h-6 w-6 text-fitness-purple" />
+        <div className="bg-gradient-to-r from-fitness-purple/5 to-white border border-gray-200 rounded-lg p-3 shadow-sm">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1">
+                <div className="bg-fitness-purple/10 p-1 rounded-md">
+                  <RefreshCw className="h-4 w-4 text-fitness-purple" />
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-fitness-purple to-fitness-charcoal bg-clip-text text-transparent">3D Muscle Explorer</h1>
+                <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-fitness-purple to-fitness-charcoal bg-clip-text text-transparent">3D Muscle Explorer</h1>
               </div>
-              <p className="text-gray-600 max-w-2xl">
+              <p className="text-gray-600 max-w-xl text-xs">
                 Interactive model of the human muscular system. Click on muscles to highlight, rotate to view from any angle, and learn about muscle groups and their functions.
               </p>
             </div>
-            
-            <div className="flex gap-2 mt-4 md:mt-0">
-              <Button size="sm" variant="outline" className="gap-1.5">
-                <Info className="h-4 w-4" />
+            <div className="flex gap-1 mt-2 md:mt-0">
+              <Button variant="outline" className="gap-1.5 text-xs px-2 py-1 h-7">
+                <Info className="h-3 w-3" />
                 How to use
               </Button>
-              
               <Dialog open={muscleGuideOpen} onOpenChange={setMuscleGuideOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="bg-fitness-purple hover:bg-fitness-purple/90 gap-1.5">
-                    <Info className="h-4 w-4" />
+                  <Button className="bg-fitness-purple hover:bg-fitness-purple/90 gap-1.5 text-xs px-2 py-1 h-7">
+                    <Info className="h-3 w-3" />
                     Muscle Guide
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <div className="flex items-center gap-2">
-                      <div className="bg-fitness-purple/10 p-1.5 rounded-lg">
-                        <Info className="h-5 w-5 text-fitness-purple" />
+                      <div className="bg-fitness-purple/10 p-1 rounded-md">
+                        <Info className="h-4 w-4 text-fitness-purple" />
                       </div>
-                      <DialogTitle>Understanding Muscle Groups</DialogTitle>
+                      <DialogTitle className="text-base">Understanding Muscle Groups</DialogTitle>
                     </div>
-                    <DialogDescription>
+                    <DialogDescription className="text-xs">
                       Major muscle groups and their functions in the human body
                     </DialogDescription>
                   </DialogHeader>
-                  
-                  <div className="p-6 pt-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-white rounded-xl border p-5 shadow-sm">
-                        <h3 className="font-semibold text-fitness-purple flex items-center gap-2 mb-3">
-                          <span className="bg-fitness-purple/10 p-1 rounded w-6 h-6 flex items-center justify-center text-xs">U</span>
+                  <div className="p-3 pt-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="bg-white rounded-lg border p-3 shadow-sm">
+                        <h3 className="font-semibold text-fitness-purple flex items-center gap-2 mb-2 text-sm">
+                          <span className="bg-fitness-purple/10 p-1 rounded w-5 h-5 flex items-center justify-center text-xs">U</span>
                           Upper Body
                         </h3>
-                        <ul className="list-disc pl-5 space-y-2 text-gray-700">
+                        <ul className="list-disc pl-4 space-y-1 text-gray-700 text-xs">
                           <li><strong className="text-fitness-charcoal">Biceps Brachii</strong> - Arm flexion and supination</li>
                           <li><strong className="text-fitness-charcoal">Deltoids</strong> - Shoulder movement (anterior, medial, posterior)</li>
                           <li><strong className="text-fitness-charcoal">Pectoralis Major</strong> - Chest muscles for arm movement</li>
@@ -1403,13 +1400,12 @@ export default function MuscleModelPage() {
                           <li><strong className="text-fitness-charcoal">Trapezius</strong> - Upper back and neck movement</li>
                         </ul>
                       </div>
-                      
-                      <div className="bg-white rounded-xl border p-5 shadow-sm">
-                        <h3 className="font-semibold text-fitness-purple flex items-center gap-2 mb-3">
-                          <span className="bg-fitness-purple/10 p-1 rounded w-6 h-6 flex items-center justify-center text-xs">L</span>
+                      <div className="bg-white rounded-lg border p-3 shadow-sm">
+                        <h3 className="font-semibold text-fitness-purple flex items-center gap-2 mb-2 text-sm">
+                          <span className="bg-fitness-purple/10 p-1 rounded w-5 h-5 flex items-center justify-center text-xs">L</span>
                           Lower Body
                         </h3>
-                        <ul className="list-disc pl-5 space-y-2 text-gray-700">
+                        <ul className="list-disc pl-4 space-y-1 text-gray-700 text-xs">
                           <li><strong className="text-fitness-charcoal">Quadriceps</strong> - Front thigh muscles for leg extension</li>
                           <li><strong className="text-fitness-charcoal">Hamstrings</strong> - Rear thigh muscles for leg flexion</li>
                           <li><strong className="text-fitness-charcoal">Gluteus Maximus</strong> - Buttock muscles for hip extension</li>
@@ -1418,18 +1414,17 @@ export default function MuscleModelPage() {
                         </ul>
                       </div>
                     </div>
-                    
-                    <div className="mt-6 bg-blue-50 p-5 rounded-xl border border-blue-100 flex gap-4">
-                      <div className="bg-blue-100 p-2 rounded-lg h-min">
-                        <Info className="h-5 w-5 text-blue-700" />
+                    <div className="mt-3 bg-blue-50 p-3 rounded-lg border border-blue-100 flex gap-2">
+                      <div className="bg-blue-100 p-1 rounded-md h-min">
+                        <Info className="h-4 w-4 text-blue-700" />
                       </div>
                       <div>
-                        <h3 className="font-medium text-blue-800 text-lg mb-2">Animation Details</h3>
-                        <p className="text-blue-700">
+                        <h3 className="font-medium text-blue-800 text-sm mb-1">Animation Details</h3>
+                        <p className="text-blue-700 text-xs">
                           The 3D model shows muscle contractions in real-time. Use the animation controls to visualize how muscles change during various exercises and movements. Click on muscles to highlight them and learn more about their functions.
                         </p>
-                        <div className="mt-3 flex gap-2">
-                          <Button variant="outline" className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50" 
+                        <div className="mt-2 flex gap-2">
+                          <Button variant="outline" className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50 text-xs px-2 py-1 h-7" 
                             onClick={() => setMuscleGuideOpen(false)}>
                             Close Guide
                           </Button>
@@ -1458,7 +1453,7 @@ export default function MuscleModelPage() {
               {/* 3D Model Canvas */}
               <div 
                 ref={canvasContainerRef}
-                className="w-full lg:w-3/5 h-[800px] bg-gray-50 rounded-lg overflow-hidden border relative"
+                className="w-full lg:w-3/5 h-[70vh] min-h-[350px] max-h-[80vh] bg-gray-50 rounded-lg overflow-hidden border relative"
               >
                 {!isModelLoaded ? (
                   <div className="w-full h-full flex items-center justify-center">
@@ -1644,7 +1639,7 @@ export default function MuscleModelPage() {
                 )}
               </div>
               {/* Chat UI */}
-              <div className="lg:w-2/5 w-full h-[800px] flex flex-col justify-between">
+              <div className="lg:w-2/5 w-full h-[70vh] min-h-[350px] max-h-[80vh] flex flex-col justify-between">
                 <ChatTester />
               </div>
             </div>

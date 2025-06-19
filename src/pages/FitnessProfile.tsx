@@ -376,56 +376,54 @@ const FitnessProfile = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <main className="fitness-container py-6">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-fitness-charcoal mb-3">Your Fitness Profile</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+      <main className="fitness-container py-4">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-fitness-charcoal mb-2">Your Fitness Profile</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
             Your profile information is stored in our AI's global memory and used across the app to provide personalized 
             recommendations. When you request workouts or nutrition advice, we'll consider these details automatically.
           </p>
         </div>
         
         {/* Info badge about profile usage in workout generation */}
-        <div className="mb-6 flex items-center p-3 bg-blue-50 rounded-md text-sm text-blue-700 border border-blue-100 max-w-2xl mx-auto">
+        <div className="mb-4 flex items-center p-2 bg-blue-50 rounded-md text-xs text-blue-700 border border-blue-100 max-w-2xl mx-auto">
           <Info className="h-4 w-4 mr-2 flex-shrink-0 text-blue-500" />
           <span><strong>TIP:</strong> When you create workouts, we will always use your profile overview and our findings.</span>
         </div>
         
         {/* Body Image Upload Section */}
-        <div className="mb-8">
+        <div className="mb-6">
           <Card className="overflow-hidden border-0 shadow-md">
             <Collapsible open={isBodySectionOpen} onOpenChange={setIsBodySectionOpen}>
-              <CardHeader className="pb-3 bg-gradient-to-r from-purple-100 to-blue-50">
+              <CardHeader className="pb-2 bg-gradient-to-r from-purple-100 to-blue-50">
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle className="text-lg text-fitness-charcoal flex items-center gap-2">
+                    <CardTitle className="text-base text-fitness-charcoal flex items-center gap-2">
                       <ScanLine className="h-5 w-5 text-fitness-purple" />
                       Body Composition Tracking
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-xs">
                       Upload images to track your progress and get AI-powered body composition insights
                     </CardDescription>
                   </div>
-                  
                   <div className="flex items-center">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="rounded-full w-8 h-8">
+                          <Button variant="ghost" size="icon" className="rounded-full w-7 h-7">
                             <Info className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent className="max-w-sm">
+                        <TooltipContent className="max-w-sm text-xs">
                           <p>Upload front, side, and back images to get better analysis. Images are securely stored and only used for your personal fitness tracking.</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                    
                     <CollapsibleTrigger asChild>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="rounded-full h-8 w-8 transition-all hover:bg-black/5"
+                        className="rounded-full h-7 w-7 transition-all hover:bg-black/5"
                       >
                         {isBodySectionOpen ? (
                           <ChevronUp className="h-5 w-5 text-muted-foreground" />
@@ -439,12 +437,12 @@ const FitnessProfile = () => {
               </CardHeader>
 
               <CollapsibleContent>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'front' | 'side' | 'back')}>
-                    <TabsList className="grid grid-cols-3 mb-8">
-                      <TabsTrigger value="front">Front View</TabsTrigger>
-                      <TabsTrigger value="side">Side View</TabsTrigger>
-                      <TabsTrigger value="back">Back View</TabsTrigger>
+                    <TabsList className="grid grid-cols-3 mb-4">
+                      <TabsTrigger value="front" className="text-xs">Front View</TabsTrigger>
+                      <TabsTrigger value="side" className="text-xs">Side View</TabsTrigger>
+                      <TabsTrigger value="back" className="text-xs">Back View</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="front" className="mt-0">
@@ -460,6 +458,7 @@ const FitnessProfile = () => {
                         }}
                         isDragging={isDragging}
                         title="Front View"
+                        compact={true}
                       />
                     </TabsContent>
                     
@@ -476,6 +475,7 @@ const FitnessProfile = () => {
                         }}
                         isDragging={isDragging}
                         title="Side View"
+                        compact={true}
                       />
                     </TabsContent>
                     
@@ -492,6 +492,7 @@ const FitnessProfile = () => {
                         }}
                         isDragging={isDragging}
                         title="Back View"
+                        compact={true}
                       />
                     </TabsContent>
                   </Tabs>
@@ -506,14 +507,14 @@ const FitnessProfile = () => {
                   
                   {/* Info text to connect body photos with profile generation */}
                   {hasAllImageTypes ? (
-                    <div className="mt-6 flex items-center p-3 bg-blue-50 rounded-md text-sm text-blue-700 border border-blue-100">
+                    <div className="mt-4 flex items-center p-2 bg-blue-50 rounded-md text-xs text-blue-700 border border-blue-100">
                       <Info className="h-4 w-4 mr-2 flex-shrink-0 text-blue-500" />
                       <p>
                         Body photos will be automatically analyzed when you generate your fitness profile overview.
                       </p>
                     </div>
                   ) : (
-                    <div className="mt-6 flex items-center p-3 bg-amber-50 rounded-md text-sm text-amber-700 border border-amber-100">
+                    <div className="mt-4 flex items-center p-2 bg-amber-50 rounded-md text-xs text-amber-700 border border-amber-100">
                       <Info className="h-4 w-4 mr-2 flex-shrink-0 text-amber-500" />
                       <p>
                         <strong>Please upload all three views (front, side, and back).</strong> Complete uploads are 
@@ -529,17 +530,17 @@ const FitnessProfile = () => {
 
         {/* Analysis Result Section */}
         {analysisResult && (
-          <div className="mb-8">
+          <div className="mb-6">
             <Card className="overflow-hidden border-0 shadow-md">
               <Collapsible open={isAnalysisSectionOpen} onOpenChange={setIsAnalysisSectionOpen}>
-                <CardHeader className="bg-gradient-to-r from-blue-100 to-green-50">
+                <CardHeader className="bg-gradient-to-r from-blue-100 to-green-50 py-2">
                   <div className="flex justify-between items-center">
                     <div>
-                      <CardTitle className="text-lg text-fitness-charcoal flex items-center gap-2">
+                      <CardTitle className="text-base text-fitness-charcoal flex items-center gap-2">
                         <ScanLine className="h-5 w-5 text-blue-600" />
                         Body Composition Analysis
                       </CardTitle>
-                      <CardDescription className="text-sm">
+                      <CardDescription className="text-xs">
                         AI-powered assessment based on your uploaded photos and profile information
                       </CardDescription>
                     </div>
@@ -548,7 +549,7 @@ const FitnessProfile = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="rounded-full h-8 w-8 transition-all hover:bg-black/5"
+                        className="rounded-full h-7 w-7 transition-all hover:bg-black/5"
                       >
                         {isAnalysisSectionOpen ? (
                           <ChevronUp className="h-5 w-5 text-muted-foreground" />
@@ -561,15 +562,15 @@ const FitnessProfile = () => {
                 </CardHeader>
                 
                 <CollapsibleContent>
-                  <CardContent className="p-6">
+                  <CardContent className="p-4">
                     {isAnalyzing ? (
-                      <div className="flex flex-col items-center justify-center py-10">
-                        <Loader2 className="h-10 w-10 animate-spin text-fitness-purple mb-4" />
-                        <p className="text-muted-foreground">Analyzing your images and profile data...</p>
-                        <p className="text-xs text-muted-foreground mt-2">This might take a minute</p>
+                      <div className="flex flex-col items-center justify-center py-6">
+                        <Loader2 className="h-8 w-8 animate-spin text-fitness-purple mb-3" />
+                        <p className="text-muted-foreground text-sm">Analyzing your images and profile data...</p>
+                        <p className="text-xs text-muted-foreground mt-1">This might take a minute</p>
                       </div>
                     ) : (
-                      <div className="prose prose-sm max-w-none text-gray-700">
+                      <div className="prose prose-xs max-w-none text-gray-700">
                         <Markdown remarkPlugins={[remarkGfm]}>{analysisResult}</Markdown>
                       </div>
                     )}
@@ -611,6 +612,7 @@ interface ImageUploadAreaProps {
   onRemove: (id: string) => void;
   isDragging: boolean;
   title: string;
+  compact?: boolean;
 }
 
 const ImageUploadArea = ({ 
@@ -621,11 +623,13 @@ const ImageUploadArea = ({
   onClick,
   onRemove,
   isDragging,
-  title
+  title,
+  compact = false
 }: ImageUploadAreaProps) => {
+  const heightClass = compact ? "h-56" : "h-80";
   if (image?.url) {
     return (
-      <div className="relative h-80 w-full">
+      <div className={`relative w-full ${heightClass}`}>
         <img 
           src={image.url} 
           alt={`${title} body image`}
@@ -653,8 +657,8 @@ const ImageUploadArea = ({
             <Upload className="h-4 w-4" />
           </Button>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/30 to-transparent p-3 text-white rounded-b-lg">
-          <p className="text-sm font-medium">Uploaded on {image.date.toLocaleDateString()}</p>
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/30 to-transparent p-2 text-white rounded-b-lg">
+          <p className="text-xs font-medium">Uploaded on {image.date.toLocaleDateString()}</p>
         </div>
       </div>
     );
@@ -663,7 +667,7 @@ const ImageUploadArea = ({
   return (
     <div 
       className={cn(
-        "border-2 border-dashed rounded-lg flex flex-col items-center justify-center h-80 transition-colors cursor-pointer",
+        `border-2 border-dashed rounded-lg flex flex-col items-center justify-center ${heightClass} transition-colors cursor-pointer`,
         isDragging 
           ? "border-fitness-purple bg-fitness-purple/5" 
           : "border-gray-200 hover:border-fitness-purple/50 hover:bg-gray-50"
@@ -673,17 +677,17 @@ const ImageUploadArea = ({
       onDrop={onDrop}
       onClick={onClick}
     >
-      <div className="flex flex-col items-center gap-3 text-center p-8">
-        <div className="p-3 rounded-full bg-fitness-purple/10 text-fitness-purple">
-          <Camera className="h-8 w-8" />
+      <div className="flex flex-col items-center gap-2 text-center p-4">
+        <div className="p-2 rounded-full bg-fitness-purple/10 text-fitness-purple">
+          <Camera className="h-7 w-7" />
         </div>
         <div>
-          <h3 className="font-medium text-fitness-charcoal mb-1">Upload {title}</h3>
-          <p className="text-sm text-muted-foreground max-w-xs">
+          <h3 className="font-medium text-fitness-charcoal mb-1 text-sm">Upload {title}</h3>
+          <p className="text-xs text-muted-foreground max-w-xs">
             Drag and drop or click to upload a clear, well-lit {title.toLowerCase()} image
           </p>
         </div>
-        <Button variant="outline" className="mt-2 bg-white">
+        <Button variant="outline" className="mt-1 bg-white text-xs px-2 py-1">
           <FileImage className="h-4 w-4 mr-2" />
           Select Image
         </Button>

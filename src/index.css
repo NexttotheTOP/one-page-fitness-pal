@@ -84,12 +84,12 @@
     animation: fadeIn 0.3s ease-in-out;
   }
 
-  /* Global screen size scaling */
+  /* Global screen size scaling
   @media (min-width: 1024px) {
     html {
       font-size: 95%; 
     }
-  }
+  } */
 }
 
 @layer base {

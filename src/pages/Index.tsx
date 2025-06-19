@@ -952,64 +952,64 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <main className="container mx-auto px-6 sm:px-10 lg:px-16 xl:px-20 w-full max-w-none">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 w-full max-w-none">
         <div>
           {/* Top Stats Dashboard */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 mt-6">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <Dumbbell className="h-6 w-6 text-fitness-purple" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 mt-4">
+            <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-purple-100 flex items-center justify-center">
+                <Dumbbell className="h-5 w-5 text-fitness-purple" />
               </div>
               <div>
-                <div className="text-sm text-gray-500">Total Workouts</div>
-                <div className="text-2xl font-bold text-fitness-charcoal">{filteredWorkouts.length}</div>
+                <div className="text-xs text-gray-500">Total Workouts</div>
+                <div className="text-lg font-bold text-fitness-charcoal">{filteredWorkouts.length}</div>
               </div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <Activity className="h-6 w-6 text-blue-600" />
+            <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center">
+                <Activity className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <div className="text-sm text-gray-500">Exercise Library</div>
-                <div className="text-2xl font-bold text-fitness-charcoal">{workouts.flatMap(w => w.exercises).length}</div>
+                <div className="text-xs text-gray-500">Exercise Library</div>
+                <div className="text-lg font-bold text-fitness-charcoal">{workouts.flatMap(w => w.exercises).length}</div>
               </div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                <Target className="h-6 w-6 text-green-600" />
+            <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center">
+                <Target className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <div className="text-sm text-gray-500">Week Plans</div>
-                <div className="text-2xl font-bold text-fitness-charcoal">{savedSchemas.length}</div>
+                <div className="text-xs text-gray-500">Week Plans</div>
+                <div className="text-lg font-bold text-fitness-charcoal">{savedSchemas.length}</div>
               </div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
-                <CalendarDays className="h-6 w-6 text-amber-600" />
+            <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-amber-100 flex items-center justify-center">
+                <CalendarDays className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <div className="text-sm text-gray-500">Active Plan</div>
-                <div className="text-2xl font-bold text-fitness-charcoal">{activeSchema?.name ? 1 : 0}</div>
+                <div className="text-xs text-gray-500">Active Plan</div>
+                <div className="text-lg font-bold text-fitness-charcoal">{activeSchema?.name ? 1 : 0}</div>
               </div>
             </div>
           </div>
 
           {/* Welcome Section */}
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 mb-6 shadow-sm border border-purple-100/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 mb-4 shadow-sm border border-purple-100/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-fitness-charcoal flex items-center gap-2">
+              <h1 className="text-xl md:text-2xl font-bold text-fitness-charcoal flex items-center gap-2">
                 Welcome back, {displayName}
               </h1>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-muted-foreground mt-1 text-sm">
                 Track your fitness journey and create custom workout plans
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <Button 
                 onClick={() => setIsCreateOpen(!isCreateOpen)}
-                className="bg-fitness-purple hover:bg-fitness-purple/90 transition-all shadow-md"
+                className="bg-fitness-purple hover:bg-fitness-purple/90 transition-all shadow-md text-sm px-3 py-2"
               >
-                <Brain className="h-5 w-5 mr-2" />
+                <Brain className="h-4 w-4 mr-1" />
                 {isCreateOpen ? "Hide Creator" : "Create Workout"}
               </Button>
               <div className="relative w-full md:w-auto">
@@ -1019,7 +1019,7 @@ const Index = () => {
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-10 bg-white border-gray-200 w-full md:w-[200px] transition-all focus-visible:ring-fitness-purple/25 shadow-sm"
+                  className="pl-9 h-8 bg-white border-gray-200 w-full md:w-[160px] transition-all focus-visible:ring-fitness-purple/25 shadow-sm text-sm"
                 />
               </div>
             </div>
@@ -1052,14 +1052,14 @@ const Index = () => {
                   )}
                   <div className={`flex flex-col ${currentGenerationId ? 'lg:flex-row' : 'items-center'} overflow-hidden`}>
                     {/* Left side - AI input - centered initially */}
-                    <div className={`p-6 ${currentGenerationId ? 'lg:w-[45%] relative' : 'w-full'}`}>
-                      <div className="flex items-center gap-3 mb-5">
-                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-fitness-purple to-purple-400 flex items-center justify-center shadow-md">
-                          <Brain className="h-5 w-5 text-white" />
+                    <div className={`p-4 ${currentGenerationId ? 'lg:w-[45%] relative' : 'w-full'}`}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-fitness-purple to-purple-400 flex items-center justify-center shadow-md">
+                          <Brain className="h-4 w-4 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-fitness-charcoal">AI Workout Creator</h3>
-                          <p className="text-sm text-muted-foreground">
+                          <h3 className="text-base font-semibold text-fitness-charcoal">AI Workout Creator</h3>
+                          <p className="text-xs text-muted-foreground">
                             What workout you need today?
                           </p>
                         </div>
@@ -1084,7 +1084,7 @@ const Index = () => {
                             value={prompt}
                             onChange={handlePromptChange}
                             onContextChange={handleMentionContextChange}
-                            className="mb-4"
+                            className="mb-2 text-sm"
                             onGenerate={handleGenerateWorkout}
                             isGenerating={isGenerating}
                           />
@@ -1094,14 +1094,14 @@ const Index = () => {
 
                     {/* Right side - preview of generation (when active) */}
                     {currentGenerationId && (
-                      <div className="lg:w-[55%] bg-white py-4 px-6 lg:px-8 lg:py-5 relative flex overflow-hidden">
+                      <div className="lg:w-[55%] bg-white py-3 px-4 lg:px-6 lg:py-4 relative flex overflow-hidden">
                         <div className="w-full">
                           <style>{markdownStyles}</style>
-                          <div className="h-[500px] w-full overflow-auto">
+                          <div className="h-[350px] w-full overflow-auto">
                             <div 
                               ref={markdownRef}
                               className={cn(
-                                "prose prose-sm max-w-none text-gray-700 relative pl-5 py-3 my-2 border-l-[3px] bg-gray-50/50 rounded-r-sm",
+                                "prose prose-xs max-w-none text-gray-700 relative pl-3 py-2 my-1 border-l-2 bg-gray-50/50 rounded-r-sm",
                                 "markdown-content streaming-markdown",
                                 isGenerating && "animate-pulse"
                               )}
@@ -1152,17 +1152,17 @@ const Index = () => {
 
                   {/* Final Generated Workouts & Exercises - always show if non-empty */}
                   {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0 || streamedExercises.length > 0 || generatedExercises.length > 0) && (
-                    <div ref={generatedSectionRef} className="p-6 pt-4 border-t border-gray-200 bg-white">
+                    <div ref={generatedSectionRef} className="p-4 pt-2 border-t border-gray-200 bg-white">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-fitness-charcoal flex items-center gap-2">
-                          <Dumbbell className="h-5 w-5 text-fitness-purple" />
+                        <h3 className="text-base font-semibold text-fitness-charcoal flex items-center gap-2">
+                          <Dumbbell className="h-4 w-4 text-fitness-purple" />
                           Generated Content
                         </h3>
                         <Button 
                           variant="outline" 
                           size="sm" 
                           onClick={clearCurrentGeneration}
-                          className="text-gray-500 hover:text-gray-700"
+                          className="text-gray-500 hover:text-gray-700 text-xs px-2 py-1"
                         >
                           <X className="h-4 w-4 mr-1" /> Clear
                         </Button>
@@ -1171,13 +1171,13 @@ const Index = () => {
                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                         {/* Workouts Section */}
                         {(streamedWorkouts.length > 0 || generatedWorkouts.length > 0) && (
-                          <div className={`space-y-4 ${(streamedExercises.length > 0 || generatedExercises.length > 0) ? 
+                          <div className={`space-y-3 ${(streamedExercises.length > 0 || generatedExercises.length > 0) ? 
                             (streamedWorkouts.length <= 1 || generatedWorkouts.length <= 1) ? 'lg:col-span-6' : 'lg:col-span-8' 
                             : 'lg:col-span-12'}`}>
-                            <h4 className="font-medium text-gray-700 text-sm uppercase tracking-wide">Workouts</h4>
-                            <div className="max-h-[700px] overflow-auto pr-2">
+                            <h4 className="font-medium text-gray-700 text-xs uppercase tracking-wide">Workouts</h4>
+                            <div className="max-h-[500px] overflow-auto pr-1">
                               <div className={`grid ${(streamedWorkouts.length <= 1 || generatedWorkouts.length <= 1) && (streamedExercises.length > 0 || generatedExercises.length > 0) ? 
-                                'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-5 p-2`}>
+                                'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} gap-3 p-1`}>
                                 {(streamedWorkouts.length > 0 ? streamedWorkouts : generatedWorkouts).map((workout, index) => (
                                   <WorkoutCard
                                     key={index}
@@ -1193,11 +1193,11 @@ const Index = () => {
                         
                         {/* Exercises Section */}
                         {(streamedExercises.length > 0 || generatedExercises.length > 0) && (
-                          <div className={`space-y-4 ${(streamedWorkouts.length > 0 || generatedWorkouts.length > 0) ? 
+                          <div className={`space-y-3 ${(streamedWorkouts.length > 0 || generatedWorkouts.length > 0) ? 
                             (streamedWorkouts.length <= 1 || generatedWorkouts.length <= 1) ? 'lg:col-span-6' : 'lg:col-span-4' 
                             : 'lg:col-span-12'}`}>
-                            <h4 className="font-medium text-gray-700 text-sm uppercase tracking-wide">Exercises</h4>
-                            <div className="max-h-[700px] overflow-auto pr-2 space-y-4">
+                            <h4 className="font-medium text-gray-700 text-xs uppercase tracking-wide">Exercises</h4>
+                            <div className="max-h-[500px] overflow-auto pr-1 space-y-3">
                               {(streamedExercises.length > 0 ? streamedExercises : generatedExercises).map((exercise, idx) => (
                                 <ExerciseCard key={idx} exercise={exercise as Exercise} />
                               ))}
@@ -1256,8 +1256,8 @@ const Index = () => {
           {/* Workouts Section */}
           <div>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-fitness-charcoal flex items-center gap-2">
-                <Dumbbell className="h-5 w-5 text-fitness-purple" />
+              <h2 className="text-lg font-semibold text-fitness-charcoal flex items-center gap-2">
+                <Dumbbell className="h-4 w-4 text-fitness-purple" />
                 Your Workout Collection
               </h2>
               <div className="flex gap-2">
@@ -1271,15 +1271,15 @@ const Index = () => {
                     setDeleteMode(!deleteMode);
                     setSelectedWorkouts(new Set());
                   }}
-                  className="ml-2"
+                  className="ml-2 text-xs px-2 py-1"
                 >
                   {deleteMode ? "Cancel" : "Manage"}
                 </Button>
               </div>
             </div>
             {deleteMode && selectedWorkouts.size > 0 && (
-              <div className="bg-red-50 p-3 rounded-lg border border-red-200 mb-4 flex items-center justify-between">
-                <span className="text-red-700 text-sm font-medium">
+              <div className="bg-red-50 p-2 rounded-lg border border-red-200 mb-3 flex items-center justify-between">
+                <span className="text-red-700 text-xs font-medium">
                   {selectedWorkouts.size} {selectedWorkouts.size === 1 ? 'workout' : 'workouts'} selected
                 </span>
                 <Button
@@ -1293,9 +1293,9 @@ const Index = () => {
             )}
             <Tabs value={viewMode} onValueChange={v => setViewMode(v as 'single' | 'week')} className="mb-6">
               <div className="flex justify-center">
-                <TabsList className="bg-gray-100 rounded-lg p-1 flex gap-2">
-                  <TabsTrigger value="single" className="px-4 py-2 rounded-lg data-[state=active]:bg-fitness-purple data-[state=active]:text-white">Workouts</TabsTrigger>
-                  <TabsTrigger value="week" className="px-4 py-2 rounded-lg data-[state=active]:bg-fitness-purple data-[state=active]:text-white">Week Schema</TabsTrigger>
+                <TabsList className="bg-gray-100 rounded-lg p-0.5 flex gap-1">
+                  <TabsTrigger value="single" className="px-3 py-1.5 rounded-lg data-[state=active]:bg-fitness-purple data-[state=active]:text-white text-xs">Workouts</TabsTrigger>
+                  <TabsTrigger value="week" className="px-3 py-1.5 rounded-lg data-[state=active]:bg-fitness-purple data-[state=active]:text-white text-xs">Week Schema</TabsTrigger>
                 </TabsList>
               </div>
             </Tabs>
@@ -1308,7 +1308,7 @@ const Index = () => {
                     <Loader2 className="h-12 w-12 animate-spin text-fitness-purple" />
                   </div>
                 ) : filteredWorkouts.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 p-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3 p-1">
                     {filteredWorkouts.map((workout, index) => (
                       <motion.div
                         key={workout.id}

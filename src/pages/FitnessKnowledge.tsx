@@ -1582,68 +1582,68 @@ const FitnessKnowledge = () => {
                 </div>
               ) : (
                 /* Welcome screen for new users */
-                <div className="flex-1 flex flex-col items-center overflow-auto py-4 md:py-6">
-                  <div className="text-center w-full mx-auto px-2 pb-6">
+                <div className="flex-1 flex flex-col items-center overflow-auto py-2 md:py-4">
+                  <div className="text-center w-full mx-auto px-1 pb-4">
                     {/* Knowledge System Explanation Card */}
                     <motion.div 
-                      className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl md:rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 mb-6 transition-all duration-300 hover:shadow-md max-w-3xl mx-auto"
+                      className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-sm border border-gray-100 mb-4 transition-all duration-300 hover:shadow-md max-w-2xl mx-auto"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3 }}
+                      style={{ fontSize: '0.97rem' }}
                     >
-                      <div className="flex items-center justify-center gap-4 mb-4">
-                        <div className="flex items-center justify-center h-12 w-12 bg-white rounded-full shadow-sm">
-                          <Brain className="h-6 w-6 text-fitness-purple" />
+                      <div className="flex items-center justify-center gap-3 mb-3">
+                        <div className="flex items-center justify-center h-10 w-10 bg-white rounded-full shadow-sm">
+                          <Brain className="h-5 w-5 text-fitness-purple" />
                         </div>
                         <div className="h-px flex-1 bg-gradient-to-r from-purple-200 to-transparent"></div>
-                        <div className="flex items-center justify-center h-12 w-12 bg-white rounded-full shadow-sm">
-                          <Search className="h-6 w-6 text-blue-500" />
+                        <div className="flex items-center justify-center h-10 w-10 bg-white rounded-full shadow-sm">
+                          <Search className="h-5 w-5 text-blue-500" />
                         </div>
                       </div>
-                      <h3 className="text-xl md:text-2xl font-bold text-fitness-charcoal mb-3">
+                      <h3 className="text-lg md:text-xl font-bold text-fitness-charcoal mb-2">
                         Fitness Knowledge AI
                       </h3>
-                      <p className="text-gray-700 mb-4 max-w-lg mx-auto">
+                      <p className="text-gray-700 mb-3 max-w-md mx-auto text-sm">
                         Get evidence-based answers from top fitness experts like AthleanX, Jeff Nippard, and Renaissance Periodization.
                       </p>
-                      <div className="mb-5 flex flex-wrap gap-2 justify-center">
-                        <Badge variant="outline" className="py-1.5 px-3 bg-amber-50 text-amber-700 border-amber-200">
+                      <div className="mb-3 flex flex-wrap gap-1 justify-center">
+                        <Badge variant="outline" className="py-1 px-2 bg-amber-50 text-amber-700 border-amber-200 text-xs">
                           Backed by YouTube's top fitness creators
                         </Badge>
-                        <Badge variant="outline" className="py-1.5 px-3 bg-blue-50 text-blue-700 border-blue-200">
+                        <Badge variant="outline" className="py-1 px-2 bg-blue-50 text-blue-700 border-blue-200 text-xs">
                           Reliable information with sources
                         </Badge>
                       </div>
-                      
-                      <div className="text-gray-700 text-sm md:text-base space-y-3 max-w-2xl mx-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                          <div className="bg-white/80 p-3 rounded-lg shadow-sm border border-purple-100">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <Badge className="bg-fitness-purple text-white">Step 1</Badge>
+                      <div className="text-gray-700 text-xs md:text-sm space-y-2 max-w-xl mx-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                          <div className="bg-white/80 p-2 rounded-lg shadow-sm border border-purple-100">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge className="bg-fitness-purple text-white text-xs">Step 1</Badge>
                               <span className="font-medium text-fitness-charcoal">Knowledge Base Search</span>
                             </div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-xs text-gray-600">
                               We search our extensive library of content from Jeff Nippard, AthleanX, and Renaissance Periodization videos.
                             </p>
                           </div>
-                          <div className="bg-white/80 p-3 rounded-lg shadow-sm border border-blue-100">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <Badge className="bg-blue-500 text-white">Step 2</Badge>
+                          <div className="bg-white/80 p-2 rounded-lg shadow-sm border border-blue-100">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge className="bg-blue-500 text-white text-xs">Step 2</Badge>
                               <span className="font-medium text-fitness-charcoal">Web Search Fallback</span>
                             </div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-xs text-gray-600">
                               If we can't find relevant information in our knowledge base, we'll search the web for reliable answers.
                             </p>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-500 italic mt-3 mb-5">
+                        <p className="text-xs text-gray-500 italic mt-2 mb-3">
                           We'll always cite our sources and tell you exactly where the information comes from.
                         </p>
                         <div>
                           <Button
                             onClick={startNewChat}
-                            className="bg-gradient-to-r from-fitness-purple to-purple-500 hover:from-fitness-purple/90 hover:to-purple-500/90 transition-colors shadow-sm"
-                            size="lg"
+                            className="bg-gradient-to-r from-fitness-purple to-purple-500 hover:from-fitness-purple/90 hover:to-purple-500/90 transition-colors shadow-sm text-sm px-4 py-2"
+                            size="sm"
                           >
                             <MessageSquare className="h-4 w-4 mr-2" />
                             Start New Chat
@@ -1651,45 +1651,46 @@ const FitnessKnowledge = () => {
                         </div>
                       </div>
                     </motion.div>
-                    
                     {/* Expert suggestions */}
-                    <div className="mt-4 md:mt-6 w-full">
-                      <h3 className="text-base md:text-lg font-semibold text-fitness-charcoal mb-4">Popular questions to get you started</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 max-w-5xl mx-auto">
-                        {expertSuggestions.map((expertGroup, groupIndex) => (
-                          <motion.div 
-                            key={groupIndex}
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4, delay: 0.1 + groupIndex * 0.1 }}
-                            className={`bg-gradient-to-r ${expertGroup.color} rounded-lg md:rounded-xl p-4 md:p-5 shadow-sm border border-gray-100`}
-                          >
-                            <div className="flex items-center mb-3">
-                              <span className="text-2xl mr-2">{expertGroup.icon}</span>
-                              <h4 className="font-medium text-fitness-charcoal text-sm md:text-base">{expertGroup.expert}</h4>
-                            </div>
-                            <ul className="space-y-1.5 md:space-y-2">
-                              {expertGroup.suggestions.map((suggestion, suggIndex) => (
-                                <li key={suggIndex} className="bg-white/80 rounded-lg shadow-sm">
-                                  <button
-                                    onClick={() => {
-                                      startNewChat();
-                                      // Small delay to ensure the new conversation is created before setting the input
-                                      setTimeout(() => {
-                                        handleSuggestionClick(suggestion);
-                                        setTimeout(() => handleSendMessage(), 100);
-                                      }, 50);
-                                    }}
-                                    className="flex items-center w-full p-2 text-left text-xs md:text-sm text-gray-700 hover:text-fitness-purple gap-2 group transition-colors"
-                                  >
-                                    <span className="flex-1 truncate">{suggestion}</span>
-                                    <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-fitness-purple" />
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
-                          </motion.div>
-                        ))}
+                    <div className="mt-2 md:mt-4 w-full max-w-5xl mx-auto">
+                      <h3 className="text-sm md:text-base font-semibold text-fitness-charcoal mb-2">Popular questions to get you started</h3>
+                      <div className="overflow-x-auto pb-1">
+                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 min-w-[320px]" style={{ minWidth: '320px' }}>
+                          {expertSuggestions.map((expertGroup, groupIndex) => (
+                            <motion.div 
+                              key={groupIndex}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3, delay: 0.1 + groupIndex * 0.07 }}
+                              className={`bg-gradient-to-r ${expertGroup.color} rounded-lg md:rounded-xl p-3 md:p-4 shadow-sm border border-gray-100 min-w-[220px]`}
+                              style={{ fontSize: '0.97rem' }}
+                            >
+                              <div className="flex items-center mb-2">
+                                <span className="text-xl mr-2">{expertGroup.icon}</span>
+                                <h4 className="font-medium text-fitness-charcoal text-xs md:text-sm">{expertGroup.expert}</h4>
+                              </div>
+                              <ul className="space-y-1 md:space-y-1.5">
+                                {expertGroup.suggestions.map((suggestion, suggIndex) => (
+                                  <li key={suggIndex} className="bg-white/80 rounded-lg shadow-sm">
+                                    <button
+                                      onClick={() => {
+                                        startNewChat();
+                                        setTimeout(() => {
+                                          handleSuggestionClick(suggestion);
+                                          setTimeout(() => handleSendMessage(), 100);
+                                        }, 50);
+                                      }}
+                                      className="flex items-center w-full p-1.5 text-left text-xs md:text-sm text-gray-700 hover:text-fitness-purple gap-2 group transition-colors"
+                                    >
+                                      <span className="flex-1 truncate">{suggestion}</span>
+                                      <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-fitness-purple" />
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            </motion.div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
