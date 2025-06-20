@@ -82,6 +82,21 @@ export async function updateProfileGenerationLabel(userId: string, generationId:
   if (error) throw error;
 }
 
+export async function checkDisplayNameExists(displayName: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('check_display_name_exists', {
+    display_name_to_check: displayName,
+  });
+
+  if (error) {
+    console.error('Error checking display name:', error);
+    // To be safe, we won't block signup if this check fails.
+    // You could decide to return true here to block if the check is critical.
+    return false;
+  }
+
+  return data;
+}
+
 async function getExerciseIdByName(userId: string, name: string): Promise<string> {
   const { data, error } = await supabase
     .from('exercises')

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { defaultWorkouts } from "@/lib/defaultWorkouts";
-import { createDefaultWorkouts, getUserWorkouts } from "@/lib/db";
+import { createDefaultWorkouts, getUserWorkouts, checkDisplayNameExists } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, User, UserPlus, CheckCircle2 } from "lucide-react";
@@ -109,6 +109,17 @@ export default function SignUpForm({ onProfileSetupStart, onProfileSetupComplete
     }
 
     setIsLoading(true);
+
+    const nameExists = await checkDisplayNameExists(name);
+    if (nameExists) {
+      toast({
+        title: "Display name taken",
+        description: "This name is already in use. Please choose another.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
 
     try {
       // 1. Sign up the user

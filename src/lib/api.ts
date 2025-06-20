@@ -63,7 +63,8 @@ export async function generateProfileOverview(
     const response = await fetch('https://web-production-aafa6.up.railway.app/fitness/profile/stream', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream'
       },
       body: JSON.stringify(data)
     });

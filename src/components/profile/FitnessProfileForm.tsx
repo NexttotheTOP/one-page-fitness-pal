@@ -115,7 +115,7 @@ function extractHeadings(markdown: string) {
 
 // Define markdownComponents once to avoid duplicate object literal keys
 const markdownComponents = {
-  h1: ({ children }: { children: React.ReactNode }) => <h1 className="text-xl font-bold text-fitness-charcoal mt-6 mb-4">{children}</h1>,
+  h1: ({ children }: { children: React.ReactNode }) => <h1 className="text-lg font-bold text-fitness-charcoal mt-6 mb-4">{children}</h1>,
   h2: ({ children }: { children: React.ReactNode }) => {
     const text = children?.toString() || '';
     const id = text
@@ -125,7 +125,7 @@ const markdownComponents = {
     return (
       <h2
         id={id}
-        className="text-xl font-semibold text-fitness-purple mt-5 mb-3 flex items-center gap-2 scroll-mt-24 bg-fitness-purple/10 px-4 py-2 rounded-md"
+        className="text-lg font-semibold text-fitness-purple mt-5 mb-3 flex items-center gap-2 scroll-mt-24 bg-fitness-purple/10 px-4 py-2 rounded-md"
       >
         {text.includes("Dietary plan") ? 
           <Utensils className="h-4 w-4 text-green-600" /> : 
@@ -147,24 +147,24 @@ const markdownComponents = {
     // Special formatting for meal-related sections
     if (content.includes("Meal Library")) {
       return (
-        <h3 className="text-lg font-medium mt-5 mb-3 bg-green-50 px-3 py-2 rounded-md flex items-center gap-2 border-l-4 border-green-200">
+        <h3 className="text-base font-medium mt-5 mb-3 bg-green-50 px-3 py-2 rounded-md flex items-center gap-2 border-l-4 border-green-200">
           <Utensils className="h-4 w-4 text-green-600" />
           {children}
         </h3>
       );
     }
     
-    return <h3 className="text-lg font-medium mt-4 mb-2">{children}</h3>;
+    return <h3 className="text-base font-medium mt-4 mb-2">{children}</h3>;
   },
   p: ({ children }: { children: React.ReactNode }) => {
     // If it's an empty paragraph (just line breaks), render minimal spacing
     if (children === '' || children === ' ' || children === '\n') {
       return <div className="h-1"></div>;
     }
-    return <p className="my-2">{children}</p>;
+    return <p className="my-2 text-xs">{children}</p>;
   },
-  ul: ({ children }: { children: React.ReactNode }) => <ul className="list-disc pl-6 my-2 space-y-0.5">{children}</ul>,
-  ol: ({ children }: { children: React.ReactNode }) => <ol className="list-decimal pl-6 my-2 space-y-0.5">{children}</ol>,
+  ul: ({ children }: { children: React.ReactNode }) => <ul className="list-disc pl-6 my-2 space-y-0.5 text-xs">{children}</ul>,
+  ol: ({ children }: { children: React.ReactNode }) => <ol className="list-decimal pl-6 my-2 space-y-0.5 text-xs">{children}</ol>,
   li: ({ children }: { children: React.ReactNode }) => {
     const content = children?.toString() || '';
     if (content.trim() === '') {

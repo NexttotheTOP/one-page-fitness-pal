@@ -8,7 +8,6 @@ import { Navigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Dumbbell } from "lucide-react";
 import { motion } from "framer-motion";
-import FeatureShowcase from "@/components/auth/FeatureShowcase";
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
@@ -92,16 +91,6 @@ export default function Auth() {
             </p>
           </motion.div>
         </div>
-
-        {/* Feature Showcase */}
-        <motion.div
-          className="w-full max-w-2xl mt-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-        >
-          <FeatureShowcase />
-        </motion.div>
       </div>
     </div>
   );

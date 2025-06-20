@@ -606,6 +606,7 @@ const Index = () => {
       context: hasContext ? mentionContext : undefined,
       has_gym_access: hasGymAccess,
     };
+    console.log('[WORKOUT/CREATE] Sending payload:', requestPayload);
     await handleWorkoutStream({
       endpoint: 'https://web-production-aafa6.up.railway.app/workout/create',
       payload: requestPayload,
